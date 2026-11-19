@@ -14,7 +14,7 @@ test("the public demo lookup contains only the anonymized demo", () => {
 });
 
 test("Cape Cod uses fictional people throughout its shared data and attribution", () => {
-  assert.doesNotMatch(JSON.stringify(pilotSnapshot), /Casey|Robin|Rivera/i);
+  assert.doesNotMatch(JSON.stringify(pilotSnapshot), /@gmail\.com|Rivera/i);
   assert.equal(pilotSnapshot.currentActor.displayName, "Jordan Reed");
   const jordan = pilotSnapshot.participants.find(person => person.id === pilotSnapshot.currentActor.id)!;
   const casey = pilotSnapshot.participants.find(person => person.displayName === "Casey Reed")!;

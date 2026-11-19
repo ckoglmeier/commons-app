@@ -40,7 +40,7 @@ test("a creator's lost organizer or pilot authority invalidates old links withou
 
 test("creator membership is locked through granting access and provider eligibility is rechecked after preview",{skip},async()=>{
   const url=process.env.TEST_DATABASE_URL!;assert.equal(new URL(url).hostname,"127.0.0.1");assert.ok(new URL(url).pathname.endsWith("_test"));
-  const db=createDatabase(url),trip=randomUUID(),ids=[randomUUID(),randomUUID(),randomUUID()],[org,traveler,coOrg]=ids;
+  const db=createDatabase(url),trip=randomUUID(),ids=[randomUUID(),randomUUID(),randomUUID()],[org,traveler]=ids;
   const options={databaseUrl:url,actorPersonId:org};
   await db.db.insert(people).values(ids.map(id=>({id,authUserId:id,displayName:"Synthetic member"})));
   await db.db.insert(commons).values({id:trip,slug:trip,name:"Creator race synthetic",createdByPersonId:org,timezone:"America/Denver"});

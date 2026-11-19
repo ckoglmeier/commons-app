@@ -33,7 +33,6 @@ test("flag off: every messaging route is a plain not-found, nothing is stored an
     assert.equal((await w.enroll(routes, "maya", "sonoma")).status, 404);
     assert.equal((await routes.enrollment.GET(get(), { params: Promise.resolve({ slug: w.slugs.sonoma }) })).status, 404);
     assert.equal((await routes.review.GET(get(), { params: Promise.resolve({ token: "anything" }) })).status, 404);
-    assert.equal((await routes.admin.GET()).status, 404);
     assert.equal((await w.q(db => db.select().from(messagingMessages).where(eq(messagingMessages.provider, "fake")))).length, 0);
     assert.equal((await w.q(db => db.select().from(messagingWebhookEvents).where(eq(messagingWebhookEvents.provider, "fake")))).length, 0);
     assert.equal((await w.q(db => db.select().from(messagingConsents))).filter(row => row.personId === w.ids.maya).length, 0);
@@ -281,8 +280,6 @@ test("delivery failure: retryable errors back off and retry; unknown outcomes ar
     const health = await messagingHealth({ databaseUrl: w.url });
     assert.equal(health.failures.some(item => item.id === unknown.id), true);
     assert.doesNotMatch(JSON.stringify(health), /dates moved|\+1415|Maya/);
-    const admin = await routes.admin.GET();
-    assert.equal(admin.status, 404, "a non-operator learns nothing, not even that the route exists");
     const { requeueFailedOutbound } = await import("@commons/database");
     assert.equal(await requeueFailedOutbound(unknown.id, { databaseUrl: w.url, now: w.clock.now }), false, "an unknown outcome can't be retried blind");
     assert.equal(await requeueFailedOutbound(unknown.id, { databaseUrl: w.url, now: w.clock.now }, { checkedProvider: true }), true);

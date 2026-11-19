@@ -32,7 +32,10 @@ const eslintConfig = defineConfig([
         ...globals.serviceworker,
       },
     },
-    rules: { "jsx-a11y/label-has-associated-control": ["error", { controlComponents: ["TimeInput"] }] },
+    rules: {
+      "jsx-a11y/label-has-associated-control": ["error", { controlComponents: ["TimeInput"] }],
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_", destructuredArrayIgnorePattern: "^_", ignoreRestSiblings: true }],
+    },
     settings: {
       react: {
         version: "detect",

@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { createDatabase, memberships, people } from "@commons/database";
 import { and, eq } from "drizzle-orm";
 import { registerComponentImportStubs } from "../test-support/hook-harness";
-import { seedSyntheticTrip, testDatabaseUrl, databaseTestsEnabled } from "./coordinator-route-harness";
+import { seedSyntheticTrip, testDatabaseUrl, databaseTestsEnabled } from "../test-support/database-harness";
 registerComponentImportStubs();
 const fixturePath = join(__dirname, "../test-support/group-auth-fixture.cjs"), fixture = createRequire(import.meta.url)(fixturePath);
 registerHooks({ resolve(specifier, context, next) {

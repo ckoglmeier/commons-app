@@ -28,7 +28,7 @@ test("email hashes normalize case and surrounding whitespace", () => {
 
 test("phone hashes normalize E.164 formatting", () => {
   assert.equal(normalizePhone("+1 (415) 555-0142"), "+14155550142");
-  assert.equal(hashNormalizedPhone("+1 513 884 4929"), hashNormalizedPhone("+14155550142"));
+  assert.equal(hashNormalizedPhone("+1 415 555 0142"), hashNormalizedPhone("+14155550142"));
   assert.throws(() => normalizePhone("4155550142"), /E.164/);
 });
 

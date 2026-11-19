@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
 import { commons, expenses, expenseShares, memberships, reimbursements } from "@commons/database";
-import { actAs, and, databaseTestsEnabled, eq, seedSyntheticTrip, withTestDatabase } from "./coordinator-route-harness";
+import { actAs, and, databaseTestsEnabled, eq, seedSyntheticTrip, withTestDatabase } from "../test-support/database-harness";
 import { registerComponentImportStubs } from "../test-support/hook-harness";
 
 test("summary loading enforces active membership and projects family/private fields", { skip: !databaseTestsEnabled }, async () => {

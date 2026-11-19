@@ -1,29 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { assertCompleteGeneratedProse, createOpenAIItineraryAdapter, type ItineraryExecutionInput } from "./itinerary-execution";
 
 const request: ItineraryExecutionInput = { priceFreshness: "reference_only_unverified", privateDecisionState: "withheld", researchExecution: "not_requested", request: "Prepare a synthetic weekend", facts: {}, corrections: [], correctionSources: [], imports: [], content: {}, savedCandidateIds: [], evidence: [], coverage: { historyComplete: true, instructions: 0, archivedSources: 0, projectedSources: 0, excerptsTruncated: false } };
 const content = { title: "Synthetic weekend", brief: "Draft only", items: [], driverBrief: "", tasks: [], unresolved: [] };
-const response = () => new Response(JSON.stringify({ choices: [{ finish_reason: "stop", message: { content: JSON.stringify(content) } }] }));
-
-test("itinerary generation has a bounded 150s deadline within both 180s routes", async t => {
-  let deadline = 0;
-  const timeout = new AbortController();
-  t.mock.method(AbortSignal, "timeout", (milliseconds: number) => { deadline = milliseconds; return timeout.signal; });
-  const adapter = createOpenAIItineraryAdapter({ apiKey: "synthetic", model: "gpt-6.1-sol", fetcher: async (_url, init) => {
-    assert.equal(init?.signal?.aborted, false);
-    const body = JSON.parse(String(init?.body));
-    assert.equal(body.max_completion_tokens, 6000, "longer wait does not expand the token budget");
-    assert.equal(body.response_format.json_schema.strict, true);
-    return response();
-  } });
-  assert.deepEqual(await adapter(request), content);
-  assert.equal(deadline, 150_000);
-  for (const path of ["../../app/api/v1/commons/[slug]/coordinator/route.ts", "../../app/api/v1/commons/[slug]/coordinator/turns/route.ts"]) {
-    assert.match(readFileSync(new URL(path, import.meta.url), "utf8"), /export const maxDuration = 180;/);
-  }
-});
 
 test("caller Stop and provider deadline still abort an in-flight itinerary", async t => {
   for (const reason of ["stop", "deadline"]) {

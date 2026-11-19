@@ -7,7 +7,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import {
   commons, createDatabase, identities, memberships, messagingMessages, messagingPhones, messagingWebhookEvents, people, phoneHashOf, stayParticipants, stays, travelPlans,
 } from "@commons/database";
-import { actAs, databaseTestsEnabled, testDatabaseUrl } from "../coordinator-route-harness";
+import { actAs, databaseTestsEnabled, testDatabaseUrl } from "../../test-support/database-harness";
 import { registerComponentImportStubs } from "../../test-support/hook-harness";
 import { FakeProvider } from "./fake-provider";
 import { setMessagingProviderForTests } from "./provider";
@@ -19,16 +19,15 @@ const uniquePhone = () => `+1415555${String(Math.floor(1000 + Math.random() * 89
 export type Routes = Awaited<ReturnType<typeof loadRoutes>>;
 export async function loadRoutes() {
   registerComponentImportStubs();
-  const [inbound, status, tick, enrollment, review, source, admin] = await Promise.all([
+  const [inbound, status, tick, enrollment, review, source] = await Promise.all([
     import("../../../app/api/v1/messaging/inbound/route"),
     import("../../../app/api/v1/messaging/status/route"),
     import("../../../app/api/internal/messaging/route"),
     import("../../../app/api/v1/commons/[slug]/messaging/route"),
     import("../../../app/api/v1/messaging/review/[token]/route"),
     import("../../../app/api/v1/messaging/review/[token]/source/route"),
-    import("../../../app/api/v1/admin/messaging/route"),
   ]);
-  return { inbound, status, tick, enrollment, review, source, admin };
+  return { inbound, status, tick, enrollment, review, source };
 }
 
 export type World = Awaited<ReturnType<typeof world>>;

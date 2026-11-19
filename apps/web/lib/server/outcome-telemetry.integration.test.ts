@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
 import { productAnalyticsEvents, recordServerOutcomeEvent } from "@commons/database";
-import { actAs, databaseTestsEnabled, seedSyntheticTrip, testDatabaseUrl, withTestDatabase, eq } from "./coordinator-route-harness";
+import { actAs, databaseTestsEnabled, seedSyntheticTrip, testDatabaseUrl, withTestDatabase, eq } from "../test-support/database-harness";
 import { registerComponentImportStubs } from "../test-support/hook-harness";
 
 registerComponentImportStubs();

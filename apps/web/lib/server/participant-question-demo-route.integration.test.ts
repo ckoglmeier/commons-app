@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { pilotSnapshot } from "../pilot-fixture";
-import { actAs, databaseTestsEnabled, seedSyntheticTrip, testDatabaseUrl } from "./coordinator-route-harness";
+import { actAs, databaseTestsEnabled, seedSyntheticTrip, testDatabaseUrl } from "../test-support/database-harness";
 import { registerComponentImportStubs } from "../test-support/hook-harness";
 
 /*

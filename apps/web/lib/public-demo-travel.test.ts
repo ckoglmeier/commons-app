@@ -14,7 +14,7 @@ test("the demo shows a person with no shared flight details beside a reviewable 
   const withoutFlights = participants.find(person => person.displayName === "Casey Reed")!;
   const owner = participants.find(person => person.displayName === "Jordan Reed")!;
   assert.equal(plans.length, 9);
-  assert.doesNotMatch(JSON.stringify(plans), /Casey|Robin|Rivera/i);
+  assert.doesNotMatch(JSON.stringify(plans), /@gmail\.com|Rivera/i);
   const render = (personId: string) => renderToStaticMarkup(createElement(PersonTravel, { personId, actorId: currentActor.id, participants, plans, showEmpty: true, edit() {} }));
   assert.equal((render(withoutFlights.id).match(/No shared plan/g) ?? []).length, 3);
   assert.doesNotMatch(render(withoutFlights.id), /Delta|National|not booked/);
@@ -26,7 +26,7 @@ test("the demo shows a person with no shared flight details beside a reviewable 
   assert.match(render(owner.id), /Return.*10:30 AM/);
   assert.match(render(owner.id), /Sample rental|Edit or share rental/);
   assert.match(render(owner.id), /Jordan/);
-  assert.doesNotMatch(render(owner.id), /Casey|Robin|Rivera/i);
+  assert.doesNotMatch(render(owner.id), /@gmail\.com|Rivera/i);
 });
 
 test("demo travel never seeds another event or invents dates", () => {

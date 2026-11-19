@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { actAs, databaseTestsEnabled, seedSyntheticTrip } from "./coordinator-route-harness";
+import { actAs, databaseTestsEnabled, seedSyntheticTrip } from "../test-support/database-harness";
 import { registerComponentImportStubs } from "../test-support/hook-harness";
 
 /** Read-only activation state must work in the closed beta with no Stripe configuration. */

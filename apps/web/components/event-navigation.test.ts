@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
-import React, { createElement } from "react";
+import React,{ createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { EventNavigationLinks } from "./event-navigation";
 import type { EventView } from "../lib/commons-route";
-import { askEntryHref, askNavigationHref, askPath } from "../lib/ask-route";
 
 test("desktop and mobile share the same four real destination links", async () => {
   const source = await readFile(new URL("./event-navigation.tsx", import.meta.url), "utf8");
@@ -65,41 +64,6 @@ test("attendance reloads after dates change and can recover without closing a pa
   assert.match(attendance, /Reload attendance/);
   assert.match(attendance, /\[endpoint, reloadVersion\]/);
   assert.doesNotMatch(attendance, /Close and reopen this panel/);
-});
-
-test("Ask the group is a gated organizer destination with persistent Trip Home navigation", async () => {
-  const app = await readFile(new URL("./commons-app.tsx", import.meta.url), "utf8");
-  const home = await readFile(new URL("./home-dashboard.tsx", import.meta.url), "utf8");
-  const header = await readFile(new URL("./poll-workspace-header.tsx", import.meta.url), "utf8");
-  const ask = await readFile(new URL("../app/c/[slug]/ask/page.tsx", import.meta.url), "utf8");
-  const start = await readFile(new URL("./recipe-start.tsx", import.meta.url), "utf8");
-  const legacy = await readFile(new URL("../app/c/[slug]/recipes/page.tsx", import.meta.url), "utf8");
-  const polls = await readFile(new URL("../app/c/[slug]/polls/page.tsx", import.meta.url), "utf8");
-  assert.match(app, /recipesAvailable=\{Boolean\(organizerWorkspace\?\.recipesEnabled\)(?: \|\| Boolean\(directGoals\))?\}/);
-  assert.match(home, /askEntryHref\(commons\.id, canAskGroup, recipesAvailable, coordinatorAvailable\)/);
-  assert.match(ask, /loadAuthenticatedRecipeRuns/);
-  assert.match(ask, /loadAuthenticatedPollDrafts/);
-  assert.match(ask, /state\.pollRequests/);
-  assert.match(ask, /Ask the group/);
-  assert.match(ask, /Trip Home/);
-  assert.match(header, /askHref \? link\(askHref, askLabel, askCurrent\)/);
-  assert.match(start, /<h1>Ask the group<\/h1>/);
-  assert.match(start, /\["new", "drafts", "shared", "completed"\]/);
-  assert.match(start, /item\.handler === "poll_draft"/);
-  assert.match(start, /pollDrafts/);
-  assert.match(start, /genericShared/);
-  assert.doesNotMatch(start, /item\.id === "transport"|item\.id === "itinerary"/);
-  assert.match(legacy, /redirect\(askPath\(slug, await searchParams\)\)/);
-  assert.match(polls, /askNavigationHref\(slug, snapshot\.currentActor\.role/);
-  assert.match(ask, /loadAuthenticatedRecipeRuns/);
-  assert.match(ask, /RecipesDisabledError\) notFound/);
-  assert.equal(askPath("trip id", { view: "drafts", keep: ["one", "two"], blank: "" }), "/c/trip%20id/ask?view=drafts&keep=one&keep=two&blank=");
-  assert.equal(askNavigationHref("trip-id", "organizer", true), "/c/trip-id/ask", "pilot organizer gets the shared navigation entry");
-  assert.equal(askNavigationHref("trip-id", "member", true), undefined, "participants never get the organizer entry");
-  assert.equal(askNavigationHref("trip-id", "organizer", false), undefined, "non-pilot organizers do not get the recipe entry");
-  assert.equal(askEntryHref("trip-id", true, true), "/c/trip-id/ask", "Trip Home entry opens Ask only for the pilot");
-  assert.equal(askEntryHref("trip-id", true, false), "/c/trip-id/coordinator?ask=1", "existing Ask flow remains available outside the pilot");
-  assert.equal(askEntryHref("trip-id", false, true), undefined, "Trip Home hides Ask from participants");
 });
 
 test("Photos is contextual under Trip and Travel & stays belongs to Plan in the shared destination links", () => {

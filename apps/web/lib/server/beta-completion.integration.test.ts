@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
 import { eventCreationDraftPeople, eventCreationDrafts, feedbackSubmissions, itineraryItems, operatorActions, partnerInquiries, reimbursements, attributionEvents } from "@commons/database";
-import { actAs, databaseTestsEnabled, seedSyntheticTrip, withTestDatabase, eq } from "./coordinator-route-harness";
+import { actAs, databaseTestsEnabled, seedSyntheticTrip, withTestDatabase, eq } from "../test-support/database-harness";
 import { registerComponentImportStubs } from "../test-support/hook-harness";
 
 registerComponentImportStubs();
@@ -29,7 +29,7 @@ const req = (path: string, method: string, body?: unknown, headers: Record<strin
 const ctx = (slug: string, extra: Record<string, string> = {}) => ({ params: Promise.resolve({ slug, ...extra }) });
 
 test("with the master flag off every beta route is closed, and the existing creation and feedback routes behave as before", { skip: !databaseTestsEnabled }, async () => {
-  const trip = await seedSyntheticTrip({ pilot: false });
+  const trip = await seedSyntheticTrip();
   try {
     flags({ COMMONS_BETA_REWORK_ENABLED: "false" });
     actAs(trip.organizerId);
@@ -57,7 +57,7 @@ test("with the master flag off every beta route is closed, and the existing crea
 });
 
 test("beta money journey: I paid never settles; a recorded receipt does once; recap and successor reuse only what was chosen", { skip: !databaseTestsEnabled }, async () => {
-  const trip = await seedSyntheticTrip({ pilot: false });
+  const trip = await seedSyntheticTrip();
   const slug = `qa-${trip.eventId}`;
   try {
     flags({ COMMONS_BETA_REWORK_ENABLED: "true" });
@@ -121,8 +121,8 @@ test("beta money journey: I paid never settles; a recorded receipt does once; re
 });
 
 test("a non-member cannot read or change another trip's money wrap-up", { skip: !databaseTestsEnabled }, async () => {
-  const trip = await seedSyntheticTrip({ pilot: false });
-  const outsider = await seedSyntheticTrip({ pilot: false });
+  const trip = await seedSyntheticTrip();
+  const outsider = await seedSyntheticTrip();
   const slug = `qa-${trip.eventId}`;
   try {
     flags({ COMMONS_BETA_REWORK_ENABLED: "true" });
@@ -137,7 +137,7 @@ test("a non-member cannot read or change another trip's money wrap-up", { skip: 
 
 test("the operator overview lists actionable failures without private content, and reviewed is not resolved", { skip: !databaseTestsEnabled }, async () => {
   const marker = randomUUID().slice(0, 8);
-  const trip = await seedSyntheticTrip({ pilot: false });
+  const trip = await seedSyntheticTrip();
   try {
     flags({ COMMONS_BETA_REWORK_ENABLED: "true" });
     actAs(trip.organizerId);
@@ -171,7 +171,7 @@ test("the operator overview lists actionable failures without private content, a
 test("partner inquiries are stored and quietly deduplicated; nothing is sent in tests; feedback spam is bounded", { skip: !databaseTestsEnabled }, async () => {
   const marker = randomUUID().slice(0, 8);
   const body = (message: string) => ({ kind: "travel_assistant", organization: `Assist ${marker}`, contactName: "Sam", contactEmail: `sam-${marker}@example.test`, message, sourcePath: "/partners?token=x", idempotencyKey: randomUUID(), elapsedMs: 9000 });
-  const trip = await seedSyntheticTrip({ pilot: false });
+  const trip = await seedSyntheticTrip();
   try {
     // No route configured and sending disabled: the inquiry is saved and shows as not routed. No provider is called.
     flags({ COMMONS_BETA_REWORK_ENABLED: "true", COMMONS_EMAIL_SEND_MODE: "disabled" });

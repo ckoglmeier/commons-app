@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { inArray } from "drizzle-orm";
 import { addCommonsPerson, people } from "@commons/database";
 import { registerComponentImportStubs } from "../test-support/hook-harness";
-import { actAs, databaseTestsEnabled, seedSyntheticTrip, testDatabaseUrl, withTestDatabase } from "./coordinator-route-harness";
+import { actAs, databaseTestsEnabled, seedSyntheticTrip, testDatabaseUrl, withTestDatabase } from "../test-support/database-harness";
 registerComponentImportStubs();
 
 test("People auto-send preserves failed travelers, gates organizers and leaves older invites unchanged", { skip: !databaseTestsEnabled }, async () => {
