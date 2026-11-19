@@ -48,9 +48,10 @@ export function replayAttribute(name: string, value: string): string {
   if (['class', 'type', 'role', 'rel', 'media', 'disabled', 'checked', 'selected', 'aria-expanded', 'aria-pressed', 'width', 'height', 'title', 'alt', 'aria-label'].includes(name)) return value;
   if (name === 'href' || name === 'src') {
     try {
-      const url = new URL(value, 'https://www.commons.travel');
+      const origin = typeof location !== 'undefined' && location.origin !== 'null' ? location.origin : 'https://commons.invalid';
+      const url = new URL(value, origin);
       if (!['https:', 'http:'].includes(url.protocol) || url.search || url.hash || url.username || url.password) return '';
-      if (/^\/_next\/static\/[a-zA-Z0-9_./-]+\.css$/.test(url.pathname) && url.origin === 'https://www.commons.travel') return value;
+      if (/^\/_next\/static\/[a-zA-Z0-9_./-]+\.css$/.test(url.pathname) && url.origin === origin) return value;
       if (name === 'src' && !/\/(?:auth|join|invite|sign-in|token)(?:\/|$)/i.test(url.pathname)) return value;
     } catch { /* Invalid assets are not recorded. */ }
   }

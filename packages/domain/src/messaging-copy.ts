@@ -51,7 +51,6 @@ function copyWith(say: Say) { return {
   versionChanged: (tripName: string) => say`${tripName}: that changed after I asked, so I haven't saved your answer. Here's the update.`,
   noMembership: (tripName: string) => say`${tripName}: I can't act on this trip for you anymore. Open Commons on the web to check your access.`,
   unknownSender: (signInUrl: string) => say`Commons: I don't recognize this number yet. Sign in at ${signInUrl} and turn on Text with Commons for your trip. Reply STOP to opt out.`,
-  textsPaused: (tripName: string, url: string) => say`Commons: texts for ${tripName} start once the trip fee is paid. The trip is on the web at ${url}. Reply STOP to opt out.`,
   notEnrolled: (url: string) => say`Commons: texts aren't turned on for any of your trips yet. Open a trip at ${url} and choose Text with Commons. Reply STOP to opt out.`,
   help: (supportEmail: string) => say`Commons: I'm an automated assistant for the trips you've joined by text. Ask about the saved plan, or text me a booking. Reply STOP to opt out. Help: ${supportEmail}`,
   startBack: (count: number, url: string) => count > 0

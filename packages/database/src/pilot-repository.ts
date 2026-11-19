@@ -1,85 +1,80 @@
 import { CommandConflictError } from "./event-command";
 import { UpdateMoneySettingsCommandSchema } from "@commons/contracts";
 import { consumeConfirmationIntake } from "./confirmation-intake-repository";
-import { eventDigestAllowed } from "./event-digest-preferences";
 import {
-  AddItineraryItemCommandSchema,
-  itineraryDurationMinutes,
-  itineraryEndTime,
-  AddMomentCommandSchema,
-  AddStayCommandSchema,
-  SetPlacePinCommandSchema,
-  AddExpenseCommandSchema,
-  AddReimbursementCommandSchema,
-  AppendMessageCommandSchema,
-  ApproveProposalRequestSchema,
-  CommonsSnapshotSchema,
-  ConfirmExpensesCompleteCommandSchema,
-  DeleteItineraryItemCommandSchema,
-  DeleteMomentRequestSchema,
-  DeleteExpenseCommandSchema,
-  DeleteReimbursementCommandSchema,
-  DeleteStayCommandSchema,
-  DeleteTravelPlanCommandSchema,
-  ProposalSchema,
-  ReopenExpensesCommandSchema,
-  ReviseProposalRequestSchema,
-  UpdateCommonsCoverRequestSchema,
-  UpdateCommonsArchiveRequestSchema,
-  UpdateCommonsTitleRequestSchema,
-  UpdateCommonsDetailsRequestSchema,
-  TripLetterSectionsSchema,
-  UpdateTripLetterRequestSchema,
-  UpdateExpenseCommandSchema,
-  UpdateReimbursementCommandSchema,
-  UpdateItineraryItemCommandSchema,
-  UpdateMomentRequestSchema,
-  UpdateStayCommandSchema,
-  UpdateTravelPlanSharingCommandSchema,
-  UpdateParticipationCommandSchema,
-  UpsertTravelPlanCommandSchema,
-  UpsertFlightBookingCommandSchema,
-  UpdateTargetBudgetCommandSchema,
-  type Actor,
-  type PlacePin,
-  type CommonsSnapshot,
-  type CommonsState,
-  type Proposal,
+    AddItineraryItemCommandSchema,
+    itineraryDurationMinutes,
+    itineraryEndTime,
+    AddMomentCommandSchema,
+    AddStayCommandSchema,
+    SetPlacePinCommandSchema,
+    AddExpenseCommandSchema,
+    AddReimbursementCommandSchema, ApproveProposalRequestSchema,
+    CommonsSnapshotSchema,
+    ConfirmExpensesCompleteCommandSchema,
+    DeleteItineraryItemCommandSchema,
+    DeleteMomentRequestSchema,
+    DeleteExpenseCommandSchema,
+    DeleteReimbursementCommandSchema,
+    DeleteStayCommandSchema,
+    DeleteTravelPlanCommandSchema,
+    ProposalSchema,
+    ReopenExpensesCommandSchema,
+    ReviseProposalRequestSchema,
+    UpdateCommonsCoverRequestSchema,
+    UpdateCommonsArchiveRequestSchema,
+    UpdateCommonsTitleRequestSchema,
+    UpdateCommonsDetailsRequestSchema,
+    TripLetterSectionsSchema,
+    UpdateTripLetterRequestSchema,
+    UpdateExpenseCommandSchema,
+    UpdateReimbursementCommandSchema,
+    UpdateItineraryItemCommandSchema,
+    UpdateMomentRequestSchema,
+    UpdateStayCommandSchema,
+    UpdateTravelPlanSharingCommandSchema,
+    UpdateParticipationCommandSchema,
+    UpsertTravelPlanCommandSchema,
+    UpsertFlightBookingCommandSchema,
+    UpdateTargetBudgetCommandSchema,
+    type Actor,
+    type PlacePin,
+    type CommonsSnapshot,
+    type CommonsState,
+    type Proposal
 } from "@commons/contracts";
 import { approveProposal, reviseProposal } from "@commons/domain";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { createDatabase } from "./client";
 import { runEventCommand, type CommandTransaction } from "./event-command";
-import { enqueueMessageDeliveries } from "./conversation-digest-repository";
 import { isCommonsId } from "./commons-identifier";
 import {
-  auditEvents,
-  commons,
-  confirmationDocuments,
-  conversationDigestItems,
-  expenseShares,
-  expenses,
-  identities,
-  itineraryItems,
-  mealReservations,
-  memberships,
-  messages,
-  moments,
-  participation,
-  photoDeletions,
-  people,
-  travelerProfiles,
-  polls,
-  pollDrafts,
-  pollResponses,
-  processedCommands,
-  proposalEvidence,
-  proposals,
-  reimbursements,
-  stayParticipants,
-  stays as stayRecords,
-  travelPlanParticipants,
-  travelPlans,
+    auditEvents,
+    commons,
+    confirmationDocuments,
+    expenseShares,
+    expenses,
+    identities,
+    itineraryItems,
+    mealReservations,
+    memberships,
+    messages,
+    moments,
+    participation,
+    photoDeletions,
+    people,
+    travelerProfiles,
+    polls,
+    pollDrafts,
+    pollResponses,
+    processedCommands,
+    proposalEvidence,
+    proposals,
+    reimbursements,
+    stayParticipants,
+    stays as stayRecords,
+    travelPlanParticipants,
+    travelPlans,
 } from "./schema";
 
 export type PilotRepositoryOptions = {
@@ -1537,35 +1532,6 @@ export async function deleteCommonsMoment(
   }
 }
 
-export async function appendCommonsMessage(
-  slug: string,
-  input: unknown,
-  options: PilotRepositoryOptions,
-) {
-  const command = AppendMessageCommandSchema.parse(input);
-  const database = createDatabase(options.databaseUrl);
-  try {
-    await database.db.transaction((tx) => runEventCommand(tx, {
-      identifier: slug, actorPersonId: options.actorPersonId, commandId: command.commandId,
-      action: "message.sent", input: { body: command.body },
-    }, () => {}, async (context) => {
-      const [sequence] = await tx.select({ value: sql<number>`coalesce(max(${messages.sequence}), 0)` })
-        .from(messages).where(eq(messages.commonsId, context.id));
-      const [inserted] = await tx.insert(messages).values({
-        commonsId: context.id, sequence: Number(sequence.value) + 1,
-        actorPersonId: options.actorPersonId, actorName: context.displayName, actorType: "human",
-        body: command.body, occurredAt: context.now, source: "web", sourceEventId: command.commandId,
-      }).returning({ id: messages.id });
-      await enqueueMessageDeliveries(tx, context.id, inserted.id, options.actorPersonId, context.now);
-      return { result: { messageId: inserted.id }, resourceType: "message", resourceId: inserted.id,
-        summary: `${context.displayName} sent a message via Commons.` };
-    }));
-    return await readSnapshot(database, slug, options.actorPersonId);
-  } finally {
-    await database.close();
-  }
-}
-
 export async function upsertCommonsFlightBooking(
   slug: string,
   input: unknown,
@@ -2638,37 +2604,6 @@ export async function addCommonsExpense(
         resourceId: inserted.id,
         summary: `${actorRow.displayName} added ${command.title}; ${payer.displayName} paid.`,
       });
-      const recipients = await transaction
-        .select({ personId: memberships.personId })
-        .from(memberships)
-        .innerJoin(people, eq(memberships.personId, people.id))
-        .leftJoin(travelerProfiles, eq(memberships.personId, travelerProfiles.personId))
-        .where(and(
-          eq(memberships.commonsId, commonsRecord.id),
-          eq(memberships.status, "active"),
-          isNotNull(people.authUserId),
-          sql`coalesce(${travelerProfiles.dailyDigestEnabled}, true)`,
-          eventDigestAllowed(sql`${memberships.commonsId}`, sql`${memberships.personId}`, sql`${inserted.createdAt.toISOString()}::timestamptz`),
-        ));
-      if (recipients.length) {
-        await transaction.insert(conversationDigestItems).values(
-          recipients.map((recipient) => ({
-            recipientPersonId: recipient.personId,
-            commonsId: commonsRecord.id,
-            sourceType: "expense",
-            sourceId: inserted.id,
-            payload: {
-              kind: "expense" as const,
-              resourceId: inserted.id,
-              title: command.title,
-              amountCents: command.amountCents,
-              currency: command.currency ?? lockedCommons.currency,
-              paidByName: payer.displayName,
-              addedAt: inserted.createdAt.toISOString(),
-            },
-          })),
-        ).onConflictDoNothing();
-      }
     });
 
     return await readSnapshot(database, slug, options.actorPersonId);

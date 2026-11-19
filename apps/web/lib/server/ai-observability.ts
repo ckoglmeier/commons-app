@@ -1,6 +1,5 @@
 /** Metadata-only instrumentation; prompts, completions, URLs and provider errors never leave Commons. */
 import { TurnCapabilitySchema } from '@commons/contracts';
-import { inferenceObserver } from './inference-trace-context';
 
 export type AiGeneration = {
   provider: 'openrouter' | 'openai' | 'typesafe' | 'perplexity'; model: string;
@@ -32,7 +31,6 @@ export function estimatedOpenAiCost(model: string, usage: { input?: number; outp
  * read here, because that would hold the whole stream back: its reader reports the usage from the final chunk instead.
  */
 export async function observeAiCall<T>(provider: AiGeneration['provider'], model: string, observer: AiObserver | undefined, run: (fetcher: typeof fetch, reportUsage: (usage: Record<string, unknown>) => void) => Promise<T>, fetcher: typeof fetch): Promise<T> {
-  observer ??= inferenceObserver();
   if (!observer) return run(fetcher, () => {});
   const started = performance.now();
   let status: number | undefined, usage: Record<string, unknown> = {}, failed = false, called = false, returnedModel: string | undefined;

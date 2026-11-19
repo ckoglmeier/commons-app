@@ -16,7 +16,7 @@ export type SignInState = {
 
 const contextSchema = {
   next: z.string().optional(),
-  intent: z.enum(["sign-in", "create", "invited", "access"]).optional(),
+  intent: z.enum(["sign-in", "create", "invited"]).optional(),
 };
 const EmailSchema = z.object({ email: z.email(), ...contextSchema });
 

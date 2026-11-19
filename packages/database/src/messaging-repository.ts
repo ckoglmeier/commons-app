@@ -1,14 +1,13 @@
 import { and, asc, desc, eq, gt, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { createDatabase } from "./client";
 import { hashNormalizedPhone, hashOpaqueToken, normalizePhone, protectOpaqueToken, revealOpaqueToken } from "./tokens";
-import { readTripInviteGate } from "./trip-activation-repository";
 import {
-  commons, identities, memberships, messagingBookingIntakes, messagingConsents, messagingMessages, messagingMoneyIntakes, messagingPhones, messagingQuestions, messagingWebhookEvents, people, polls,
+    commons, identities, memberships, messagingBookingIntakes, messagingConsents, messagingMessages, messagingMoneyIntakes, messagingPhones, messagingQuestions, messagingWebhookEvents, people, polls,
 } from "./schema";
 
 /*
  * Persistence for traveler messaging. Provider-neutral and policy-free: it stores what the web service decides. Nothing here sends a message.
- * Every function is a no-op for callers that never run (the whole feature is behind COMMONS_BETA_REWORK_ENABLED in the web layer).
+ * Every function is a no-op for callers that never run.
  */
 type Options = { databaseUrl?: string; now?: Date };
 type Tx = Parameters<Parameters<ReturnType<typeof createDatabase>["db"]["transaction"]>[0]>[0];
@@ -17,14 +16,6 @@ async function run<T>(options: Options, fn: (tx: Tx) => Promise<T>): Promise<T> 
   try { return await database.db.transaction(fn); } finally { await database.close(); }
 }
 const clock = (options: Options) => options.now ?? new Date();
-
-/**
- * Texting follows the trip fee: a trip may text when it has paid, or when it needs no fee (older trips and fee-exempt organizers), which is exactly
- * when it may invite. Unpaid, payment still arriving, a refund on hold, or an operator pause: nothing new goes out and no reply acts on the trip.
- * Saved consent stays, so texting resumes by itself once the fee is settled.
- */
-async function textingFunded(tx: Tx, commonsId: string) { return (await readTripInviteGate(tx, commonsId)).mayInvite; }
-export async function tripTextingFunded(commonsId: string, options: Options = {}) { return run(options, tx => textingFunded(tx, commonsId)); }
 
 export type MessageStatus = "received" | "processed" | "ignored" | "held" | "queued" | "sending" | "sent" | "delivered" | "undelivered" | "failed" | "suppressed" | "cancelled";
 export type MessageRow = typeof messagingMessages.$inferSelect;
@@ -125,7 +116,7 @@ export async function reenrollPhone(e164: string, wording: string, options: Opti
 // ---- Consent and enrollment -----------------------------------------------------------------------------------------------------------------------
 
 export class MessagingEnrollmentError extends Error {
-  constructor(readonly code: "membership_required" | "number_not_verified" | "invalid_number" | "trip_not_funded", message: string) { super(message); }
+  constructor(readonly code: "membership_required" | "number_not_verified" | "invalid_number", message: string) { super(message); }
 }
 
 /**
@@ -141,7 +132,6 @@ export async function enrollPersonInTrip(input: { personId: string; commonsId: s
     const now = clock(options), hash = phoneHashOf(e164);
     const [member] = await tx.select({ status: memberships.status }).from(memberships).where(and(eq(memberships.commonsId, input.commonsId), eq(memberships.personId, input.personId)));
     if (member?.status !== "active") throw new MessagingEnrollmentError("membership_required", web ? "Join the trip before turning on messages." : "Join the trip before turning on texts.");
-    if (!await textingFunded(tx, input.commonsId)) throw new MessagingEnrollmentError("trip_not_funded", web ? "Messages start once this trip's fee is paid." : "Texting starts once this trip's fee is paid.");
     // Moving a trip to another address (phone to web, or back) replaces the consent below; a person's address must still be their own.
     if (await addressOwner(tx, e164) !== input.personId) throw new MessagingEnrollmentError("number_not_verified", "Verify this mobile number in your account first.");
     await tx.insert(messagingPhones).values({ phoneHash: hash, phoneProtected: protectOpaqueToken(e164), optedOut: false, createdAt: now, updatedAt: now })
@@ -173,9 +163,7 @@ export async function enrollmentStatus(personId: string, commonsId: string, opti
   });
 }
 
-export type EnrolledTrip = { id: string; slug: string; name: string; startsOn: string | null; endsOn: string | null; timezone: string; status: string; currency: string; role: "organizer" | "member"; membershipId: string;
-  /** False while the trip fee is unpaid or on hold: the consent stands, but nothing is sent and no reply acts on the trip. */
-  funded: boolean };
+export type EnrolledTrip = { id: string; slug: string; name: string; startsOn: string | null; endsOn: string | null; timezone: string; status: string; currency: string; role: "organizer" | "member"; membershipId: string };
 
 /**
  * The trips a number may act on: an active membership, a granted conversation consent for this exact number, a number that is still the person's
@@ -196,9 +184,7 @@ export async function enrolledTripsForNumber(e164: string, options: Options = {}
       .innerJoin(commons, eq(commons.id, messagingConsents.commonsId))
       .where(and(eq(messagingConsents.personId, identity.personId), eq(messagingConsents.phoneHash, hash), eq(messagingConsents.scope, "conversation"), eq(messagingConsents.status, "granted"), eq(memberships.status, "active"), ne(commons.status, "archived")))
       .orderBy(asc(commons.startsOn), asc(commons.name));
-    const trips: EnrolledTrip[] = [];
-    for (const row of rows) trips.push({ ...row, funded: await textingFunded(tx, row.id) });
-    return { personId: identity.personId, displayName: person?.displayName ?? null, optedOut: false, trips };
+    return { personId: identity.personId, displayName: person?.displayName ?? null, optedOut: false, trips: rows };
   });
 }
 
@@ -213,7 +199,6 @@ export async function sendEligibility(input: { personId: string; commonsId: stri
     if (member?.status !== "active") return { ok: false as const, reason: "membership_ended" };
     const [consent] = await tx.select({ status: messagingConsents.status, phoneHash: messagingConsents.phoneHash }).from(messagingConsents).where(and(eq(messagingConsents.personId, input.personId), eq(messagingConsents.commonsId, input.commonsId), eq(messagingConsents.scope, input.scope)));
     if (consent?.status !== "granted" || consent.phoneHash !== input.phoneHash) return { ok: false as const, reason: "no_consent" };
-    if (!await textingFunded(tx, input.commonsId)) return { ok: false as const, reason: "trip_not_funded" };
     return { ok: true as const };
   });
 }

@@ -6,6 +6,8 @@ import "../components/itinerary-workshop.css";
 import "../components/trip-application-shell.css";
 import { PosthogAnalytics } from "@/components/posthog-analytics";
 import { ProductAnalytics } from "@/components/product-analytics";
+import { FeedbackEmailProvider } from "@/components/feedback-sheet";
+import { instanceSettings } from "@/lib/instance";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -37,7 +39,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
-      <body>{children}<ProductAnalytics /><PosthogAnalytics /></body>
+      <body><FeedbackEmailProvider email={instanceSettings().contactEmail}>{children}</FeedbackEmailProvider><ProductAnalytics /><PosthogAnalytics /></body>
     </html>
   );
 }

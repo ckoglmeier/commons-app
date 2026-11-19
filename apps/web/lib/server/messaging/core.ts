@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { enqueueOutbound, getCommonsSnapshot, isWebAddress, type EnrolledTrip, type MessageRow } from "@commons/database";
 import { messagingCopy, smsSegments, webMessagingCopy, type MessagingCopy } from "@commons/domain";
 import { previewExternalLink } from "@/lib/link-preview";
-import { feedbackContactEmail } from "@/lib/feedback-contact";
+import { instanceSettings } from "@/lib/instance";
 import { commonsViewPath } from "@/lib/commons-route";
 import { storeCommonsConfirmationAsset } from "@/lib/supabase/admin";
 import { commonsSiteOrigin, requireCommonsDatabaseUrl } from "../runtime-environment";
@@ -46,7 +46,7 @@ export async function messagingDeps(options: { allowNoProvider?: boolean } = {})
     extractor: deterministicExtractor,
     linkReader: defaultLinkReader,
     mediaStore: { put: storeCommonsConfirmationAsset },
-    supportEmail: feedbackContactEmail,
+    supportEmail: instanceSettings().contactEmail ?? "the trip organizer",
     ...testOverrides,
   };
 }

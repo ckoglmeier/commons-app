@@ -1,9 +1,8 @@
 "use client";
-import Link from "next/link";
 import { useRef, useState } from "react";
 import { PhoneVerification } from "@/components/phone-verification";
 
-export function EnrollmentForm({ slug, tripName, consentText, enrolled: initial, optedOut, verifiedPhone: initialPhone, suggestedPhone }: { slug: string; tripName: string; consentText: string; enrolled: boolean; optedOut: boolean; verifiedPhone: string | null; suggestedPhone?: string }) {
+export function EnrollmentForm({ slug, tripName, consentText, enrolled: initial, optedOut, verifiedPhone: initialPhone }: { slug: string; tripName: string; consentText: string; enrolled: boolean; optedOut: boolean; verifiedPhone: string | null }) {
   const [enrolled, setEnrolled] = useState(initial), [busy, setBusy] = useState(false), [agreed, setAgreed] = useState(false);
   const [phone, setPhone] = useState(initialPhone), [changing, setChanging] = useState(false);
   const [message, setMessage] = useState<{ tone: "status" | "error"; text: string } | null>(null);
@@ -28,12 +27,6 @@ export function EnrollmentForm({ slug, tripName, consentText, enrolled: initial,
     <p>Texts are on for {tripName}{phone ? ` at ${phone}` : ""}.</p>
     <button type="button" className="sheet-secondary" disabled={busy} onClick={() => void submit("DELETE")}>{busy ? "Working…" : "Turn off texts for this trip"}</button>
     {status}
-  </div>;
-
-  // In test mode the code can only be read in the test thread, so that's where the number gets confirmed.
-  if (suggestedPhone && (!phone || changing)) return <div className="review-actions">
-    <p>First, confirm your test number. The code shows up in Test messages.</p>
-    <Link className="sheet-primary" href="/messages/test">Open Test messages</Link>
   </div>;
 
   if (!phone || changing) return <div className="review-actions">

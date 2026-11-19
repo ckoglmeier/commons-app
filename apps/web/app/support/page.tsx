@@ -1,7 +1,7 @@
 import { AnalyticsChoices } from '@/components/analytics-choices';
 import Link from 'next/link';
 import { marketingOrigin } from '@/lib/marketing/route-mode';
-import { feedbackContactEmail } from '@/lib/feedback-contact';
+import { instanceSettings } from '@/lib/instance';
 import { MarketingShell } from '@/lib/marketing/pages/layout';
 import css from '@/lib/marketing/pages/pages.module.css';
 
@@ -12,15 +12,18 @@ export const metadata = {
 };
 
 export default function SupportPage() {
-  const request = (subject: string) => `mailto:${feedbackContactEmail}?subject=${encodeURIComponent(subject)}`;
+  const contactEmail = instanceSettings().contactEmail;
+  const request = (subject: string) => `mailto:${contactEmail}?subject=${encodeURIComponent(subject)}`;
   return <MarketingShell>
     <h1>Support and your data</h1>
     <p className={css.lead}>A little help getting back to your trip, and clear ways to manage your information.</p>
     <section className={css.section}>
       <h2>Get help</h2>
-      <p>Use <strong>Feedback</strong> in your trip to report a problem or suggest an improvement. You can also email us directly.</p>
-      <div className={css.actions}><a className={css.primary} href={request('Commons support')}>Email Commons support</a></div>
-      <p>Opens your email app. You can also write to <a href={request('Commons support')}>{feedbackContactEmail}</a>.</p>
+      {contactEmail ? <>
+        <p>Use <strong>Feedback</strong> in your trip to report a problem or suggest an improvement. You can also email directly.</p>
+        <div className={css.actions}><a className={css.primary} href={request('Commons support')}>Email support</a></div>
+        <p>Opens your email app. You can also write to <a href={request('Commons support')}>{contactEmail}</a>.</p>
+      </> : <p>Ask the person who runs this copy of Commons, or the organizer who invited you.</p>}
       <p>Tell us what you were trying to do, what happened, and which page you were on. If useful, attach a screenshot with private information covered. Never send a password, sign-in code or payment-card details.</p>
     </section>
     <section className={css.section}>
@@ -40,13 +43,13 @@ export default function SupportPage() {
     <section className={css.section}>
       <h2>Request a copy of your data</h2>
       <p>Email us from the address you use to sign in. Say that you want a copy of your personal data, and whether your request concerns a particular trip or your account. We confirm the request with that address before acting and reply by email.</p>
-      <a href={request('Commons data copy request')}>Request a copy by email →</a>
+      {contactEmail ? <a href={request('Commons data copy request')}>Request a copy by email →</a> : null}
     </section>
     <section className={css.section}>
       <h2>Request deletion</h2>
       <p>Account deletion is handled by support. Email from your sign-in address and tell us what you want removed. We confirm your request before acting.</p>
       <p>Some records belong to a shared trip, such as expenses other people rely on. Before anything is removed, we explain what can be deleted and what stays with the trip. A request does not automatically delete another person’s records or the whole group’s trip.</p>
-      <a href={request('Commons data deletion request')}>Request deletion by email →</a>
+      {contactEmail ? <a href={request('Commons data deletion request')}>Request deletion by email →</a> : null}
     </section>
     <section id="analytics" className={css.section}><h2>Analytics choices</h2><AnalyticsChoices /></section>
   </MarketingShell>;

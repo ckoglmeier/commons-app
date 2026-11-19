@@ -4,15 +4,10 @@ import test from "node:test";
 import { tripCardCoverUrl } from "../lib/trip-card-cover";
 
 test("standalone cover uploads stay outside Trip photos", async () => {
-  const [workspace, setup] = await Promise.all([
-    readFile(new URL("./commons-app.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/new/new-commons-form.tsx", import.meta.url), "utf8"),
-  ]);
+  const workspace = await readFile(new URL("./commons-app.tsx", import.meta.url), "utf8");
   const workspaceUpload = workspace.slice(workspace.indexOf("async function useUploadedCover"), workspace.indexOf("async function saveCover"));
-  const setupUpload = setup.slice(setup.indexOf("async function uploadCover"), setup.indexOf("async function savePeople"));
   assert.match(workspaceUpload, /persistCover\(file, null\)/);
   assert.doesNotMatch(workspaceUpload, /persistNewMoment/);
-  assert.doesNotMatch(setupUpload, /\/moments/);
   assert.match(workspace, /Browse Commons covers/);
 });
 

@@ -3,7 +3,6 @@ import { processInvitationDelivery } from "@/lib/server/commons";
 import { authorizeCommonsCronRequest } from "@/lib/server/runtime-environment";
 import { runCommonsMaintenance } from "@/lib/server/maintenance";
 import { drainPollDeliveries } from "@/lib/server/poll-delivery";
-import { drainOperatorNotifications } from "@/lib/server/operator-notifications";
 
 export const maxDuration = 60;
 
@@ -14,7 +13,7 @@ export async function GET(request: Request) {
   }
 
   const maintenance = await runCommonsMaintenance();
-  const [deliveries, pollDeliveries, operatorNotifications] = await Promise.all([
+  const [deliveries, pollDeliveries] = await Promise.all([
     (async () => {
       const results = [];
       const deadline = Date.now() + 30_000;
@@ -26,7 +25,6 @@ export async function GET(request: Request) {
       return results;
     })(),
     drainPollDeliveries(authorization.origin),
-    drainOperatorNotifications(),
   ]);
-  return NextResponse.json({ processed: deliveries.length, deliveries, pollDeliveries, operatorNotifications, maintenance });
+  return NextResponse.json({ processed: deliveries.length, deliveries, pollDeliveries, maintenance });
 }

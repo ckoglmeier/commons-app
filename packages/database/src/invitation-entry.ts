@@ -2,7 +2,6 @@ import { and, eq, gte, inArray, isNull } from "drizzle-orm";
 import { createDatabase } from "./client";
 import { invitations, invitationDeliveryAttempts, memberships, people } from "./schema";
 import { hashOpaqueToken, protectOpaqueToken, revealOpaqueToken } from "./tokens";
-import { assertTripMayInvite, readTripInviteGate } from "./trip-activation-repository";
 
 export const INVITATION_SIGN_IN_LIFETIME_MS = 60 * 60 * 1000;
 export type InvitationEmailProof = {
@@ -41,7 +40,6 @@ export async function getInvitationEntryContext(token: string, databaseUrl?: str
   try {
     const [invite] = await database.db.select().from(invitations).where(eq(invitations.tokenHash, hashOpaqueToken(token))).limit(1);
     if (!invite || !["pending", "accepted"].includes(invite.status) || !invite.recipientEmail) return null;
-    if (!(await readTripInviteGate(database.db, invite.commonsId)).mayEnter) return null;
     let acceptedAuthUserId: string | null = null;
     if (invite.status === "accepted") {
       const [member] = await database.db.select({ authUserId: people.authUserId }).from(memberships)
@@ -85,7 +83,6 @@ export async function queueInvitationEntryRecovery(token: string, pollPublicId: 
     return await database.db.transaction(async tx => {
       const [invite] = await tx.select().from(invitations).where(eq(invitations.tokenHash, hashOpaqueToken(token))).for("update").limit(1);
       if (!invite || !["pending", "accepted"].includes(invite.status) || !invite.recipientEmail) throw new Error("Invitation unavailable.");
-      await assertTripMayInvite(tx, invite.commonsId);
       const now = new Date();
       const recent = await tx.select({ createdAt: invitationDeliveryAttempts.createdAt }).from(invitationDeliveryAttempts).where(and(
         eq(invitationDeliveryAttempts.invitationId, invite.id), gte(invitationDeliveryAttempts.createdAt, new Date(now.getTime() - 60 * 60 * 1000)),

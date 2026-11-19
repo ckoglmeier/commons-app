@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { build } from 'esbuild';
-import { browserEventAllowed } from './analytics-event-policy';
 
 test('account setup records only a successful saved account, never failed validation or persistence', async () => {
   const stub = `export const state={events:[],fail:false,authenticated:true,metadata:{}};
@@ -35,5 +34,4 @@ test('account setup records only a successful saved account, never failed valida
   client.state.metadata={first_name:'Synthetic',commons_account_setup_version:1};
   await assert.rejects(client.completeAccount({},form),/REDIRECT/);
   assert.equal(client.state.events[0].key,'account-1','partial setup retry uses same deduplication key');
-  assert.equal(browserEventAllowed({eventName:'account_setup_completed',pagePath:'/new'}),false);
 });

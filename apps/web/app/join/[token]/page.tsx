@@ -6,7 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentCommonsIdentity, loadInvitationPreview } from "@/lib/server/commons";
 import { isSupabaseAuthConfigured } from "@/lib/supabase/config";
 import { getInvitationEntryContext, invitationProofMatches, readInvitationEmailProof } from "@commons/database";
-import { commonsDatabaseUrl, textMessagingAvailable, webMessagesEnabledFor } from "@/lib/server/runtime-environment";
+import { commonsDatabaseUrl } from "@/lib/server/runtime-environment";
 import { getSupabaseAuthUserEmail } from "@/lib/supabase/admin";
 import { invitationReturnPath, maskedInvitationEmail } from "@/lib/invitation-entry-flow";
 import { commonsWorkspacePath } from "@/lib/commons-route";
@@ -117,7 +117,7 @@ export default async function JoinCommonsPage({
           {identity && sameAccount && preview.status === "pending" ? <>
             <div>{preview.managedTraveler ? <p>Accept to manage your own profile and take part directly. Your trip history stays with you, and your organizer’s access to your private profile ends.</p> : null}<span>Welcome, {welcomeName}</span><strong>{pollPublicId ? "Join to help shape this event." : "Your place in the trip is ready."}</strong>{pollPublicId ? <p>Joining gives you event access. It does not confirm you’re attending.</p> : null}</div>
             <div className="invite-arrival__actions">
-              <JoinAction token={token} signedIn demo={demo} label={preview.managedTraveler ? "Accept invitation" : pollPublicId ? "Help shape this trip" : "View the trip"} pollPublicId={pollPublicId} textMessagingOffered={textMessagingAvailable() || webMessagesEnabledFor(identity.email)} className="invite-arrival__primary" />
+              <JoinAction token={token} signedIn demo={demo} label={preview.managedTraveler ? "Accept invitation" : pollPublicId ? "Help shape this trip" : "View the trip"} pollPublicId={pollPublicId} textMessagingOffered className="invite-arrival__primary" />
             </div>
           </> : demo ? <div className="invite-arrival__redeem">
             <div><span>This invitation is for {preview.recipientName}</span><strong>Redeem it to enter the trip.</strong></div>
@@ -130,7 +130,7 @@ export default async function JoinCommonsPage({
               currentAccountId={identity?.authUserId} currentEmail={identity ? identity.email ?? identity.displayName ?? "your current account" : undefined} next={next} enabled={isSupabaseAuthConfigured()} />
               : <SignInForm next={next} enabled={isSupabaseAuthConfigured()} intent="invited" />}
             {identity && preview.status === "pending" && !preview.managedTraveler ? <div className="invite-arrival__actions">
-              <JoinAction token={token} signedIn demo={false} label={`Join as ${identity.email ?? identity.displayName ?? "your current account"}`} pollPublicId={pollPublicId} textMessagingOffered={textMessagingAvailable() || webMessagesEnabledFor(identity.email)} className="invite-arrival__secondary" />
+              <JoinAction token={token} signedIn demo={false} label={`Join as ${identity.email ?? identity.displayName ?? "your current account"}`} pollPublicId={pollPublicId} textMessagingOffered className="invite-arrival__secondary" />
             </div> : null}
           </div>}
         </footer>

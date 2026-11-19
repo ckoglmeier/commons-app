@@ -2,7 +2,6 @@ import type { PollAudience } from "@commons/contracts";
 import { and, eq } from "drizzle-orm";
 import type { CommandTransaction } from "./event-command";
 import { memberships, people } from "./schema";
-import { readTripInviteGate } from "./trip-activation-repository";
 
 // Supplied only by the server authentication adapter, never by a response body.
 export type PollViewer = { authUserId: string; email: string | null };
@@ -19,7 +18,6 @@ export async function pollViewerAccess(tx: Pick<CommandTransaction, "select">, p
   // A response-only grant cannot resurrect someone who declined or was removed.
   if (membership && ["left", "removed"].includes(membership.status)) return { allowed: false, personId: person?.id ?? null };
   const memberAllowed = membership?.status === "active" && (membership.role === "organizer" || poll.createdByPersonId === person!.id || poll.audience.personIds.includes(person!.id));
-  // Reaching a named guest is an invitation path, unlike a link poll. Exempt trips always pass.
-  const guestAllowed = (await readTripInviteGate(tx, poll.commonsId)).mayEnter && Boolean(viewer.email && poll.audience.guestEmails.includes(viewer.email.trim().toLowerCase()));
+  const guestAllowed = Boolean(viewer.email && poll.audience.guestEmails.includes(viewer.email.trim().toLowerCase()));
   return { allowed: memberAllowed || guestAllowed, personId: person?.id ?? null, respondentName: person?.name?.trim() || "Signed-in participant" };
 }

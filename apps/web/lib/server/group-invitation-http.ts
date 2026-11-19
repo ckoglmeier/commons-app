@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { CommandAccessError, CommandConflictError, GroupInvitationUnavailableError, TripActivationRequiredError } from "@commons/database";
+import { CommandAccessError, CommandConflictError, GroupInvitationUnavailableError } from "@commons/database";
 import { CommonsAuthenticationRequiredError, CommonsMembershipRequiredError } from "./commons-access-errors";
 export const groupInvitationHeaders = { "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer" };
 export function groupInvitationFailure(error: unknown) {
-  if (error instanceof TripActivationRequiredError) return NextResponse.json({ error: error.message, code: error.code, state: error.state }, { status: 409, headers: groupInvitationHeaders });
   const status = error instanceof CommonsAuthenticationRequiredError ? 401 : error instanceof CommandAccessError || error instanceof CommonsMembershipRequiredError ? 403 : error instanceof ZodError ? 400 : error instanceof CommandConflictError || error instanceof GroupInvitationUnavailableError ? 409 : 500;
   const message = status === 500 ? "Couldn’t confirm this invitation change. Reload before trying again." : status === 400 ? "Check the invitation and try again." : error instanceof Error ? error.message : "Invitation unavailable.";
   return NextResponse.json({ error: message }, { status, headers: groupInvitationHeaders });

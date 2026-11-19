@@ -10,7 +10,7 @@ import { TripIdentity } from "./trip-identity";
 // packages/ui compiles with the classic JSX runtime.
 Object.assign(globalThis, { React });
 
-const account: ShellAccount = { signedIn: true, actorName: "Ada Lovelace", actorInitials: "AL", roleLabel: "Organizer", signInHref: "/sign-in?next=%2Fc%2Ftrip", feedbackCommonsSlug: "trip" };
+const account: ShellAccount = { signedIn: true, actorName: "Ada Lovelace", actorInitials: "AL", roleLabel: "Organizer", signInHref: "/sign-in?next=%2Fc%2Ftrip" };
 
 function shell(options: { view?: EventView; account?: ShellAccount; inert?: boolean; busy?: boolean; placements?: string[] } = {}) {
   const placements = options.placements ?? [];

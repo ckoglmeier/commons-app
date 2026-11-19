@@ -161,7 +161,7 @@ export async function reserveCoordinatorInference(identifier: string, raw: unkno
     await currentDraft(tx, event, options, input.draftId, input.draftVersion, input.threadId);
     await validateContext(tx, event, options, input);
     const [usage] = await tx.select({ count: sql<number>`count(*)::int` }).from(processedCommands).where(and(eq(processedCommands.commonsId, event), gte(processedCommands.processedAt, new Date(Date.now() - 3600_000)), sql`${processedCommands.result}->>'kind' = 'poll_inference'`));
-    if (!options.inferenceLimitExempt && usage.count >= 10) throw new PollInferenceLimitError();
+    if (usage.count >= 10) throw new PollInferenceLimitError();
     await tx.insert(processedCommands).values({ commonsId: event, commandId: crypto.randomUUID(), result: { kind: "poll_inference", actorPersonId: options.actorPersonId } });
     return { replayed: false };
   }); } finally { await database.close(); }

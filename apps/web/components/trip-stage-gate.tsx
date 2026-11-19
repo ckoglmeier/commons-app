@@ -2,23 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { LockIcon } from "./icons";
-import { TRIP_FEE_LABEL, TRIP_UPGRADE_INVITE } from "@/lib/trip-activation/copy";
 
 /*
  * What's held for "We're going" (docs/TRIP-STAGES-DIRECTION.md). Visible on purpose, so an organizer can see what comes next.
  * This is presentation, not a permission: nothing saved is hidden for good, and it opens the moment the trip is going.
  */
 
-type Offer = { upgrade: boolean; paid: boolean };
+const DEFAULT_LEAD = "Ready to go? Open Money, Photos and the map, and invite people to join.";
 
-/** The one way forward. Pay first where the trip has a fee; otherwise saying it is the whole step. */
-export function GoingAction({ slug, offer, emphasized = true, intent = "going", inviteFlowAvailable = true, lead = TRIP_UPGRADE_INVITE.lead }: {
-  slug: string; offer: Offer; emphasized?: boolean; intent?: "going" | "invite"; inviteFlowAvailable?: boolean; lead?: string;
+/** The one way forward: the organizer saying the trip is going. */
+export function GoingAction({ slug, emphasized = true, intent = "going", lead = DEFAULT_LEAD }: {
+  slug: string; emphasized?: boolean; intent?: "going" | "invite"; lead?: string;
 }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const className = emphasized ? "cm-action cm-action--primary" : "cm-action";
-  const flow = `/c/${encodeURIComponent(slug)}/first-invite`;
-  const label = intent === "invite" ? offer.upgrade && !offer.paid ? "Unlock this trip to invite people" : "We’re going — invite people" : "We’re going";
+  const label = intent === "invite" ? "We’re going — invite people" : "We’re going";
   async function declare() {
     setBusy(true); setError("");
     const response = await fetch(`/api/v1/commons/${encodeURIComponent(slug)}/going`, { method: "POST" }).catch(() => null);
@@ -27,26 +25,22 @@ export function GoingAction({ slug, offer, emphasized = true, intent = "going", 
   }
   return <div className="stage-going">
     <p className="stage-going__lead">{lead}</p>
-    {offer.upgrade && !offer.paid
-      ? <><a className={className} href={flow}>{intent === "invite" ? label : TRIP_UPGRADE_INVITE.action}</a><p className="stage-going__fee">{TRIP_FEE_LABEL}</p></>
-      : offer.paid || (intent === "invite" && inviteFlowAvailable) ? <a className={className} href={flow}>{label}</a>
-      : <button type="button" className={className} disabled={busy} onClick={() => void declare()}>{busy ? "Saving…" : label}</button>}
+    <button type="button" className={className} disabled={busy} onClick={() => void declare()}>{busy ? "Saving…" : label}</button>
     {error ? <p className="form-error" role="alert">{error}</p> : null}
   </div>;
 }
 
 /** Only an organizer gets an answer here, so a traveler simply sees no action. */
-function useOffer(slug: string) {
-  const [offer, setOffer] = useState<Offer | null>(null);
+function useIsOrganizer(slug: string) {
+  const [organizer, setOrganizer] = useState(false);
   useEffect(() => {
     let live = true;
     void fetch(`/api/v1/commons/${encodeURIComponent(slug)}/big-questions`, { cache: "no-store" })
-      .then(response => response.ok ? response.json() as Promise<Offer> : null)
-      .then(next => { if (live && next) setOffer({ upgrade: next.upgrade, paid: next.paid }); })
+      .then(response => { if (live && response.ok) setOrganizer(true); })
       .catch(() => undefined);
     return () => { live = false; };
   }, [slug]);
-  return offer;
+  return organizer;
 }
 
 export const STAGE_GATED = {
@@ -56,30 +50,23 @@ export const STAGE_GATED = {
 } as const;
 
 export function StageLockedPage({ slug, kind }: { slug: string; kind: keyof typeof STAGE_GATED }) {
-  const content = STAGE_GATED[kind], offer = useOffer(slug);
+  const content = STAGE_GATED[kind], organizer = useIsOrganizer(slug);
   return <div className="product-view stage-locked">
     <section className="cm-document-paper stage-locked__paper" aria-labelledby="stage-locked-title">
       <h2 id="stage-locked-title"><LockIcon /> {content.title}</h2>
       <p>{content.lead}</p>
       <ul>{content.features.map(feature => <li key={feature}>{feature}</li>)}</ul>
-      {offer ? <GoingAction slug={slug} offer={offer} /> : <p className="trip-letter__quiet">This opens once your organizer says the trip is going.</p>}
+      {organizer ? <GoingAction slug={slug} /> : <p className="trip-letter__quiet">This opens once your organizer says the trip is going.</p>}
     </section>
   </div>;
 }
 
 /** Plan stays open for ideas. This says what's next without getting in the way of them. */
 export function PlanStageBanner({ slug }: { slug: string }) {
-  const offer = useOffer(slug);
-  if (!offer) return null;
+  const organizer = useIsOrganizer(slug);
+  if (!organizer) return null;
   return <section className="stage-plan-banner" aria-label="What opens next">
     <p>The map opens when you’re going.</p>
-    <GoingAction slug={slug} offer={offer} emphasized={false} />
+    <GoingAction slug={slug} emphasized={false} />
   </section>;
-}
-
-/** Budget estimates remain free; this opens the existing commitment flow. */
-export function BudgetActivationAction({ slug }: { slug: string }) {
-  const offer = useOffer(slug);
-  if (!offer) return null;
-  return <GoingAction slug={slug} offer={offer} lead="Ready to go? Track shared expenses, split costs and record repayments." />;
 }

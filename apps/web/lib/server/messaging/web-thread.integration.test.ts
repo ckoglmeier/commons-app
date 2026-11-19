@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 import { readdirSync, readFileSync } from "node:fs";
-import { commons, createCommonsPoll, enrolledTripsForNumber, enrollmentStatus, eventCreationDrafts, expenses, messagingConsents, messagingMessages, messagingPhones, messagingQuestions, people, phoneHashOf, pollResponses, webAddressFor } from "@commons/database";
+import { createCommonsPoll, enrolledTripsForNumber, enrollmentStatus, expenses, messagingConsents, messagingMessages, messagingPhones, messagingQuestions, phoneHashOf, pollResponses, webAddressFor } from "@commons/database";
 import { messagingCopy, webMessagingCopy } from "@commons/domain";
 import { actAs, json, skip, world, type World } from "./test-world";
 
@@ -26,14 +26,9 @@ const share = (w: World, body: string, id = randomUUID()) => forTrip(w, "sonoma"
 
 async function setup() {
   const w = await world();
-  process.env.COMMONS_WEB_MESSAGES_ENABLED = "true";
-  delete process.env.COMMONS_WEB_MESSAGES_ACCOUNTS;
-  (await import("./test-thread")).setViewerEmailForTests("traveler@example.test");
   return w;
 }
 async function teardown(w: World) {
-  delete process.env.COMMONS_WEB_MESSAGES_ENABLED; delete process.env.COMMONS_WEB_MESSAGES_ACCOUNTS;
-  (await import("./test-thread")).setViewerEmailForTests(null);
   const hashes = [w.ids.maya, w.ids.sam, w.ids.casey].map(id => phoneHashOf(webAddressFor(id)));
   await w.q(async db => { await db.delete(messagingMessages).where(inArray(messagingMessages.phoneHash, hashes)); await db.delete(messagingPhones).where(inArray(messagingPhones.phoneHash, hashes)); });
   await w.cleanup();
@@ -48,7 +43,7 @@ test("the web wording drops everything about a phone and keeps the conversation"
   assert.equal(webMessagingCopy.pollUnavailable("Sonoma"), "Sonoma: I can't record that answer here. Open the poll to answer it.");
   assert.equal(webMessagingCopy.stopped, "You're unsubscribed and won't get more messages from Commons. Send START to turn them back on.");
   assert.equal(messagingCopy.stopped, "Commons: you're unsubscribed and won't get more texts. Your trips stay available on the web.", "the SMS wording is unchanged");
-  for (const body of [webMessagingCopy.help("help@x"), webMessagingCopy.noOpenQuestion("Sonoma"), webMessagingCopy.arrival("Sonoma"), webMessagingCopy.textsPaused("Sonoma", "https://x"), webMessagingCopy.moneySomeoneElse("Sonoma", "https://x"), webMessagingCopy.attendanceOnWeb("Sonoma", "https://x"), webMessagingCopy.welcomeAsk, webMessagingCopy.stopped])
+  for (const body of [webMessagingCopy.help("help@x"), webMessagingCopy.noOpenQuestion("Sonoma"), webMessagingCopy.arrival("Sonoma"), webMessagingCopy.moneySomeoneElse("Sonoma", "https://x"), webMessagingCopy.attendanceOnWeb("Sonoma", "https://x"), webMessagingCopy.welcomeAsk, webMessagingCopy.stopped])
     assert.doesNotMatch(body, /\btext\b|\btexts\b|Reply STOP|Save this number/i, body);
 });
 
@@ -76,19 +71,6 @@ test("messages are worded for their channel where they are written, not rewritte
   const dir = new URL(".", import.meta.url);
   const direct = readdirSync(dir).filter(file => file.endsWith(".ts") && !file.includes(".test.") && !["core.ts", "phone-verification.ts"].includes(file)).filter(file => /\bmessagingCopy\b/.test(readFileSync(new URL(file, dir), "utf8")));
   assert.deepEqual(direct, []);
-});
-
-test("with the flag off there is no thread and no switch", { skip }, async () => {
-  const w = await setup();
-  try {
-    process.env.COMMONS_WEB_MESSAGES_ENABLED = "false";
-    actAs(w.ids.maya);
-    assert.equal((await read()).status, 404);
-    assert.equal((await turnOn(w)).status, 404);
-    process.env.COMMONS_WEB_MESSAGES_ENABLED = "true";
-    process.env.COMMONS_WEB_MESSAGES_ACCOUNTS = "someone-else@example.test";
-    assert.equal((await read()).status, 404, "an accounts list limits it to those emails");
-  } finally { await teardown(w); }
 });
 
 test("the full conversation in Commons: welcome, attendance, a poll, the plan, money, STOP and START, and no SMS", { skip }, async () => {
@@ -218,27 +200,6 @@ test("turning on messages in Commons moves a trip off the phone", { skip }, asyn
     assert.match(latest(await read()), /this is Commons/, "the trip says hello again in its new place");
     assert.equal((await forTrip(w, "sonoma", { on: false })).body?.on, false);
   } finally { await teardown(w); }
-});
-
-test("an unpaid trip can't turn messages on", { skip }, async () => {
-  const w = await setup();
-  const draftId = randomUUID();
-  try {
-    await w.q(async db => {
-      await db.insert(eventCreationDrafts).values({ id: draftId, createdByPersonId: w.ids.casey, status: "committed", sourceKind: "blank", timezone: "America/Los_Angeles", betaActivationRequired: true, brief: {} } as never);
-      await db.update(commons).set({ activationDraftId: draftId }).where(eq(commons.id, w.ids.sonoma));
-      await db.update(people).set({ doNotCharge: false }).where(eq(people.id, w.ids.casey));
-    });
-    actAs(w.ids.maya);
-    const refused = await turnOn(w);
-    assert.equal(refused.status, 409);
-    assert.equal(refused.body?.error?.code, "trip_not_funded");
-    actAs(w.ids.casey);
-    assert.equal((await share(w, "Hello")).body?.error?.code, "trip_not_funded");
-  } finally {
-    await w.q(async db => { await db.update(commons).set({ activationDraftId: null }).where(eq(commons.id, w.ids.sonoma)); await db.delete(eventCreationDrafts).where(eq(eventCreationDrafts.id, draftId)); });
-    await teardown(w);
-  }
 });
 
 test("an organizer shares a message into each enrolled traveler's thread, a few times a day, outside quiet hours", { skip }, async () => {

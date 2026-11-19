@@ -9,19 +9,22 @@ import { CommandAccessError, CommandConflictError } from "./event-command";
 import { getEventAttendance, setEventAttendance } from "./attendance-repository";
 import { approvePollDecision } from "./poll-decision-repository";
 import { getPollDeliveryReview, queuePollDeliveries, leasePollDelivery, completePollDelivery, revalidatePollDelivery } from "./poll-delivery-repository";
-import { addCommonsPerson, claimCommonsInvitation, completeInvitationDeliveryAttempt, getCommonsInvitationLink,
-  leaseInvitationDeliveryAttempt, queueCommonsInvitationDeliveries, saveCommonsSetupTravelers, updateCommonsPendingInvitation } from "./onboarding-repository";
+import {
+    addCommonsPerson, claimCommonsInvitation, completeInvitationDeliveryAttempt, getCommonsInvitationLink,
+    leaseInvitationDeliveryAttempt, queueCommonsInvitationDeliveries, saveCommonsSetupTravelers, updateCommonsPendingInvitation
+} from "./onboarding-repository";
 import { createCommonsPoll, getCommonsPollDetail, getPendingPollInvitation, getPublicPollByToken, revokePollRecipient, submitPublicPollResponse, updateCommonsPollStatus } from "./poll-repository";
 import { getPublicPollCoverAssetByPublicId } from "./scoped-cover-repository";
-import { addCommonsItineraryItem, appendCommonsMessage, deleteCommonsMoment, getCommonsSnapshot, updateCommonsItineraryItem, updateCommonsParticipation, updateCommonsTargetBudget } from "./pilot-repository";
+import { addCommonsItineraryItem, deleteCommonsMoment, getCommonsSnapshot, updateCommonsItineraryItem, updateCommonsParticipation, updateCommonsTargetBudget } from "./pilot-repository";
 import { completePhotoDeletion, expireEventDraftSources, leasePhotoDeletion } from "./maintenance-repository";
 import { commitEventCreationDraft } from "./event-creation-repository";
-import { completeConversationDigest, leaseConversationDigest, queueConversationDigests } from "./conversation-digest-repository";
 import { hashNormalizedEmail } from "./tokens";
 import { listCommonsPollDrafts, saveCommonsPollDraft } from "./poll-draft-repository";
-import { commons, conversationDigestDeliveries, conversationDigestItems, identities, invitationDeliveryAttempts, invitations,
-  eventCreationDraftPeople, eventCreationDrafts, itineraryItems, memberships, messages, moments,
-  participation, people, photoDeletions, pollDeliveries, pollResponses, polls } from "./schema";
+import {
+    commons, identities, invitationDeliveryAttempts, invitations,
+    eventCreationDraftPeople, eventCreationDrafts, itineraryItems, memberships, moments,
+    participation, people, photoDeletions, pollDeliveries, pollResponses, polls
+} from "./schema";
 
 const run = process.env.COMMONS_RUN_DATABASE_TESTS === "1";
 
@@ -285,7 +288,6 @@ test("attendance is date-bound, decline removes access without deleting history,
     await assert.rejects(setEventAttendance(f.slug, { ...decline, state: "attending" }, options), { code: "actor_not_authorized" });
     await assert.rejects(getEventAttendance(f.slug, options), { code: "actor_not_authorized" });
     await assert.rejects(getCommonsPollDetail(f.slug, poll.id, options), { code: "poll_not_found" });
-    await assert.rejects(appendCommonsMessage(f.slug, { commandId: randomUUID(), body: "After declining", occurredAt: new Date().toISOString() }, options), { code: "actor_not_authorized" });
     assert.equal((await getEventAttendance(f.slug, f.options)).people.find(row => row.personId === f.member)?.state, "declined");
     assert.equal((await getCommonsPollDetail(f.slug, poll.id, f.options)).createdByName, "Original Name");
     await assert.rejects(setEventAttendance(f.slug, { ...decline, commandId: randomUUID() }, f.options), { code: "attendance_review_required" });
@@ -551,25 +553,6 @@ test("Just me replaces estimates but never erases another traveler's response", 
   } finally { await f.close(); }
 });
 
-test("message commit records daily attention once for each eligible recipient", { skip: !run }, async () => {
-  const f = await fixture();
-  try {
-    const command = { commandId: randomUUID(), body: "A committed message", occurredAt: "2020-01-01T00:00:00.000Z" };
-    await Promise.all([appendCommonsMessage(f.slug, command, f.options), appendCommonsMessage(f.slug, command, f.options)]);
-    const rows = await f.database.db.select().from(messages).where(eq(messages.commonsId, f.event));
-    assert.equal(rows.length, 1);
-    assert.ok(rows[0].occurredAt > new Date("2020-01-02"));
-    const items = await f.database.db.select().from(conversationDigestItems).where(eq(conversationDigestItems.sourceId, rows[0].id));
-    assert.equal(items.length, 2);
-    assert.deepEqual(new Set(items.map(row => row.recipientPersonId)), new Set([f.org, f.member]));
-    const now = new Date();
-    assert.equal((await queueConversationDigests(now, f.url)).queued, 2);
-    const lease = await leaseConversationDigest(now, f.url);
-    assert.equal(lease?.payload.events[0]?.messages[0]?.body, command.body);
-    await assert.rejects(appendCommonsMessage(f.slug, { ...command, body: "Different intent" }, f.options), CommandConflictError);
-  } finally { await f.close(); }
-});
-
 test("expired invitation workers cannot overwrite a replacement lease or sent result", { skip: !run }, async () => {
   const f = await fixture();
   try {
@@ -588,36 +571,6 @@ test("expired invitation workers cannot overwrite a replacement lease or sent re
     assert.equal(await completeInvitationDeliveryAttempt(second.deliveryAttemptId, { leaseAttempt: second.leaseAttempt, sent: true }, f.url), true);
     assert.equal(await completeInvitationDeliveryAttempt(second.deliveryAttemptId, { leaseAttempt: second.leaseAttempt, sent: false }, f.url), false);
     assert.equal((await f.database.db.select().from(invitationDeliveryAttempts).where(eq(invitationDeliveryAttempts.id, first.deliveryAttemptId)))[0].status, "sent");
-  } finally { await f.close(); }
-});
-
-test("digests recheck membership and ignore stale completion", { skip: !run }, async () => {
-  const f = await fixture();
-  const now = new Date();
-  try {
-    await f.database.db.insert(messages).values({ commonsId: f.event, sequence: 1, actorPersonId: f.org,
-      actorName: "Organizer", actorType: "human", body: "Private message", source: "web", occurredAt: now });
-    const payload = { recipientAuthUserId: f.auth, recipientName: "Traveler", events: [{ name: "Test", slug: f.slug,
-      messageCount: 1, messages: [{ actorName: "Organizer", body: "Private message", occurredAt: now.toISOString() }] }] };
-    await f.database.db.insert(conversationDigestDeliveries).values({ recipientPersonId: f.member, periodKey: "test-first",
-      windowStartedAt: now, windowEndedAt: now, availableAt: now, payload });
-    const first = await leaseConversationDigest(now, f.url);
-    assert.ok(first);
-    const later = new Date(now.getTime() + 6 * 60_000);
-    const second = await leaseConversationDigest(later, f.url);
-    assert.ok(second);
-    await completeConversationDigest(first.id, { leaseAttempt: first.leaseAttempt, sent: false }, later, f.url);
-    await completeConversationDigest(second.id, { leaseAttempt: second.leaseAttempt, sent: true }, later, f.url);
-    await completeConversationDigest(first.id, { leaseAttempt: first.leaseAttempt, sent: false }, later, f.url);
-    assert.equal((await f.database.db.select().from(conversationDigestDeliveries).where(eq(conversationDigestDeliveries.id, first.id)))[0].status, "sent");
-    const nextDay = new Date(now.getTime() + 86400000);
-    await f.database.db.insert(messages).values({ commonsId: f.event, sequence: 2, actorPersonId: f.org,
-      actorName: "Organizer", actorType: "human", body: "Another message", source: "web", occurredAt: nextDay });
-    await f.database.db.insert(conversationDigestDeliveries).values({ recipientPersonId: f.member, periodKey: "test-second",
-      windowStartedAt: nextDay, windowEndedAt: nextDay, availableAt: nextDay, payload });
-    await f.database.db.update(memberships).set({ status: "removed" })
-      .where(and(eq(memberships.commonsId, f.event), eq(memberships.personId, f.member)));
-    assert.equal(await leaseConversationDigest(nextDay, f.url), null);
   } finally { await f.close(); }
 });
 

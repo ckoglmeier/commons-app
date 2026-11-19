@@ -5,7 +5,6 @@ import { PollResponseForm } from "@/app/poll/[token]/poll-response-form";
 import { ItineraryTravelerWorkspace } from "@/components/itinerary-traveler-workspace";
 import { itineraryQuestion } from "@/lib/itinerary-workshop";
 import { normalizePollPublicId, publicPollPath } from "@/lib/poll-route";
-import { publicFreeBetaEnabled } from "@/lib/server/trip-capabilities";
 import { authenticatedPollViewer, loadPublicPollByPublicId, pendingPollInvitation, pollEventNavigation } from "@/lib/server/polls";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +41,7 @@ export default async function PublicPollPage({ params }: { params: Promise<{ pub
           <div className="public-poll-cover"><Image src={poll.event.coverImageUrl} alt="" fill sizes="80px" unoptimized /></div>
           <em>{poll.questions.length} {poll.questions.length === 1 ? "question" : "questions"}</em>
         </header> : null}
-        <PollResponseForm token={poll.publicId} initialPoll={poll} offerOwnTrip={publicFreeBetaEnabled()} />
+        <PollResponseForm token={poll.publicId} initialPoll={poll} offerOwnTrip />
       </section>
     </div>
   </main>;

@@ -15,7 +15,7 @@ export type TripBudgetPanelProps = {
   currency?: string;
   canEdit: boolean;
   persistent: boolean;
-  activationSlot?: ReactNode;
+  goingSlot?: ReactNode;
   embedded?: boolean;
   targetControl?: ReactNode;
   onSaved?: (inputs: BudgetInputs | null) => void;
@@ -25,7 +25,7 @@ export type TripBudgetPanelProps = {
 export function TripBudgetPanel(props: TripBudgetPanelProps) {
   return <TripBudgetEditor key={props.tripId} {...props} />;
 }
-function TripBudgetEditor({ tripId, destinationName, startsOn, endsOn, travelerCount, currency, canEdit, persistent, activationSlot, onSaved, embedded = false, targetControl }: TripBudgetPanelProps) {
+function TripBudgetEditor({ tripId, destinationName, startsOn, endsOn, travelerCount, currency, canEdit, persistent, goingSlot, onSaved, embedded = false, targetControl }: TripBudgetPanelProps) {
   const [initial] = useState(() => prefillTripBudget({ destinationName, startsOn, endsOn, travelerCount, currency }));
   const [inputs, setInputs] = useState<BudgetInputs>(initial);
   const [saved, setSaved] = useState<TripBudgetView | null>(null);
@@ -87,11 +87,11 @@ function TripBudgetEditor({ tripId, destinationName, startsOn, endsOn, travelerC
     <GroupBudgetWorksheet summarySupplement={targetControl} summaryActions={(editable && <div className={css.actions}>
       <button type="button" className="cm-action" disabled={saving || conflict || (!dirty && saved.version > 0)} onClick={() => void save()}>{saving ? "Saving…" : "Save budget"}</button>
       <span role="status">{dirty ? "Unsaved changes" : saved.version > 0 ? persistent ? "Budget saved to this trip." : "Saved in this browser." : "Adjust the estimate, then save it to your trip."}</span>
-    </div>)} embedded={embedded} title={embedded ? "Category estimates" : "Trip budget"} destinationName={destinationName} startingLodging={lodgingReference} lodgingReferenceLabel={lodgingReference ? <>Starting reference: {lodgingReference.marketName} rental average, {lodgingReference.source}, checked {lodgingReference.checkedAt}. <a href={lodgingReference.sourceUrl} target="_blank" rel="noreferrer">Source</a>. Adjust for your group and property.</> : undefined} defaultCurrency={initial.currency} value={inputs} onChange={setInputs} readOnly={!editable} captureEnabled={false}
+    </div>)} embedded={embedded} title={embedded ? "Category estimates" : "Trip budget"} destinationName={destinationName} startingLodging={lodgingReference} lodgingReferenceLabel={lodgingReference ? <>Starting reference: {lodgingReference.marketName} rental average, {lodgingReference.source}, checked {lodgingReference.checkedAt}. <a href={lodgingReference.sourceUrl} target="_blank" rel="noreferrer">Source</a>. Adjust for your group and property.</> : undefined} defaultCurrency={initial.currency} value={inputs} onChange={setInputs} readOnly={!editable}
       storageNotice={persistent ? "Estimate each category’s whole-trip cost. Saved plans and expenses count toward these amounts; only the uncovered remainder adds to your forecast. This does not change what anyone owes." : "Sample budget changes stay in this browser. They don’t record expenses."} />
     {!editable && <p className={css.note}>An organizer can update this budget.</p>}
     {error && <p role="alert">{error}</p>}
     {conflict && <div><p>Loading the latest budget will replace your unsaved edits.</p><button type="button" className="cm-action-secondary" onClick={() => { setLoading(true); setLoadAttempt(value => value + 1); }}>Load latest budget</button></div>}
-    {activationSlot}
+    {goingSlot}
   </div>;
 }

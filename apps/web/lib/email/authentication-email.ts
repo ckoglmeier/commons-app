@@ -1,7 +1,7 @@
 import { emailBrandHtml } from "./brand";
 import type { RenderedEmail } from "./invitation-email";
 
-export type AuthenticationEmailIntent = "sign-in" | "create" | "invited" | "access";
+export type AuthenticationEmailIntent = "sign-in" | "create" | "invited";
 
 function escapeHtml(value: string) {
   return value
@@ -29,18 +29,15 @@ export function renderCommonsAuthenticationEmail(input: {
   const email = escapeHtml(input.email.trim().toLowerCase());
   const creating = input.intent === "create";
   const invited = input.intent === "invited";
-  const requestingAccess = input.intent === "access";
-  const subject = requestingAccess ? "Continue your Commons beta request" : creating ? "Finish creating your Commons account" : invited ? "Continue to your event on Commons" : "Your Commons sign-in link";
-  const kicker = requestingAccess ? "Commons beta" : creating ? "New account" : invited ? "Event invitation" : "Sign in to Commons";
-  const heading = requestingAccess ? "Request beta access." : creating ? "Your events start here." : invited ? "Your event is waiting." : "Pick up where you left off.";
-  const body = requestingAccess
-    ? "Use this private link to create your account and request access to the Commons beta."
-    : creating
+  const subject = creating ? "Finish creating your Commons account" : invited ? "Continue to your event on Commons" : "Your Commons sign-in link";
+  const kicker = creating ? "New account" : invited ? "Event invitation" : "Sign in to Commons";
+  const heading = creating ? "Your events start here." : invited ? "Your event is waiting." : "Pick up where you left off.";
+  const body = creating
     ? "Use this private link to finish creating your account."
     : invited
       ? "Use this private link to sign in, then continue directly to your invitation."
       : "Use this private link to sign in. No password needed.";
-  const action = requestingAccess ? "Continue request" : creating ? "Create account" : invited ? "Continue to your event" : "Sign in to Commons";
+  const action = creating ? "Create account" : invited ? "Continue to your event" : "Sign in to Commons";
 
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(subject)}</title>

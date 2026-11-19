@@ -11,6 +11,8 @@ import { actAs, databaseTestsEnabled, testDatabaseUrl } from "../../test-support
 import { registerComponentImportStubs } from "../../test-support/hook-harness";
 import { FakeProvider } from "./fake-provider";
 import { setMessagingProviderForTests } from "./provider";
+/** Texting is configured by the three Twilio settings; the provider itself is the fake one. */
+const TWILIO_TEST_ENV = { TWILIO_ACCOUNT_SID: "ACsynthetic", TWILIO_AUTH_TOKEN: "synthetic", TWILIO_MESSAGING_SERVICE_SID: "MGsynthetic" };
 
 export { actAs, databaseTestsEnabled, testDatabaseUrl };
 export const skip = !databaseTestsEnabled;
@@ -36,11 +38,10 @@ export type World = Awaited<ReturnType<typeof world>>;
 export async function world(options: { trips?: Array<"sonoma" | "tahoe"> } = {}) {
   registerComponentImportStubs(); // `server-only` must be stubbed before any module that imports it loads
   const { setMessagingDepsForTests } = await import("./core");
-  process.env.COMMONS_BETA_REWORK_ENABLED = "true";
   process.env.COMMONS_INVITATION_TOKEN_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   process.env.NEXT_PUBLIC_SITE_URL = "https://commons.test";
   process.env.CRON_SECRET = "synthetic-cron-secret-0001";
-  delete process.env.COMMONS_SMS_PROVIDER;
+  for (const name of Object.keys(TWILIO_TEST_ENV)) delete process.env[name];
   const url = testDatabaseUrl();
   // A crashed earlier run must not leave synthetic messages for this run's dispatcher to pick up: the outbox is global by design.
   const purge = createDatabase(url);

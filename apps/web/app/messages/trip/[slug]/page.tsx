@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { CommonsWordmark } from "@commons/ui";
 import { SignInForm } from "@/app/sign-in/sign-in-form";
 import { CommonsAuthenticationRequiredError, CommonsMembershipRequiredError } from "@/lib/server/commons-access-errors";
-import { textMessagingAvailableToViewer } from "@/lib/server/messaging/test-thread";
 import { readEnrollment } from "@/lib/server/messaging/web";
-import { readWebMessagesForTrip, webMessagesAvailableToViewer } from "@/lib/server/messaging/web-thread";
-import { betaReworkEnabled, textMessagingAvailable } from "@/lib/server/runtime-environment";
+import { readWebMessagesForTrip } from "@/lib/server/messaging/web-thread";
+import { textMessagingAvailable } from "@/lib/server/runtime-environment";
 import { isSupabaseAuthConfigured } from "@/lib/supabase/config";
 import { EnrollmentForm } from "./enrollment-form";
 import { WebMessagesForm } from "./web-messages-form";
@@ -16,15 +15,11 @@ export const metadata = { title: "Messages from Commons", robots: { index: false
 
 /** Optional. The trip works the same on the web whether or not this is turned on. Consent is created here, for one trip, and nowhere else. */
 export default async function TextWithCommonsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ joined?: string; channel?: string }> }) {
-  if (!betaReworkEnabled()) notFound();
   const { slug } = await params, { joined, channel } = await searchParams, justJoined = joined === "1";
-  // Texting is asked for explicitly (from the test thread), so it wins over Messages in Commons on this page.
-  const textChannel = channel === "text" && await textMessagingAvailableToViewer();
-  // Messages in Commons, where they're on for this person, take the place of texting on this page.
-  if (!textChannel && await webMessagesAvailableToViewer()) return <WebMessagesPage slug={slug} justJoined={justJoined} />;
-  // Nobody is invited to enroll until texts can actually be sent.
-  if (!textChannel && !await textMessagingAvailableToViewer()) redirect(`/c/${slug}/`);
-  const inAppTest = !textMessagingAvailable();
+  // Texting is asked for explicitly, so it wins over Messages in Commons on this page. Nobody is invited to enroll until texts can actually be sent.
+  const textChannel = channel === "text" && textMessagingAvailable();
+  // Messages in Commons take the place of texting on this page.
+  if (!textChannel) return <WebMessagesPage slug={slug} justJoined={justJoined} />;
   let status: Awaited<ReturnType<typeof readEnrollment>> | null = null, signedOut = false;
   try { status = await readEnrollment(slug); }
   catch (error) { if (error instanceof CommonsAuthenticationRequiredError) signedOut = true; else if (!(error instanceof CommonsMembershipRequiredError)) throw error; }
@@ -43,9 +38,7 @@ export default async function TextWithCommonsPage({ params, searchParams }: { pa
         </> : <>
           <div className="entry-copy"><span className="view-kicker">{status.tripName}</span><h1 id="text-title">{justJoined ? "You’re in. Want to do this by text?" : "Text with Commons"}</h1>
             <p>Answer a few questions and send in bookings by text, instead of opening the app. Your texts to Commons aren’t posted to the group. You review anything before it is shared.</p></div>
-          {inAppTest ? <p className="entry-footnote"><strong>Test mode.</strong> Nothing goes to a phone. Messages show up in <Link href="/messages/test">Test messages</Link>, and your answers change the real trip.</p> : null}
-          {!status.funded ? <p className="entry-footnote" role="status"><strong>Not available yet.</strong> Texting starts once the trip fee is paid. {status.enrolled ? "Texts you turned on will start then." : null}</p> : null}
-          {status.funded || status.enrolled ? <EnrollmentForm slug={slug} tripName={status.tripName} consentText={status.consentText} enrolled={status.enrolled} optedOut={status.optedOut} verifiedPhone={status.verifiedPhone} suggestedPhone={inAppTest ? status.suggestedPhone : undefined} /> : null}
+          <EnrollmentForm slug={slug} tripName={status.tripName} consentText={status.consentText} enrolled={status.enrolled} optedOut={status.optedOut} verifiedPhone={status.verifiedPhone} />
           <p className="entry-footnote">{justJoined ? <Link href={`/c/${slug}/`}>Not now, go to the trip</Link> : <>Prefer not to text? Nothing changes. {" "}<Link href={`/c/${slug}/`}>Back to the trip</Link></>}</p>
         </>}
       </section>
@@ -71,8 +64,7 @@ async function WebMessagesPage({ slug, justJoined }: { slug: string; justJoined:
         </> : <>
           <div className="entry-copy"><span className="view-kicker">{status.tripName}</span><h1 id="messages-trip-title">{justJoined ? "You’re in. Want Commons to keep you posted?" : "Messages from Commons"}</h1>
             <p>Commons asks one thing at a time, like whether you’re coming or which dinner works, and answers questions about the saved plan. It’s a private conversation in Commons: nothing goes to your phone, and nothing you send is posted to the group.</p></div>
-          {!status.funded ? <p className="entry-footnote" role="status"><strong>Not available yet.</strong> Messages start once the trip fee is paid. {status.on ? "Messages you turned on will start then." : null}</p> : null}
-          {status.funded || status.on ? <WebMessagesForm slug={slug} tripName={status.tripName} consentText={status.consentText} on={status.on} onPhone={status.onPhone} /> : null}
+          <WebMessagesForm slug={slug} tripName={status.tripName} consentText={status.consentText} on={status.on} onPhone={status.onPhone} />
           <p className="entry-footnote">{justJoined ? <Link href={`/c/${slug}/`}>Not now, go to the trip</Link> : <>Not for you? Nothing changes. {" "}<Link href={`/c/${slug}/`}>Back to the trip</Link></>}</p>
         </>}
       </section>

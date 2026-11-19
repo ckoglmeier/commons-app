@@ -11,7 +11,7 @@ import { DELIVERY_LEASE_MS, DELIVERY_MAX_ATTEMPTS, DELIVERY_RETRY_MS, ownsDelive
 export const RESEARCH_AGENT_ID = "00000000-0000-4000-8000-000000000001";
 /** The per-trip hourly bound or the organizer's outstanding-task bound was reached. A conflict subclass, so older handlers keep treating it as one. */
 export class TaskLimitError extends CommandConflictError { constructor() { super(); this.name = "TaskLimitError"; } }
-export type ResearchOptions = { databaseUrl?: string; actorPersonId: string; turnFence?: CoordinatorTurnFence; inferenceLimitExempt?: boolean };
+export type ResearchOptions = { databaseUrl?: string; actorPersonId: string; turnFence?: CoordinatorTurnFence };
 type Task = typeof researchTasks.$inferSelect;
 
 // This slice supports shared organizer threads only. Hold authorization locks
@@ -77,8 +77,8 @@ export async function queueResearchTaskInTransaction(tx: CommandTransaction, inp
     }
     const [usage] = await tx.select({ count: sql<number>`count(*)::int` }).from(researchTasks)
       .where(and(eq(researchTasks.commonsId, input.commonsId), gte(researchTasks.createdAt, new Date(Date.now() - 3600_000))));
-    if (!options.inferenceLimitExempt && usage.count >= 10) throw new TaskLimitError();
-    if (steer && !options.inferenceLimitExempt) {
+    if (usage.count >= 10) throw new TaskLimitError();
+    if (steer) {
       const [outstanding] = await tx.select({ count: sql<number>`count(*)::int` }).from(researchTasks)
         .where(and(eq(researchTasks.commonsId, input.commonsId), eq(researchTasks.requestedByPersonId, options.actorPersonId), inArray(researchTasks.status, ["pending", "processing", "needs_input"])));
       if (outstanding.count >= TASK_MAX_OUTSTANDING) throw new TaskLimitError();

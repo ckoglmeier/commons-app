@@ -85,8 +85,6 @@ export const EventCreationDraftSchema = z.object({
   people: z.array(EventCreationDraftPersonSchema).max(24),
   committedEventId: z.string().uuid().nullable(),
   committedEventSlug: z.string().nullable(),
-  /** Server-set, read-only. A client can never change it. */
-  betaActivationRequired: z.boolean().default(false),
   entryContext: TripEntryContextSchema.nullable().default(null),
   updatedAt: z.string().datetime(),
 });
@@ -136,8 +134,6 @@ export const UpdateEventCreationDraftPeopleRequestSchema = z.object({
 export const CommitEventCreationDraftRequestSchema = z.object({
   commandId: z.string().uuid(),
   expectedVersion: z.number().int().positive(),
-  /** Activation only: create the private trip with just the organizer. People added in setup are left out and not invited. */
-  privateOnly: z.boolean().optional(),
 });
 
 export const CommitEventCreationDraftResultSchema = z.object({

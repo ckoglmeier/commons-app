@@ -4,7 +4,6 @@ import { z } from "zod";
 import { normalizePhone } from "@/lib/contact-methods";
 import { authenticatedConfirmationIntakeOptions } from "../commons";
 import { dbOptions, messagingDeps } from "./core";
-import { testNumberFor } from "./in-app-provider";
 import { ProviderSendError, sendGate } from "./provider";
 
 /*
@@ -26,11 +25,9 @@ export async function sendPhoneCode(raw: unknown): Promise<{ ok: true; phone: st
   const options = await authenticatedConfirmationIntakeOptions();
   const input = PhoneCodeRequestSchema.parse(raw), deps = await messagingDeps(), phone = normalizePhone(input.value);
   if (!phone) return invalidNumber();
-  // Your own fictional number and no other, so no tester can step into a number another tester used, along with its thread.
-  if (deps.provider.showsVerificationCodes && phone !== testNumberFor(options.actorPersonId)) return refuse(400, "test_number_required", "This is a test thread, so it only takes your test number. Use the one filled in for you.");
   if (!allowedPrefixes().some(prefix => phone.startsWith(prefix))) return refuse(400, "unsupported_country", "Commons can only text US and Canadian numbers right now. You can keep using the trip on the web.");
   const gate = sendGate(deps.provider, phone);
-  if (!gate.allowed) return refuse(gate.reason === "not_allowlisted" ? 403 : 503, gate.reason, gate.reason === "not_allowlisted" ? "This number isn’t on the test list yet, so no code was sent." : "Texting isn’t available right now, so no code was sent.");
+  if (!gate.allowed) return refuse(503, gate.reason, "Texting isn’t available right now, so no code was sent.");
   const started = await startPhoneVerification({ personId: options.actorPersonId, phone }, dbOptions(deps));
   if (!started.ok) {
     if (started.reason === "invalid_number") return invalidNumber();
@@ -40,7 +37,7 @@ export async function sendPhoneCode(raw: unknown): Promise<{ ok: true; phone: st
   const body = messagingCopy.verificationCode(started.code);
   try {
     const sent = await deps.provider.send({ to: started.e164, body, idempotencyKey: `verify:${started.verificationId}` });
-    await recordVerificationSend({ provider: deps.provider.name, providerMessageId: sent.providerMessageId, e164: started.e164, personId: options.actorPersonId, segments: smsSegments(body), visibleBody: deps.provider.showsVerificationCodes ? body : null }, dbOptions(deps));
+    await recordVerificationSend({ provider: deps.provider.name, providerMessageId: sent.providerMessageId, e164: started.e164, personId: options.actorPersonId, segments: smsSegments(body), visibleBody: null }, dbOptions(deps));
     return { ok: true, phone: started.e164 };
   } catch (error) {
     await cancelPhoneVerification(started.verificationId, dbOptions(deps));

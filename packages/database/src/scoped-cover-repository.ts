@@ -3,7 +3,6 @@ import { and, eq, ne } from "drizzle-orm";
 import { pollViewerAccess, type PollViewer } from "./poll-access";
 import { createDatabase } from "./client";
 import { commons, invitations, polls } from "./schema";
-import { readTripInviteGate } from "./trip-activation-repository";
 import { hashOpaqueToken } from "./tokens";
 
 export type ScopedCoverAsset = { storagePath: string; mimeType: string };
@@ -41,7 +40,6 @@ export async function getInvitationCoverAssetByToken(token: string, databaseUrl?
       .innerJoin(commons, eq(invitations.commonsId, commons.id))
       .where(and(eq(invitations.tokenHash, hashOpaqueToken(token)), eq(invitations.status, "pending")))
       .limit(1);
-    if (asset && !(await readTripInviteGate(database.db, asset.commonsId)).mayEnter) return null;
     return asset?.storagePath && asset.mimeType ? { storagePath: asset.storagePath, mimeType: asset.mimeType } : null;
   } finally {
     await database.close();

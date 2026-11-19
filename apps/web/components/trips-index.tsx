@@ -98,11 +98,7 @@ export function TripsIndex({
   canSignOut,
   accountInitials,
   signedIn,
-  creationAccessAllowed = false,
-  creationAccessStatus = null,
   publicPage = false,
-  operator = false,
-  publicFreeBeta = false,
   organizesTrips = true,
   supportInFooter = false,
 }: {
@@ -111,29 +107,13 @@ export function TripsIndex({
   canSignOut: boolean;
   accountInitials: string;
   signedIn: boolean;
-  creationAccessAllowed?: boolean;
-  creationAccessStatus?: string | null;
   publicPage?: boolean;
-  operator?: boolean;
-  /** COMMONS_PUBLIC_FREE_BETA_ENABLED: self-service "Start a trip" replaces the request-access path. */
-  publicFreeBeta?: boolean;
   /** False for a signed-in person who is not an organizer of any trip: offers a quiet path to their own trip. */
   organizesTrips?: boolean;
   /** True when the homepage footer is shown: Support and your data lives there, so the main area leaves it out. */
   supportInFooter?: boolean;
 }) {
   if (publicPage || !signedIn) {
-    const betaRequestPath = "/new?access=request";
-    const betaAccessHref = signedIn
-      ? betaRequestPath
-      : `/sign-in?next=${encodeURIComponent(betaRequestPath)}&intent=access`;
-    const accessPending = creationAccessStatus === "requested";
-    const creationHref = creationAccessAllowed ? "/new" : betaAccessHref;
-    const creationLabel = creationAccessAllowed
-      ? "Start a trip"
-      : accessPending
-        ? "View request"
-        : "Request access";
     return (
       <main className="trips-shell public-trips-shell">
         <header className="global-nav global-nav--index">
@@ -144,7 +124,7 @@ export function TripsIndex({
           <div className="workspace-actions public-header-actions">
             {signedIn ? (
               <>
-                <AccountMenu initials={accountInitials} canSignOut={canSignOut} operator={operator} />
+                <AccountMenu initials={accountInitials} canSignOut={canSignOut} />
               </>
             ) : (
               <>
@@ -158,11 +138,9 @@ export function TripsIndex({
         <div className="public-trips-content" id="homepage-content">
           <section className="public-trips-hero">
             <h1><span>Group travel</span>{" "}<span>with less group work.</span></h1>
-            <div className="public-trips-pitch"><p>{publicFreeBeta
-              ? "Plan trips, ask the group, decide together, keep the plan current, and track shared expenses."
-              : "Plan trips, make decisions, track shared expenses, and keep the memories."}</p></div>
+            <div className="public-trips-pitch"><p>Plan trips, ask the group, decide together, keep the plan current, and track shared expenses.</p></div>
           </section>
-          {publicFreeBeta && !signedIn ? (
+          {!signedIn ? (
             <div className="homepage-invitation">
               <Link className="homepage-primary" href="/sign-in?next=%2Fnew&intent=create" data-analytics-event="event_creation_viewed" data-analytics-detail="homepage_start_trip">Start a trip</Link>
               <p>Free to start. Begin with a title; add dates, places and people when you’re ready.</p>
@@ -173,17 +151,11 @@ export function TripsIndex({
               {signedIn ? null : <p>Use the email your invitation was sent to.</p>}
             </div>
           )}
-          {publicFreeBeta ? (
-            <section className="homepage-beta" aria-label={signedIn ? "Start a trip" : "Invited to a trip"}>
-              {signedIn
-                ? <p>Planning a trip? <Link href="/new" data-analytics-event="event_creation_viewed" data-analytics-detail="homepage_beta">Start a trip</Link></p>
-                : <p>Invited to a trip? <Link href="/sign-in?next=%2Ftrips&intent=invited" data-analytics-event="sign_in_started" data-analytics-detail="invited_router">Sign in to your trip</Link> with the email your invitation was sent to.</p>}
-            </section>
-          ) : (
-          <section className="homepage-beta" aria-label="Beta access">
-            <p>{creationAccessAllowed ? "Planning a trip?" : accessPending ? "Access requested." : "Planning a trip?"}{" "}<Link href={creationHref} data-analytics-event={creationAccessAllowed ? "event_creation_viewed" : "beta_access_started"} data-analytics-detail="homepage_beta">{creationLabel}</Link></p>
+          <section className="homepage-beta" aria-label={signedIn ? "Start a trip" : "Invited to a trip"}>
+            {signedIn
+              ? <p>Planning a trip? <Link href="/new" data-analytics-event="event_creation_viewed" data-analytics-detail="homepage_beta">Start a trip</Link></p>
+              : <p>Invited to a trip? <Link href="/sign-in?next=%2Ftrips&intent=invited" data-analytics-event="sign_in_started" data-analytics-detail="invited_router">Sign in to your trip</Link> with the email your invitation was sent to.</p>}
           </section>
-          )}
           {supportInFooter ? null : <p className="homepage-support"><Link href="/support">Support and your data</Link></p>}
         </div>
         <div className="homepage-coast" aria-hidden="true"><Image src="/brand/coast.webp" alt="" fill sizes="100vw" priority /></div>
@@ -203,8 +175,8 @@ export function TripsIndex({
           <CommonsWordmark />
         </Link>
         <div className="workspace-actions trips-header__actions">
-          {creationAccessAllowed && !creationIsPrimary ? <Link className="new-trip-link" href="/new"><PlusIcon /> {publicFreeBeta ? "New trip" : "New trip"}</Link> : null}
-          <AccountMenu initials={accountInitials} canSignOut={canSignOut} operator={operator} />
+          {!creationIsPrimary ? <Link className="new-trip-link" href="/new"><PlusIcon /> New trip</Link> : null}
+          <AccountMenu initials={accountInitials} canSignOut={canSignOut} />
         </div>
       </header>
 
@@ -212,7 +184,7 @@ export function TripsIndex({
         <section className={`trips-intro${allTripsClosed ? " trips-intro--closed" : ""}`}>
           {allTripsClosed ? <span className="view-kicker">Your trips</span> : null}
           <h1>{allTripsClosed ? "Where to next?" : "Your trips"}</h1>
-          {allTripsClosed && creationAccessAllowed ? <Link className="trips-intro__action" href="/new"><PlusIcon /> New trip</Link> : null}
+          {allTripsClosed ? <Link className="trips-intro__action" href="/new"><PlusIcon /> New trip</Link> : null}
         </section>
 
         {!memberships.length && !pendingInvitations.length ? (
@@ -220,11 +192,11 @@ export function TripsIndex({
             <span><CommonsMark /></span>
             <h2>No trips yet.</h2>
             <p>Start a trip or open an invitation.</p>
-            {creationAccessAllowed ? <Link className="form-submit" href="/new"><PlusIcon /> {publicFreeBeta ? "Start a trip" : "Start a trip"}</Link> : null}
+            <Link className="form-submit" href="/new"><PlusIcon /> Start a trip</Link>
           </section>
         ) : null}
 
-        {publicFreeBeta && creationAccessAllowed && !organizesTrips && memberships.length ? (
+        {!organizesTrips && memberships.length ? (
           <p className="trips-own-trip"><Link href="/new" data-analytics-event="participant_trip_start_clicked" data-analytics-detail="trips_index">Plan your own trip</Link></p>
         ) : null}
 

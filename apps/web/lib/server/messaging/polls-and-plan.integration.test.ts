@@ -4,6 +4,8 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { createCommonsPoll, itineraryItems, pollResponses, setEventAttendance, submitPublicPollResponseByPublicId } from "@commons/database";
 import { loadRoutes, skip, world } from "./test-world";
+/** Texting is configured by the three Twilio settings; the provider itself is the fake one. */
+const TWILIO_TEST_ENV = { TWILIO_ACCOUNT_SID: "ACsynthetic", TWILIO_AUTH_TOKEN: "synthetic", TWILIO_MESSAGING_SERVICE_SID: "MGsynthetic" };
 
 /* Synthetic evidence: real routes and repositories on a disposable database, with the fake provider. No message leaves the process. */
 const services = async () => ({ ...(await import("./core")), ...(await import("./planner")), ...(await import("./dispatch")) });
@@ -110,18 +112,18 @@ test("a poll too long for a text gets one link, is never re-sent, and stays home
 
 test("publishing a poll texts its people right away, and a failure there can't stop the publish", { skip }, async () => {
   const w = await world();
-  process.env.COMMONS_SMS_PROVIDER = "twilio"; process.env.COMMONS_SMS_SEND_MODE = "live";
+  Object.assign(process.env, TWILIO_TEST_ENV);
   try {
     const routes = await loadRoutes(), { textAboutPublishedPoll, messagingDeps, dispatchOutbox } = await services();
     await settled(w, routes);
     const { question } = choice("single", ["Saturday", "Sunday"]);
     const poll = await createCommonsPoll(w.slugs.sonoma, { commandId: randomUUID(), title: "Dinner", ballotMode: "transparent", audience: { personIds: [w.ids.maya], guestEmails: [] }, questions: [question] }, { databaseUrl: w.url, actorPersonId: w.ids.casey });
     // With texting off nothing is planned or sent, and this returns quietly.
-    delete process.env.COMMONS_SMS_PROVIDER;
+    for (const name of Object.keys(TWILIO_TEST_ENV)) delete process.env[name];
     const before = w.provider.outbox.length;
     await textAboutPublishedPoll(poll.id);
     assert.equal(w.provider.outbox.length, before);
-    process.env.COMMONS_SMS_PROVIDER = "twilio";
+    Object.assign(process.env, TWILIO_TEST_ENV);
     // An unknown poll isn't an error.
     await assert.doesNotReject(textAboutPublishedPoll(randomUUID()));
     // Published at 2am in the trip's time zone: queued right away, but it waits for morning.
@@ -132,7 +134,7 @@ test("publishing a poll texts its people right away, and a failure there can't s
     w.clock.set("2026-11-05T17:00:00Z");
     await dispatchOutbox(await messagingDeps());
     assert.match(w.last(), /Which night for the group dinner/);
-  } finally { delete process.env.COMMONS_SMS_PROVIDER; delete process.env.COMMONS_SMS_SEND_MODE; await w.cleanup(); }
+  } finally { for (const name of Object.keys(TWILIO_TEST_ENV)) delete process.env[name]; await w.cleanup(); }
 });
 
 test("plan questions by text, through the real route, from what this person may see", { skip }, async () => {

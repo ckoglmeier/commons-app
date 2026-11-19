@@ -7,8 +7,7 @@ import { readCommonsRuntimeEnvironment } from "@/lib/server/runtime-environment"
 import { PollInferenceError, pollAssistanceEnabled } from "@/lib/server/poll-inference";
 import { runPollFraming } from "@/lib/server/poll-framing-service";
 import { readBoundedJson } from "@/lib/bounded-json";
-import { pollHelpUnlocked } from "@/lib/server/trip-stages";
-import { recordOperationFailure, recordPollAssistGeneration } from "@/lib/server/outcome-telemetry";
+import { recordOperationFailure } from "@/lib/server/outcome-telemetry";
 
 export const maxDuration = 60;
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
@@ -16,13 +15,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   try {
     const { slug } = await params;
     const environment = readCommonsRuntimeEnvironment();
-    // Part of the $20 on a trip under the paid path, checked before any provider call.
-    if (!await pollHelpUnlocked(slug)) return NextResponse.json({ error: "Writing help is part of the $20 for the whole trip.", code: "upgrade_required" }, { status: 402, headers });
     if (!pollAssistanceEnabled() || !environment.OPENAI_API_KEY || !environment.COMMONS_POLL_MODEL) throw new PollInferenceError("not_configured");
     const body = await readBoundedJson(request);
     const posthog = await posthogAiObserver(request, 'poll_suggestions');
-    // Every provider call leaves a first-party cost/latency row, including failures; PostHog gets $ai_generation when allowed.
-    const telemetry = (generation: Parameters<NonNullable<typeof posthog>>[0]) => { posthog?.(generation); recordPollAssistGeneration({ generation, trip: slug }); };
+    // PostHog gets $ai_generation when it is configured and allowed.
+    const telemetry = (generation: Parameters<NonNullable<typeof posthog>>[0]) => { posthog?.(generation); };
     // Sizes and latency only. Prompt and output text are never logged.
     const result = await runPollFraming({ slug, body, apiKey: environment.OPENAI_API_KEY, model: environment.COMMONS_POLL_MODEL, telemetry,
       metrics: metrics => console.info("commons.poll_assist", metrics) });

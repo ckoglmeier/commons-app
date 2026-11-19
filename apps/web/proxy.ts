@@ -4,7 +4,6 @@ import { updateSupabaseSession } from "@/lib/supabase/proxy";
 import { canonicalProductionUrl } from "@/lib/supabase/session";
 
 const INTERNAL_CRON_PATHS = new Set([
-  "/api/internal/conversation-digests/",
   "/api/internal/invitation-deliveries/",
   // Prepared, unscheduled durable-turn runner (conversation durability A2).
   "/api/internal/coordinator-turns/",

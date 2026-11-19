@@ -1,13 +1,12 @@
 import type { RenderedEmail } from "./invitation-email";
 import { readCommonsRuntimeEnvironment } from "@/lib/server/runtime-environment";
 
-type SendMode = "disabled" | "allowlist" | "production";
+type SendMode = "disabled" | "log" | "live";
 
 export class EmailDeliveryError extends Error {
   constructor(
     public readonly code:
       | "delivery_disabled"
-      | "recipient_not_allowed"
       | "email_not_configured"
       | "provider_rejected"
       | "provider_rate_limited"
@@ -24,39 +23,28 @@ export type SendEmailInput = RenderedEmail & {
   idempotencyKey: string;
 };
 
+/** Explicit mode, else live when Resend is fully configured, else log in development, else disabled. "production" is the legacy name for live. */
 function configuredMode(): SendMode {
-  const mode = readCommonsRuntimeEnvironment().COMMONS_EMAIL_SEND_MODE ?? "disabled";
-  if (mode === "disabled" || mode === "allowlist" || mode === "production") {
-    return mode;
-  }
-  throw new Error(`Unknown COMMONS_EMAIL_SEND_MODE: ${mode}`);
-}
-
-function allowlistedRecipients() {
   const environment = readCommonsRuntimeEnvironment();
-  return new Set(
-    (environment.COMMONS_EMAIL_RECIPIENT_ALLOWLIST ?? "")
-      .split(",")
-      .map((email) => email.trim().toLowerCase())
-      .filter(Boolean),
-  );
+  const mode = environment.COMMONS_EMAIL_SEND_MODE;
+  if (mode === "production") return "live";
+  if (mode) return mode;
+  if (environment.RESEND_API_KEY && environment.COMMONS_EMAIL_FROM) return "live";
+  return environment.NODE_ENV === "development" ? "log" : "disabled";
 }
 
-export function assertEmailDeliveryAllowed(recipient: string) {
-  const mode = configuredMode();
-  if (mode === "disabled") {
+export function assertEmailDeliveryAllowed(_recipient?: string) {
+  if (configuredMode() === "disabled") {
     throw new EmailDeliveryError("delivery_disabled", "Email delivery is disabled.");
-  }
-  if (
-    mode === "allowlist" &&
-    !allowlistedRecipients().has(recipient.trim().toLowerCase())
-  ) {
-    throw new EmailDeliveryError("recipient_not_allowed", `${recipient} is not in the email test allowlist.`);
   }
 }
 
 export async function sendEmail(input: SendEmailInput) {
   assertEmailDeliveryAllowed(input.to);
+  if (configuredMode() === "log") {
+    console.info("commons.email.logged", { to: input.to, subject: input.subject, text: input.text });
+    return { id: `logged-${input.idempotencyKey}` };
+  }
   const environment = readCommonsRuntimeEnvironment();
   const apiKey = environment.RESEND_API_KEY;
   const from = environment.COMMONS_EMAIL_FROM;

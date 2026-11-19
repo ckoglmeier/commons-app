@@ -1,49 +1,46 @@
-import { assertTripMayEnter, assertTripMayInvite, draftPeopleStillToInvite, readTripInviteGate, TripActivationError, TripActivationRequiredError } from "./trip-activation-repository";
 import { randomBytes } from "node:crypto";
 import {
-  AddCommonsPersonRequestSchema,
-  CommitSetupImportRequestSchema,
-  CommonsPeopleSchema,
-  CommonsSetupSchema,
-  CreateCommonsDraftRequestSchema,
-  CreateCommonsDraftResultSchema,
-  InvitationPreviewSchema,
-  SaveSetupTravelersRequestSchema,
-  UpdateCommonsInvitationRequestSchema,
-  UpdateCommonsPersonRoleRequestSchema,
-  type CommonsSetup,
-  type CreateCommonsDraftResult,
-  type CommonsMembershipSummary,
-  type InvitationPreview,
+    AddCommonsPersonRequestSchema,
+    CommitSetupImportRequestSchema,
+    CommonsPeopleSchema,
+    CommonsSetupSchema,
+    CreateCommonsDraftRequestSchema,
+    CreateCommonsDraftResultSchema,
+    InvitationPreviewSchema,
+    SaveSetupTravelersRequestSchema,
+    UpdateCommonsInvitationRequestSchema,
+    UpdateCommonsPersonRoleRequestSchema,
+    type CommonsSetup,
+    type CreateCommonsDraftResult,
+    type CommonsMembershipSummary,
+    type InvitationPreview,
 } from "@commons/contracts";
 import { and, count, desc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { DELIVERY_LEASE_MS, DELIVERY_MAX_ATTEMPTS, DELIVERY_RETRY_MS, ownsDeliveryLease } from "./delivery-lease";
 import { createDatabase } from "./client";
 import { isCommonsId } from "./commons-identifier";
 import {
-  auditEvents,
-  commons,
-  consentEvents,
-  identities,
-  invitations,
-  invitationDeliveryAttempts,
-  expenses,
-  expenseShares,
-  itineraryItems,
-  memberships,
-  people,
-  processedCommands,
-  eventCreationDraftPeople,
-  eventCreationDrafts,
+    auditEvents,
+    commons,
+    consentEvents,
+    identities,
+    invitations,
+    invitationDeliveryAttempts,
+    expenses,
+    expenseShares,
+    itineraryItems,
+    memberships,
+    people,
+    processedCommands
 } from "./schema";
 import {
-  generateOpaqueToken,
-  hashNormalizedEmail,
-  hashNormalizedPhone,
-  hashOpaqueToken,
-  protectOpaqueToken,
-  revealOpaqueToken,
-  revokedOpaqueTokenHash,
+    generateOpaqueToken,
+    hashNormalizedEmail,
+    hashNormalizedPhone,
+    hashOpaqueToken,
+    protectOpaqueToken,
+    revealOpaqueToken,
+    revokedOpaqueTokenHash,
 } from "./tokens";
 
 export type AuthenticatedIdentity = {
@@ -643,11 +640,7 @@ export async function listPendingCommonsInvitationsForIdentity(
       .where(inArray(people.id, [...new Set(rows.map((row) => row.createdByPersonId))]));
     const inviters = new Map(inviterRows.map((row) => [row.id, row.displayName]));
 
-    const closedTrips = new Set<string>();
-    for (const commonsId of new Set(rows.map((row) => row.commonsId))) {
-      if (!(await readTripInviteGate(database.db, commonsId)).mayEnter) closedTrips.add(commonsId);
-    }
-    return rows.flatMap((row) => row.protectedToken && !closedTrips.has(row.commonsId) ? [{
+    return rows.flatMap((row) => row.protectedToken ? [{
       token: revealOpaqueToken(row.protectedToken),
       commons: {
         id: row.commonsId,
@@ -1159,7 +1152,6 @@ async function addAccountInvitationInTransaction(
   const email = request.email?.trim().toLowerCase();
   if (!email) throw new Error("Email is required for an account traveler.");
   const context = await requireOrganizer(transaction, slug, options.actorPersonId);
-  await assertTripMayInvite(transaction, context.id);
   const knownPersonId = await ensureInvitationEmailAvailable(transaction, context.id, email);
   if (knownPersonId === options.actorPersonId) {
     throw new OnboardingRepositoryError(
@@ -1282,8 +1274,7 @@ export async function inviteManagedTraveler(slug: string, personId: string, inpu
   try {
     return await database.db.transaction(async (transaction) => {
       const context = await requireOrganizer(transaction, slug, options.actorPersonId);
-      await assertTripMayInvite(transaction, context.id);
-      const [person] = await transaction.select().from(people).where(eq(people.id, personId)).for("update").limit(1);
+          const [person] = await transaction.select().from(people).where(eq(people.id, personId)).for("update").limit(1);
       const [member] = await transaction.select().from(memberships).where(and(
         eq(memberships.commonsId, context.id), eq(memberships.personId, personId),
       )).for("update").limit(1);
@@ -1337,8 +1328,7 @@ export async function updateCommonsPendingInvitation(
   try {
     await database.db.transaction(async (transaction) => {
       const context = await requireOrganizer(transaction, slug, options.actorPersonId);
-      await assertTripMayInvite(transaction, context.id);
-      const [invitation] = await transaction.select().from(invitations).where(
+          const [invitation] = await transaction.select().from(invitations).where(
         and(eq(invitations.id, invitationId), eq(invitations.commonsId, context.id)),
       ).for("update").limit(1);
       if (!invitation || invitation.status !== "pending") {
@@ -1471,8 +1461,7 @@ export async function rotateCommonsInvitationLink(
   try {
     return await database.db.transaction(async (transaction) => {
       const context = await requireOrganizer(transaction, slug, options.actorPersonId);
-      await assertTripMayInvite(transaction, context.id);
-      const [invitation] = await transaction.select().from(invitations).where(
+          const [invitation] = await transaction.select().from(invitations).where(
         and(eq(invitations.id, invitationId), eq(invitations.commonsId, context.id)),
       ).for("update").limit(1);
       if (!invitation || !["pending", "expired"].includes(invitation.status)) {
@@ -1511,8 +1500,7 @@ export async function getCommonsInvitationLink(
   try {
     return await database.db.transaction(async (transaction) => {
       const context = await requireOrganizer(transaction, slug, options.actorPersonId);
-      await assertTripMayInvite(transaction, context.id);
-      const [invitation] = await transaction.select().from(invitations).where(
+          const [invitation] = await transaction.select().from(invitations).where(
         and(eq(invitations.id, invitationId), eq(invitations.commonsId, context.id)),
       ).for("update").limit(1);
       if (!invitation || invitation.status !== "pending") {
@@ -1583,8 +1571,7 @@ export async function saveCommonsSetupTravelers(
   try {
     await database.db.transaction(async (transaction) => {
       const context = await requireOrganizer(transaction, slug, options.actorPersonId);
-      await assertTripMayInvite(transaction, context.id);
-      const existing = await transaction
+          const existing = await transaction
         .select({
           invitationId: invitations.id,
           personId: invitations.provisionalPersonId,
@@ -1808,7 +1795,6 @@ async function queueInvitationDeliveriesInTransaction(
   slug: string, invitationId: string | null, options: SetupRepositoryOptions,
 ): Promise<QueuedInvitationDelivery[]> {
   const context = await requireOrganizer(transaction, slug, options.actorPersonId);
-  await assertTripMayInvite(transaction, context.id);
   // Sending invitations is saying the trip is on. Trips on the older experience have no stage to change.
   await transaction.update(commons).set({ goingAt: new Date() }).where(and(eq(commons.id, context.id), eq(commons.newExperience, true), isNull(commons.goingAt)));
   const conditions = [
@@ -1947,15 +1933,6 @@ export async function leaseInvitationDeliveryAttempt(
           .limit(1);
         const candidate = candidates[0];
         if (!candidate) return null;
-        // Revalidated at send time: a refund hold or revocation since queueing cancels this send, and the invitation says so.
-        if (!(await readTripInviteGate(transaction, candidate.commonsId, { lock: true })).mayInvite) {
-          await transaction.update(invitationDeliveryAttempts).set({ status: "cancelled", leaseExpiresAt: null, errorCode: "activation_required", updatedAt: now })
-            .where(eq(invitationDeliveryAttempts.id, candidate.attemptId));
-          await transaction.update(invitations).set({ deliveryState: "failed", deliveryErrorCode: "activation_required", updatedAt: now })
-            .where(eq(invitations.id, candidate.invitationId));
-          if (deliveryAttemptId) return null;
-          continue;
-        }
         if (
           candidate.attempts >= DELIVERY_MAX_ATTEMPTS ||
           !["pending", "accepted"].includes(candidate.invitationStatus) ||
@@ -2060,7 +2037,7 @@ export async function revalidateInvitationDeliveryAttempt(deliveryAttemptId: str
       .from(invitationDeliveryAttempts).innerJoin(invitations, eq(invitations.id, invitationDeliveryAttempts.invitationId))
       .where(eq(invitationDeliveryAttempts.id, deliveryAttemptId)).limit(1);
     const now = new Date();
-    return Boolean(row && (await readTripInviteGate(database.db, row.attempt.commonsId)).mayInvite && ownsDeliveryLease(row.attempt, leaseAttempt, now)
+    return Boolean(row && ownsDeliveryLease(row.attempt, leaseAttempt, now)
       && ["pending", "accepted"].includes(row.invitation.status)
       && row.invitation.tokenVersion === row.attempt.tokenVersion && row.invitation.recipientEmail);
   } finally { await database.close(); }
@@ -2111,7 +2088,7 @@ export async function getCommonsInvitationPreview(
       .innerJoin(commons, eq(invitations.commonsId, commons.id))
       .where(eq(invitations.tokenHash, hashOpaqueToken(token)))
       .limit(1);
-    if (!row || !(await readTripInviteGate(database.db, row.commonsId)).mayEnter) return null;
+    if (!row) return null;
     const [inviter] = await database.db
       .select({ displayName: people.displayName })
       .from(people)
@@ -2186,10 +2163,6 @@ export async function claimCommonsInvitation(
           "This invitation is no longer active.",
         );
       }
-      await assertTripMayEnter(transaction, invitation.commonsId).catch((error: unknown) => {
-        if (error instanceof TripActivationRequiredError) throw new OnboardingRepositoryError("invitation_unavailable", "This invitation is no longer active.");
-        throw error;
-      });
       const [existingPerson] = await transaction
         .select({ id: people.id })
         .from(people)
@@ -2301,30 +2274,4 @@ export async function inviteCoordinatorRecipientsInTransaction(
     receipt.push({email,status:"queued",invitationId,deliveryAttemptId:queued.deliveryAttemptId});
   }
   return receipt;
-}
-
-/**
- * Invite the people left out of a private trip at setup, in one transaction under the activation gate. Each saved person
- * is marked as invited here, so a retry creates nothing new. People without an email stay for the organizer to add.
- */
-export async function inviteSavedDraftPeople(draftId: string, options: SetupRepositoryOptions) {
-  const database = createDatabase(options.databaseUrl);
-  try {
-    return await database.db.transaction(async (transaction) => {
-      const [draft] = await transaction.select({ tripId: eventCreationDrafts.committedEventId, slug: eventCreationDrafts.committedEventSlug, owner: eventCreationDrafts.createdByPersonId, required: eventCreationDrafts.betaActivationRequired })
-        .from(eventCreationDrafts).where(eq(eventCreationDrafts.id, draftId));
-      if (!draft?.tripId || !draft.slug || !draft.required || draft.owner !== options.actorPersonId) throw new TripActivationError("not_found", "That trip is unavailable.");
-      await requireOrganizer(transaction, draft.tripId, options.actorPersonId);
-      await assertTripMayInvite(transaction, draft.tripId);
-      await transaction.select({ id: eventCreationDraftPeople.id }).from(eventCreationDraftPeople).where(eq(eventCreationDraftPeople.draftId, draftId)).for("update");
-      const saved = await draftPeopleStillToInvite(transaction, draftId, draft.tripId);
-      for (const person of saved) {
-        if (!person.email) continue;
-        const invitationId = await addAccountInvitationInTransaction(transaction, draft.tripId, AddCommonsPersonRequestSchema.parse({ displayName: person.displayName, email: person.email, message: person.message ?? undefined, role: "member", accessMode: "account" }), options);
-        const [invitation] = await transaction.select({ personId: invitations.provisionalPersonId }).from(invitations).where(eq(invitations.id, invitationId));
-        await transaction.update(eventCreationDraftPeople).set({ personId: invitation.personId }).where(eq(eventCreationDraftPeople.id, person.id));
-      }
-      return { tripId: draft.tripId, slug: draft.slug };
-    });
-  } finally { await database.close(); }
 }

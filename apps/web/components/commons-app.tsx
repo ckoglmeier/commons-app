@@ -42,7 +42,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { TripTasks } from "./trip-tasks";
 import { NewExperienceSetting } from "./new-experience-setting";
-import { BudgetActivationAction, PlanStageBanner, StageLockedPage } from "./trip-stage-gate";
+import { GoingAction, PlanStageBanner, StageLockedPage } from "./trip-stage-gate";
 import Link from "next/link";
 import { TripApplicationShell } from "./trip-application-shell";
 import { TripIdentity } from "./trip-identity";
@@ -3477,7 +3477,6 @@ export function TravelPlansSheet({
 }
 
 export function CommonsApp({
-  betaActivationEnabled = false,
   tripStagesOn = false,
   initialSnapshot,
   dataMode,
@@ -3490,14 +3489,12 @@ export function CommonsApp({
   confirmationIntakeEnabled = false,
   initialPlanSection = "schedule",
   initialItem,
-  tripMapEnabled = false,
+  tripMapEnabled = true,
   tripLetterEnabled = false,
   textMessagingEnabled = false,
   betaMapEnabled = false,
   betaCompletion,
 }: {
-  /** Server flag for the first-invite gate. Off: no extra request, nothing changes. */
-  betaActivationEnabled?: boolean;
   /** Master flag for the two trip stages (docs/TRIP-STAGES-DIRECTION.md). Off: navigation and Trip are as before. */
   tripStagesOn?: boolean;
   initialSnapshot: CommonsSnapshot;
@@ -3510,7 +3507,7 @@ export function CommonsApp({
   initialView?: EventView;
   initialPlanSection?: PlanSection;
   initialItem?: { kind: "plan" | "stay"; id: string };
-  /** COMMONS_TRIP_MAP_ENABLED. Off by default: Plan → Map for stays and activities. */
+  /** Plan → Map for stays and activities. */
   tripMapEnabled?: boolean;
   /** This trip is on the new experience: DESIGN.md "The trip letter". */
   tripLetterEnabled?: boolean;
@@ -3922,7 +3919,7 @@ export function CommonsApp({
     : tab === "moments" && !tripStage ? <p className="context-return"><Link href={commonsViewPath(initialSnapshot.commons.id, "home")} onClick={event => { if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); setTab("home"); } }}><ChevronLeftIcon /> Back to Trip</Link></p>
     : null;
   const view = tab === "home" ? overviewView()
-    : tripStage === "deciding" && tab === "money" ? <div className="product-view"><TripBudgetPanel tripId={initialSnapshot.commons.id} destinationName={commonsSummary.locationName ?? undefined} startsOn={commonsSummary.startsOn} endsOn={commonsSummary.endsOn} travelerCount={participants.length} currency={commonsSummary.currency} canEdit={canManageTrip} persistent={dataMode === "database"} onSaved={setSavedWorksheet} activationSlot={canManageTrip ? <BudgetActivationAction slug={initialSnapshot.commons.id} /> : undefined} /></div>
+    : tripStage === "deciding" && tab === "money" ? <div className="product-view"><TripBudgetPanel tripId={initialSnapshot.commons.id} destinationName={commonsSummary.locationName ?? undefined} startsOn={commonsSummary.startsOn} endsOn={commonsSummary.endsOn} travelerCount={participants.length} currency={commonsSummary.currency} canEdit={canManageTrip} persistent={dataMode === "database"} onSaved={setSavedWorksheet} goingSlot={canManageTrip ? <GoingAction slug={initialSnapshot.commons.id} lead="Ready to go? Track shared expenses, split costs and record repayments." /> : undefined} /></div>
     : tripStage === "deciding" && tab === "moments" ? <StageLockedPage slug={initialSnapshot.commons.id} kind="photos" />
     : tripStage === "deciding" && tab === "plan" && planSection === "map" ? <StageLockedPage slug={initialSnapshot.commons.id} kind="map" />
     : tab === "plan" && planSection === "map" && tripMapEnabled
@@ -5289,7 +5286,7 @@ export function CommonsApp({
   return (
     <div className={`commons-shell commons-shell--persistent${arrivalOpen ? " commons-shell--arrival" : ""}`}>
       <TripApplicationShell tripStage={tripStage} commonsId={initialSnapshot.commons.id} view={tab} navigate={setTab} tripName={commonsSummary.name} inert={backgroundInert}
-        account={{ signedIn, actorName: initialSnapshot.currentActor.displayName, actorInitials, roleLabel: canManageTrip ? "Organizer" : "Traveler", signInHref: `/sign-in?next=${encodeURIComponent(commonsPath(initialSnapshot.commons.id))}`, feedbackCommonsSlug: initialSnapshot.commons.slug }}
+        account={{ signedIn, actorName: initialSnapshot.currentActor.displayName, actorInitials, roleLabel: canManageTrip ? "Organizer" : "Traveler", signInHref: `/sign-in?next=${encodeURIComponent(commonsPath(initialSnapshot.commons.id))}` }}
         identity={(placement, closeMenu) => <TripIdentity placement={placement} onAction={closeMenu} commons={commonsSummary} meta={[formatTripDates(commonsSummary.startsOn, commonsSummary.endsOn), formatTripPlaces(commonsSummary)].filter(Boolean).join(" · ")} coverImage={displayedCoverImage} participants={participants}
           openPeople={() => { trackProductEvent("people_opened", { commonsSlug: initialSnapshot.commons.slug }); setSheet("people"); }} openCoverPicker={() => setSheet("cover")}
           openSettings={canEditBasics ? () => setSheet("edit-trip-details") : undefined} openContext={canManageTrip && dataMode === "database" ? () => setSheet("trip-context") : undefined}
@@ -5330,7 +5327,7 @@ export function CommonsApp({
       {sheet === "edit-moment" && selectedMoment ? <MomentEditorSheet moment={selectedMoment} days={days} itinerary={state.itinerary} timeZone={initialSnapshot.commons.timezone} close={() => setSheet("moment")} save={updateMoment} remove={deleteMoment} /> : null}
       {sheet === "photo-mapping" && pendingPhotos.length ? <PhotoMappingSheet initialActivityId={photoActivityId} photos={pendingPhotos} itinerary={state.itinerary} timeZone={initialSnapshot.commons.timezone} actorId={initialSnapshot.currentActor.id} actorName={initialSnapshot.currentActor.displayName} close={closePhotoMapping} addMoment={persistNewMoment} notify={notify} persistent={dataMode === "database"} /> : null}
       {sheet === "trip-context" && canManageTrip ? <TripContextSheet tripId={initialSnapshot.commons.id} close={() => setSheet(null)} /> : null}
-      {sheet === "people" ? <PeopleSheet decidingStage={tripStage === "deciding"} activationEnabled={betaActivationEnabled} slug={initialSnapshot.commons.slug} tripName={commonsSummary.name} tripStatus={commonsSummary.status} participants={participants} currentPersonId={initialSnapshot.currentActor.id} canManage={canManageTrip} persistent={dataMode === "database"} onPeopleChanged={refreshPeople} attendance={dataMode === "database" ? <EventAttendancePanel key={`${commonsSummary.id}:${commonsSummary.startsOn}:${commonsSummary.endsOn}`} eventId={commonsSummary.id} onSaved={() => setPeopleRevision(value => value + 1)} /> : undefined} close={() => { setSheet(null); setPeopleRevision(value => value + 1); }} /> : null}
+      {sheet === "people" ? <PeopleSheet decidingStage={tripStage === "deciding"} slug={initialSnapshot.commons.slug} tripName={commonsSummary.name} tripStatus={commonsSummary.status} participants={participants} currentPersonId={initialSnapshot.currentActor.id} canManage={canManageTrip} persistent={dataMode === "database"} onPeopleChanged={refreshPeople} attendance={dataMode === "database" ? <EventAttendancePanel key={`${commonsSummary.id}:${commonsSummary.startsOn}:${commonsSummary.endsOn}`} eventId={commonsSummary.id} onSaved={() => setPeopleRevision(value => value + 1)} /> : undefined} close={() => { setSheet(null); setPeopleRevision(value => value + 1); }} /> : null}
       {planReceipt && !sheet && !quickAdd ? <section className="plan-receipt" role="status" aria-label="Saved to Plan">
         <CheckIcon /><p><strong>{planReceipt.title}</strong><span>{planReceipt.status} · Saved to Plan</span></p>
         <div className="plan-receipt-actions"><Link className="cm-action" href={planReceipt.href} onClick={event => { if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); viewReceipt(planReceipt); } }}>View in Plan</Link>

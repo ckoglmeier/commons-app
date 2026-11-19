@@ -17,7 +17,7 @@ import { TripLifecycleAction } from "./trip-lifecycle-action";
 import { TravelerPreferencesForm } from "./traveler-preferences-form";
 import { ModalLayer } from "./modal-layer";
 import { GroupInvitationPanel } from "./group-invitation-panel";
-import { FirstInviteNotice } from "./first-invite-notice";
+import { GoingAction } from "./trip-stage-gate";
 
 async function responseJson(response: Response, fallback: string) {
   const text = await response.text();
@@ -49,9 +49,6 @@ function deliveryHelp(person: CommonsPerson) {
   if (code === "delivery_disabled" || code === "email_not_configured") {
     return "Email isn’t set up yet. Copy the private link instead.";
   }
-  if (code === "recipient_not_allowed") {
-    return "This address isn’t on the current email allowlist. Copy the private link instead.";
-  }
   if (code === "provider_unavailable" || code === "delivery_interrupted") {
     return "Email was interrupted. Try sending it again, or copy the private link.";
   }
@@ -66,7 +63,6 @@ function deliveryHelp(person: CommonsPerson) {
 
 function deliveryErrorHelp(code: string | null) {
   if (code === "delivery_disabled" || code === "email_not_configured") return "Email isn’t set up yet. Copy the private link instead.";
-  if (code === "recipient_not_allowed") return "This address isn’t on the current email allowlist. Copy the private link instead.";
   if (code === "provider_unavailable" || code === "delivery_interrupted") return "Email was interrupted. Try sending it again, or copy the private link.";
   return "Email wasn’t delivered. Try again, or copy the private link.";
 }
@@ -90,11 +86,8 @@ export function PeopleSheet({
   hasTravel = false,
   onPeopleChanged,
   attendance,
-  activationEnabled = false,
   decidingStage = false,
 }: {
-  /** Server flag. Off: People makes no extra request and behaves exactly as before. */
-  activationEnabled?: boolean;
   decidingStage?: boolean;
   slug: string;
   tripName: string;
@@ -110,7 +103,8 @@ export function PeopleSheet({
   renderPersonTravel?: (personId: string) => ReactNode;
   attendance?: ReactNode;
 }) {
-  const [mayInvite, setMayInvite] = useState(!activationEnabled && !decidingStage);
+  // Before the organizer says the trip is going, People is read-only.
+  const mayInvite = !decidingStage;
   const [data, setData] = useState<CommonsPeople | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -367,7 +361,7 @@ export function PeopleSheet({
         </> : null}
         {inline ? <h2 id="people-sheet-title">{hasTravel ? "People and travel" : "People"}</h2> : null}
         <p className={inline ? "sr-only" : "sheet-summary"}>{canManage && !decidingStage ? "Invite travelers and help anyone who has trouble getting in." : "See who has joined and who’s been invited."}</p>
-        {canManage && persistent && (activationEnabled || decidingStage) ? <FirstInviteNotice slug={slug} onMayInvite={setMayInvite} beforeGoing={decidingStage} /> : null}
+        {canManage && persistent && decidingStage ? <section className="first-invite-entry" aria-label="Invite people when you’re ready"><p>Keep gathering interest on Trip. When you’re ready, invite people to join.</p><GoingAction slug={slug} intent="invite" lead="Say the trip is going to invite people." /></section> : null}
         {canManage && persistent && mayInvite ? <GroupInvitationPanel key={slug} slug={slug} /> : null}
 
         {!canManage || !persistent || (!data && error) ? (

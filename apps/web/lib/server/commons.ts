@@ -1,5 +1,4 @@
 import "server-only";
-import { betaActivationEnabled } from "@/lib/trip-activation/provider";
 import { currentTurnPrincipal } from "./turn-principal";
 import { autoSendTravelerInvitation } from "./traveler-invitation-delivery";
 
@@ -12,7 +11,6 @@ import {
   addCommonsStay,
   setCommonsPlacePin,
   addCommonsItineraryItem,
-  appendCommonsMessage,
   approveCommonsProposal,
   claimCommonsInvitation,
   commitCommonsSetupImport,
@@ -22,7 +20,6 @@ import {
   getInvitationEntryContext,
   sealInvitationEmailProof,
   confirmCommonsExpensesComplete,
-  createCommonsDraft,
   CommonsRepositoryError,
   deleteCommonsExpense,
   deleteCommonsReimbursement,
@@ -94,7 +91,6 @@ import {
   CommonsMembershipRequiredError,
 } from "./commons-access-errors";
 import { commonsDatabaseUrl, commonsSiteOrigin } from "./runtime-environment";
-import { requireEventCreationAccess } from "./event-creation";
 
 export {
   CommonsAuthenticationRequiredError,
@@ -219,17 +215,6 @@ export async function loadCommonsSnapshot(
     }
   }
   return null;
-}
-
-export async function persistMessage(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo messages stay on this device.");
-  }
-  const options = await databaseOptions();
-  if (!options) {
-    throw new Error("Commons database persistence is not configured.");
-  }
-  return appendCommonsMessage(slug, input, options);
 }
 
 export async function persistTravelPlan(slug: string, input: unknown) {
@@ -620,22 +605,6 @@ export async function persistProposalRevision(
     throw new Error("Commons database persistence is not configured.");
   }
   return reviseCommonsProposal(slug, proposalId, input, options);
-}
-
-export class TripCreationMovedError extends Error {
-  readonly next = "/new";
-  constructor() { super("Start your private trip at /new, then invite your group from it."); this.name = "TripCreationMovedError"; }
-}
-
-export async function createAuthenticatedCommonsDraft(input: unknown) {
-  const url = databaseUrl();
-  if (!url) throw new Error("Commons database persistence is not configured.");
-  const identity = await authenticatedIdentity();
-  if (!identity) throw new CommonsAuthenticationRequiredError();
-  // Every trip must come from a flagged draft while activation is on, or it would escape the gate.
-  if (betaActivationEnabled()) throw new TripCreationMovedError();
-  await requireEventCreationAccess(identity);
-  return createCommonsDraft(input, identity, url);
 }
 
 export async function loadAuthenticatedCommonsSetup(slug: string) {

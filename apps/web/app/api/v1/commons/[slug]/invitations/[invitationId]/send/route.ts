@@ -1,4 +1,3 @@
-import { activationRefusal } from "@/lib/server/trip-activation";
 import { InvitationDeliveryActionSchema } from "@commons/contracts";
 import { NextResponse } from "next/server";
 import {
@@ -14,8 +13,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     const delivery = await sendAuthenticatedCommonsInvitation(slug, invitationId, origin);
     return NextResponse.json({ delivery: InvitationDeliveryActionSchema.parse(delivery) });
   } catch (error) {
-    const refused = activationRefusal(error);
-    if (refused) return refused;
     if (error instanceof CommonsAuthenticationRequiredError) return NextResponse.json({ error: error.message }, { status: 401 });
     if (error instanceof CommonsMembershipRequiredError) return NextResponse.json({ error: error.message }, { status: 403 });
     return NextResponse.json({ error: error instanceof Error ? error.message : "Invitation email could not be queued." }, { status: 409 });

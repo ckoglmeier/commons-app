@@ -1,13 +1,12 @@
 import { z } from "zod";
 import {
-  enrollPersonInTrip, enrollmentStatus, getCommonsSnapshot, intakeByReviewToken, membershipAttendance, MessagingEnrollmentError, personAuth, tripInfo, tripTextingFunded, verifiedPhoneFor, withdrawFromTrip, type BookingIntakeRow, type EnrolledTrip,
+  enrollPersonInTrip, enrollmentStatus, getCommonsSnapshot, intakeByReviewToken, membershipAttendance, MessagingEnrollmentError, personAuth, tripInfo, verifiedPhoneFor, withdrawFromTrip, type BookingIntakeRow, type EnrolledTrip,
 } from "@commons/database";
 import { SMS_CONSENT_WORDING, bookingSummaryLines, sharingLine } from "@commons/domain";
 import { authenticatedConfirmationIntakeOptions } from "../commons";
 import { approveIntake, declineIntake, hashReviewToken, runIntake, type IntakeOutcome } from "./booking";
 import { dbOptions, messagingDeps, type MessagingDeps } from "./core";
 import { dispatchOutbox } from "./dispatch";
-import { testNumberFor } from "./in-app-provider";
 import { queueWelcome } from "./planner";
 import { CommonsMembershipRequiredError } from "../commons-access-errors";
 
@@ -26,8 +25,7 @@ export async function readEnrollment(slug: string) {
   if (!snapshot) throw new CommonsMembershipRequiredError();
   const status = await enrollmentStatus(options.actorPersonId, snapshot.commons.id, { databaseUrl: options.databaseUrl });
   const verifiedPhone = await verifiedPhoneFor(options.actorPersonId, { databaseUrl: options.databaseUrl });
-  const funded = await tripTextingFunded(snapshot.commons.id, { databaseUrl: options.databaseUrl });
-  return { tripName: snapshot.commons.name, funded, consentText: SMS_CONSENT_TEXT(snapshot.commons.name), wording: SMS_CONSENT_WORDING, verifiedPhone, suggestedPhone: testNumberFor(options.actorPersonId), ...status };
+  return { tripName: snapshot.commons.name, consentText: SMS_CONSENT_TEXT(snapshot.commons.name), wording: SMS_CONSENT_WORDING, verifiedPhone, ...status };
 }
 
 export async function enroll(slug: string, raw: unknown): Promise<{ ok: true; welcomeQueued: boolean } | { ok: false; code: MessagingEnrollmentError["code"]; message: string }> {
@@ -87,7 +85,7 @@ async function tripFor(deps: MessagingDeps, intake: BookingIntakeRow): Promise<E
   const trip = await tripInfo(intake.commonsId, dbOptions(deps));
   if (!trip) throw new CommonsMembershipRequiredError();
   const membership = await membershipAttendance(intake.personId, intake.commonsId, dbOptions(deps));
-  return { ...trip, role: membership?.role ?? "member", membershipId: membership?.id ?? "", funded: await tripTextingFunded(intake.commonsId, dbOptions(deps)) };
+  return { ...trip, role: membership?.role ?? "member", membershipId: membership?.id ?? "" };
 }
 
 export const ReviewActionSchema = z.object({ action: z.enum(["approve", "decline"]), version: z.number().int().positive() });

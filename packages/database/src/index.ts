@@ -1,22 +1,11 @@
 export * from "./client";
 export { CommandAccessError, CommandConflictError } from "./event-command";
-export * from "./conversation-digest-repository";
-export * from "./conversation-digest-summary";
-export * from "./analytics-repository";
-export * from "./research-beta-budget";
-export * from "./daily-analytics-repository";
-export * from "./feedback-repository";
 export * from "./beta-completion-repository";
-export * from "./operator-notification-repository";
 export * from "./event-creation-repository";
-export * from "./trip-activation-repository";
 export * from "./trip-stage-repository";
-export * from "./trip-traffic-repository";
 export * from "./onboarding-repository";
 export * from "./invitation-entry";
 export * from "./group-invitation-repository";
-export * from "./operator-repository";
-export * from "./beta-organizer-invites";
 export * from "./pilot-repository";
 export * from "./poll-repository";
 export * from "./poll-draft-repository";
@@ -39,7 +28,6 @@ export { lifecycleOf, publicWorkspace, readThreadMeta, turnLifecycleView } from 
 export * from "./coordinator-context-repository";
 export * from "./coordinator-recommendation-repository";
 export * from "./poll-evidence";
-export { eventDigestAllowed, EventDigestAccessError, listEventDigestPreferences, updateEventDigestPreference } from "./event-digest-preferences";
 export { runDatabaseMigrations } from "./migration-state";
 export * from "./research-task-repository";
 export * from "./coordinator-task-repository";
@@ -81,10 +69,7 @@ export { TripCoordinationError, tripKeys, type CoordinationOptions, type TripCoo
 export { submitTripConstraint } from "./trip-constraints";
 export { LodgingReviewStaleError, lodgingTripDates, recordLodgingShortlist, lodgingShortlistsForRuns, prepareLodgingIntent, type LodgingShortlist } from "./lodging-continuation";
 
-// Free beta capability boundary: explicit pilot access by trip organizer or account.
-export { personHasPilotAccess, tripCreatedUnderBeta, tripPilotAccess, tripsCreatedSince, type PilotEmailList } from "./trip-capability-repository";
 export * from "./messaging-repository";
 export * from "./messaging-verification-repository";
-export * from './budget-analytics-repository';
 
 export * from "./trip-budget-repository";

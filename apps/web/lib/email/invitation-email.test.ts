@@ -52,37 +52,42 @@ test("email delivery is disabled unless explicitly enabled", () => {
   else process.env.COMMONS_EMAIL_SEND_MODE = previousMode;
 });
 
-test("allowlist mode accepts only named test recipients", () => {
-  const previousMode = process.env.COMMONS_EMAIL_SEND_MODE;
-  const previousAllowlist = process.env.COMMONS_EMAIL_RECIPIENT_ALLOWLIST;
-  process.env.COMMONS_EMAIL_SEND_MODE = "allowlist";
-  process.env.COMMONS_EMAIL_RECIPIENT_ALLOWLIST = "max@example.com, casey@example.com";
-  assert.doesNotThrow(() => assertEmailDeliveryAllowed("MAX@example.com"));
-  assert.throws(() => assertEmailDeliveryAllowed("other@example.com"), /not in/);
-  if (previousMode === undefined) delete process.env.COMMONS_EMAIL_SEND_MODE;
-  else process.env.COMMONS_EMAIL_SEND_MODE = previousMode;
-  if (previousAllowlist === undefined) delete process.env.COMMONS_EMAIL_RECIPIENT_ALLOWLIST;
-  else process.env.COMMONS_EMAIL_RECIPIENT_ALLOWLIST = previousAllowlist;
-});
+function withEmailEnvironment(values: Record<string, string | undefined>, run: () => Promise<void> | void) {
+  const names = ["COMMONS_EMAIL_SEND_MODE", "RESEND_API_KEY", "COMMONS_EMAIL_FROM", "NODE_ENV"];
+  const previous = Object.fromEntries(names.map(name => [name, process.env[name]]));
+  const env = process.env as Record<string, string | undefined>;
+  for (const name of names) { if (values[name] === undefined) delete env[name]; else env[name] = values[name]; }
+  const restore = () => { for (const name of names) { if (previous[name] === undefined) delete env[name]; else env[name] = previous[name]; } };
+  try { const result = run(); if (result) return result.finally(restore); restore(); } catch (error) { restore(); throw error; }
+}
 
 test("delivery failures expose stable recovery codes", () => {
-  const previousMode = process.env.COMMONS_EMAIL_SEND_MODE;
-  const previousAllowlist = process.env.COMMONS_EMAIL_RECIPIENT_ALLOWLIST;
-  process.env.COMMONS_EMAIL_SEND_MODE = "disabled";
-  assert.throws(
+  withEmailEnvironment({ COMMONS_EMAIL_SEND_MODE: "disabled" }, () => assert.throws(
     () => assertEmailDeliveryAllowed("max@example.com"),
     (error) => error instanceof EmailDeliveryError && error.code === "delivery_disabled",
-  );
-  process.env.COMMONS_EMAIL_SEND_MODE = "allowlist";
-  process.env.COMMONS_EMAIL_RECIPIENT_ALLOWLIST = "casey@example.com";
-  assert.throws(
-    () => assertEmailDeliveryAllowed("max@example.com"),
-    (error) => error instanceof EmailDeliveryError && error.code === "recipient_not_allowed",
-  );
-  if (previousMode === undefined) delete process.env.COMMONS_EMAIL_SEND_MODE;
-  else process.env.COMMONS_EMAIL_SEND_MODE = previousMode;
-  if (previousAllowlist === undefined) delete process.env.COMMONS_EMAIL_RECIPIENT_ALLOWLIST;
-  else process.env.COMMONS_EMAIL_RECIPIENT_ALLOWLIST = previousAllowlist;
+  ));
+});
+
+test("the default mode is live when Resend is configured, log in development, and disabled otherwise", () => {
+  withEmailEnvironment({ RESEND_API_KEY: "re_test", COMMONS_EMAIL_FROM: "Commons <a@commons.test>", NODE_ENV: "production" }, () => assert.doesNotThrow(() => assertEmailDeliveryAllowed("max@example.com")));
+  withEmailEnvironment({ NODE_ENV: "development" }, () => assert.doesNotThrow(() => assertEmailDeliveryAllowed("max@example.com")));
+  withEmailEnvironment({ NODE_ENV: "production" }, () => assert.throws(() => assertEmailDeliveryAllowed("max@example.com"), /disabled/));
+  withEmailEnvironment({ NODE_ENV: "development", COMMONS_EMAIL_SEND_MODE: "disabled" }, () => assert.throws(() => assertEmailDeliveryAllowed("max@example.com"), /disabled/));
+});
+
+test("log mode prints the message to the console and never touches the network", async () => {
+  const originalFetch = globalThis.fetch, originalInfo = console.info;
+  const logged: unknown[][] = [];
+  globalThis.fetch = async () => { throw new Error("log mode must not use the network"); };
+  console.info = (...args: unknown[]) => { logged.push(args); };
+  try {
+    await withEmailEnvironment({ COMMONS_EMAIL_SEND_MODE: "log" }, async () => {
+      const result = await sendEmail({ ...renderCommonsInvitationEmail(input), to: input.recipientEmail, idempotencyKey: "commons-invite-log-1" });
+      assert.equal(result.id, "logged-commons-invite-log-1");
+    });
+  } finally { globalThis.fetch = originalFetch; console.info = originalInfo; }
+  assert.equal(logged[0]?.[0], "commons.email.logged");
+  assert.match(JSON.stringify(logged[0]?.[1]), /Desert Weekend/);
 });
 
 test("sends through the provider with a stable idempotency key", async () => {
@@ -92,7 +97,7 @@ test("sends through the provider with a stable idempotency key", async () => {
     from: process.env.COMMONS_EMAIL_FROM,
     fetch: globalThis.fetch,
   };
-  process.env.COMMONS_EMAIL_SEND_MODE = "production";
+  process.env.COMMONS_EMAIL_SEND_MODE = "live";
   process.env.RESEND_API_KEY = "re_test";
   process.env.COMMONS_EMAIL_FROM = "Commons <invites@commons.test>";
   const requests: Array<{ url: string; init?: RequestInit }> = [];
@@ -130,7 +135,7 @@ test("maps provider and network failures to retryable delivery codes", async () 
     from: process.env.COMMONS_EMAIL_FROM,
     fetch: globalThis.fetch,
   };
-  process.env.COMMONS_EMAIL_SEND_MODE = "production";
+  process.env.COMMONS_EMAIL_SEND_MODE = "live";
   process.env.RESEND_API_KEY = "re_test";
   process.env.COMMONS_EMAIL_FROM = "Commons <invites@commons.test>";
   const email = { ...renderCommonsInvitationEmail(input), to: input.recipientEmail, idempotencyKey: "commons-invite-456-v1" };

@@ -1,17 +1,17 @@
 import { projectGoalEventInTransaction, resumeFoodCollectionGoal } from "./coordinator-goal-repository";
 import {
-  CreatePollRequestSchema,
-  PollDetailSchema,
-  PollPublicIdSchema,
-  PublicPollSchema,
-  SubmitPollResponseRequestSchema,
-  UpdatePollStatusRequestSchema,
-  validatePollAnswers, aggregatePollAnswers, participantRecipeSummary,
-  type PollAnswer,
-  type PollQuestion,
-  type PublicPoll,
+    CreatePollRequestSchema,
+    PollDetailSchema,
+    PollPublicIdSchema,
+    PublicPollSchema,
+    SubmitPollResponseRequestSchema,
+    UpdatePollStatusRequestSchema,
+    validatePollAnswers, aggregatePollAnswers, participantRecipeSummary,
+    type PollAnswer,
+    type PollQuestion,
+    type PublicPoll,
 } from "@commons/contracts";
-import { and, asc, count, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { commandFingerprint, runEventCommand } from "./event-command";
 import { createDatabase } from "./client";
@@ -20,20 +20,15 @@ import { auditEvents, commons, invitations, memberships, people, pollDecisions, 
 import { publishedPollCommunication, publishedPollCommunicationMode, publishedPollReplacement, resolvePollRecipients } from "./poll-delivery-repository";
 import { readPollEvidence } from "./poll-evidence";
 import { pollViewerAccess, type PollViewer } from "./poll-access";
-import { assertTripMayInvite, audienceReachesOutsiders, readTripInviteGate, TripActivationRequiredError } from "./trip-activation-repository";
 import { coordinatorDraftAccess } from "./coordinator-draft-access";
 import { assertRecipePublicationContext } from "./recipe-context";
 import { assertFoodGoalQuestions } from "./food-goal-guard";
 import {
-  generateOpaqueToken,
-  hashOpaqueToken,
-  protectOpaqueToken,
-  revealLegacyOrProtectedOpaqueToken,
+    generateOpaqueToken,
+    hashOpaqueToken,
+    protectOpaqueToken,
+    revealLegacyOrProtectedOpaqueToken,
 } from "./tokens";
-
-/** Bounds on the free stage: well above a real group, low enough to stop a poll being farmed. */
-export const FREE_LINK_POLLS_PER_DAY = 20;
-export const FREE_LINK_POLL_RESPONSES = 200;
 
 export type PollRepositoryOptions = {
   databaseUrl?: string;
@@ -42,8 +37,6 @@ export type PollRepositoryOptions = {
   sharedCoordinator?: boolean;
   /** Trusted server-side identity lookup, never accepted from request JSON. */
   resolveVerifiedEmail?: (authUserId: string) => Promise<string | null>;
-  /** Derived on the server from verified authentication, never from request JSON: this person's AI use isn't held to an hourly limit. */
-  inferenceLimitExempt?: boolean;
   /**
    * Whether the Commons-native lodging continuation is enabled for this trip (server configuration). A proposal that carries a preparation intent is still
    * applied when it is off; the outcome then records that preparation was not available. Never accepted from request JSON.
@@ -176,19 +169,6 @@ export async function createCommonsPoll(identifier: string, rawInput: unknown, o
           inArray(memberships.personId, input.audience.personIds), inArray(memberships.status, ["active", "invited"])));
         if (new Set(selected.map(row => row.id)).size !== new Set(input.audience.personIds).size) throw new PollRepositoryError("invalid_response", "A selected recipient is no longer in this event. Review the audience.");
       }
-      // A guest email or anyone not yet active is an invitation path. Asking active members is not.
-      // A link poll is free: nobody joins and Commons sends nothing, so only an operator's revocation stops one.
-      const linkPoll = input.publicationApproval ? input.publicationApproval.access === "link" : !input.audience;
-      if (linkPoll) {
-        const gate = await readTripInviteGate(tx, context.id, { lock: true });
-        if (gate.state === "approval_revoked") throw new TripActivationRequiredError("approval_revoked");
-        const [stage] = await tx.select({ on: commons.newExperience, goingAt: commons.goingAt }).from(commons).where(eq(commons.id, context.id));
-        if (stage?.on && !stage.goingAt && gate.state !== "allowed") {
-          const [made] = await tx.select({ total: count() }).from(polls).where(and(eq(polls.createdByPersonId, options.actorPersonId), gte(polls.createdAt, new Date(Date.now() - 86_400_000))));
-          if (Number(made?.total ?? 0) >= FREE_LINK_POLLS_PER_DAY) throw new PollRepositoryError("invalid_response", "You’ve started a lot of polls today. Try again tomorrow, or reuse one you’ve already shared.");
-        }
-      }
-      else if (!input.publicationApproval && await audienceReachesOutsiders(tx, context.id, input.audience)) await assertTripMayInvite(tx, context.id);
       const publicationAudience = input.publicationApproval && input.publicationApproval.access !== "link" ? { personIds: (await tx.select({ id: memberships.personId }).from(memberships).where(and(eq(memberships.commonsId, context.id), inArray(memberships.status, ["active", "invited"])))).map(row => row.id), guestEmails: [] } : input.audience;
       const [created] = await tx.insert(polls).values({
         commonsId: context.id, threadId, createdByPersonId: options.actorPersonId, commandId: input.commandId,
@@ -301,7 +281,6 @@ export async function getPendingPollInvitation(publicId: string, viewer: PollVie
   try {
     const [poll] = await database.db.select().from(polls).where(eq(polls.publicId, publicId)).limit(1);
     if (!poll?.audience?.personIds.length || poll.status === "revoked") return null;
-    if (!(await readTripInviteGate(database.db, poll.commonsId)).mayEnter) return null;
     const rows = await database.db.select({ token: invitations.tokenValue, email: invitations.recipientEmail, expiresAt: invitations.expiresAt, authUserId: people.authUserId }).from(invitations)
       .innerJoin(memberships, and(eq(memberships.commonsId, invitations.commonsId), eq(memberships.personId, invitations.provisionalPersonId)))
       .innerJoin(people, eq(people.id, invitations.provisionalPersonId))
@@ -380,13 +359,6 @@ async function submitPollResponse(
           }
           return { receiptToken, revised: false,responseUpdatedAt:iso(existing.updatedAt) };
         }
-      }
-      // Free link polls hold a group's answers, not a crowd's. Paid and existing trips have no cap here.
-      const gate = await readTripInviteGate(transaction, poll.commonsId);
-      const [stage] = await transaction.select({ on: commons.newExperience, goingAt: commons.goingAt }).from(commons).where(eq(commons.id, poll.commonsId));
-      if (stage?.on && !stage.goingAt && gate.state !== "allowed") {
-        const [answers] = await transaction.select({ total: count() }).from(pollResponses).where(eq(pollResponses.pollId, poll.id));
-        if (Number(answers?.total ?? 0) >= FREE_LINK_POLL_RESPONSES) throw new PollRepositoryError("poll_closed", "This poll has all the answers it can take.");
       }
       const updatedAt=new Date();
       await transaction.insert(pollResponses).values({

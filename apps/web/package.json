@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
-    "test": "COMMONS_COORDINATOR_ENABLED=true tsx --test --test-concurrency=1 components/*.test.ts lib/*.test.ts lib/beta/*.test.ts lib/email/*.test.ts lib/import/*.test.ts lib/marketing/*.test.ts lib/marketing/budget/*.test.ts lib/trip-activation/*.test.ts lib/trip-entry/*.test.ts lib/server/*.test.ts lib/server/lodging/*.test.ts lib/server/messaging/*.test.ts lib/supabase/*.test.ts",
+    "test": "tsx --test --test-concurrency=1 components/*.test.ts lib/*.test.ts lib/beta/*.test.ts lib/email/*.test.ts lib/import/*.test.ts lib/marketing/*.test.ts lib/trip-entry/*.test.ts lib/server/*.test.ts lib/server/messaging/*.test.ts lib/supabase/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { CommonsApp } from "@/components/commons-app";
-import { betaActivationEnabled } from "@/lib/trip-activation/provider";
-import { betaReworkEnabled } from "@/lib/beta/flags";
 import { parseDecisionAction, decisionHandoffPath, resolveDecisionHandoff, type DecisionHandoff } from "@/lib/decision-handoff";
 import { loadAuthenticatedPoll } from "@/lib/server/polls";
-import { inAppThreadEnabledFor, readCommonsRuntimeEnvironment, textMessagingAvailable, webMessagesEnabledFor } from "@/lib/server/runtime-environment";
-import { betaFeatureEnabled, tripMapAvailable } from "@/lib/beta/flags";
+import { readCommonsRuntimeEnvironment, textMessagingAvailable } from "@/lib/server/runtime-environment";
 import { commonsPath, eventLocation, parsePlanSection, PUBLIC_DEMO_COMMONS_ID } from "@/lib/commons-route";
 import {
   getCommonsDataMode,
@@ -71,21 +68,19 @@ export default async function CommonsPage({
     } catch { /* Fail closed; no editor or poll data is exposed by a forged link. */ }
   }
   const environment = readCommonsRuntimeEnvironment();
-  const newExperience = betaReworkEnabled() && snapshot.commons.newExperience === true;
+  const newExperience = snapshot.commons.newExperience === true;
   return (
     <CommonsApp
-      betaActivationEnabled={betaActivationEnabled()}
       tripStagesOn={newExperience}
       key={`${snapshot.commons.id}:${snapshot.currentActor.id}:${snapshot.currentActor.role}:${decisionHandoff?.pollId ?? ""}:${decisionHandoff?.action ?? ""}`}
       initialSnapshot={snapshot}
       dataMode={getCommonsDataMode(identifier)}
       signedIn={Boolean(identity)}
-      initialPlanSection={parsePlanSection(entry.section, tripMapAvailable(environment, newExperience))}
-      tripMapEnabled={tripMapAvailable(environment, newExperience)}
-      betaCompletion={newExperience ? { paymentReports: betaFeatureEnabled("payment_reports", environment), closure: betaFeatureEnabled("closure", environment), recap: betaFeatureEnabled("recap", environment), successor: betaFeatureEnabled("successor", environment) } : undefined}
+      initialPlanSection={parsePlanSection(entry.section, true)}
+      betaCompletion={newExperience ? { paymentReports: true, closure: true, recap: true, successor: true } : undefined}
       tripLetterEnabled={newExperience}
-      textMessagingEnabled={webMessagesEnabledFor(identity?.email, environment) ? "web" : textMessagingAvailable(environment) || inAppThreadEnabledFor(identity?.email, environment) ? "sms" : false}
-      betaMapEnabled={newExperience && betaFeatureEnabled("map", environment)}
+      textMessagingEnabled={identity ? "web" : textMessagingAvailable() ? "sms" : false}
+      betaMapEnabled={newExperience}
       initialItem={entry.itemId && (entry.item === "plan" || entry.item === "stay") ? {kind: entry.item, id: entry.itemId} : undefined}
       initialView={decisionHandoff ? decisionHandoff.action === "plan" ? "plan" : "logistics" : initialView}
       decisionHandoff={decisionHandoff}

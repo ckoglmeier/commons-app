@@ -1,36 +1,34 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import {
-  SetupCoordinatorStateSchema, SetupCoordinatorRequestSchema,
-  CommitEventCreationDraftRequestSchema,
-  CommitEventCreationDraftResultSchema,
-  CreateEventCreationDraftRequestSchema,
-  EventBriefSchema,
-  EventCreationDraftSchema,
-  RecentReusableEventsSchema,
-  UpdateEventCreationDraftPeopleRequestSchema,
-  UpdateEventCreationDraftRequestSchema,
-  type CommitEventCreationDraftResult,
-  type EventCreationDraft,
-  type RecentReusableEvent,
+    SetupCoordinatorStateSchema, SetupCoordinatorRequestSchema,
+    CommitEventCreationDraftRequestSchema,
+    CommitEventCreationDraftResultSchema,
+    CreateEventCreationDraftRequestSchema,
+    EventBriefSchema,
+    EventCreationDraftSchema,
+    RecentReusableEventsSchema,
+    UpdateEventCreationDraftPeopleRequestSchema,
+    UpdateEventCreationDraftRequestSchema,
+    type CommitEventCreationDraftResult,
+    type EventCreationDraft,
+    type RecentReusableEvent,
 } from "@commons/contracts";
 import { interpretEventDescription, interpretEventTitle } from "@commons/domain";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { createDatabase } from "./client";
 import {
-  coordinatorThreads, coordinatorTurns, coordinatorPreferences,
-  auditEvents,
-  commons,
-  consentEvents,
-  eventCreationDraftPeople,
-  eventCreationDrafts,
-  identities,
-  invitations,
-  memberships,
-  people,
-  tripActivationPayments,
+    coordinatorThreads, coordinatorTurns, coordinatorPreferences,
+    auditEvents,
+    commons,
+    consentEvents,
+    eventCreationDraftPeople,
+    eventCreationDrafts,
+    identities,
+    invitations,
+    memberships,
+    people,
 } from "./schema";
 import { hashNormalizedEmail, mintRecoverableOpaqueToken } from "./tokens";
-import { readDraftInviteGate, recordActivationFeeExpense } from "./trip-activation-repository";
 
 export class EventCreationRepositoryError extends Error {
   constructor(
@@ -39,8 +37,7 @@ export class EventCreationRepositoryError extends Error {
       | "draft_conflict"
       | "source_not_available"
       | "creation_not_supported"
-      | "identity_conflict"
-      | "activation_required",
+      | "identity_conflict",
     message: string,
   ) {
     super(message);
@@ -51,8 +48,6 @@ export class EventCreationRepositoryError extends Error {
 export type EventCreationRepositoryOptions = {
   databaseUrl?: string;
   actorPersonId: string;
-  /** Set only by the server while COMMONS_BETA_REWORK_ENABLED is on. Never from request JSON. */
-  betaActivationRequired?: boolean;
   /** Set only by the server: new trips get the two-stage experience. */
   newExperience?: boolean;
   /** Validated by the server's entry-context resolver. Never private brief text. */
@@ -127,7 +122,6 @@ async function readDraft(transaction: Transaction, draftId: string, actorPersonI
     })),
     committedEventId: draft.committedEventId,
     committedEventSlug: draft.committedEventSlug,
-    betaActivationRequired: draft.betaActivationRequired,
     entryContext: draft.entryContext ?? null,
     updatedAt: draft.updatedAt.toISOString(),
   });
@@ -227,7 +221,6 @@ export async function createEventCreationDraft(
           templateVersion: interpretation.templateVersion,
           supported: interpretation.supported,
           brief: interpretation.brief,
-          betaActivationRequired: options.betaActivationRequired === true,
           entryContext: options.entryContext ?? null,
           interpretationStatus,
           interpretationErrorCode: errorCode,
@@ -293,7 +286,6 @@ export async function createEventCreationDraft(
           suggestedFirstMoves: ["Review the group", "Choose dates", "Add what should be different this time"],
           unresolvedQuestion: null,
         },
-        betaActivationRequired: options.betaActivationRequired === true,
         entryContext: options.entryContext ?? null,
         interpretationStatus: "not_required",
       }).returning({ id: eventCreationDrafts.id });
@@ -486,14 +478,6 @@ export async function commitEventCreationDraft(
         });
       }
       if (draft.version !== request.expectedVersion) throw new EventCreationRepositoryError("draft_conflict", "This draft changed. Review the latest version and try again.");
-      // Free private trip: only the organizer. Anyone else on the draft is the first invite, and that needs approval and the fee.
-      const activation = draft.betaActivationRequired ? await readDraftInviteGate(transaction, draft.id, { lock: true }) : null;
-      const leavePeopleOut = activation !== null && request.privateOnly === true;
-      if (activation && !activation.mayInvite && !leavePeopleOut) {
-        const [waiting] = await transaction.select({ id: eventCreationDraftPeople.id }).from(eventCreationDraftPeople)
-          .where(and(eq(eventCreationDraftPeople.draftId, draftId), eq(eventCreationDraftPeople.included, true))).limit(1);
-        if (waiting) throw new EventCreationRepositoryError("activation_required", "Beta approval and the $20 trip fee come before inviting. You can create the private trip without them.");
-      }
       if (!draft.supported) throw new EventCreationRepositoryError("creation_not_supported", "Confirm this is a trip before creating it.");
       if (!draft.proposedName?.trim()) throw new EventCreationRepositoryError("draft_conflict", "Add an event name before creating it.");
 
@@ -520,8 +504,7 @@ export async function commitEventCreationDraft(
         templateVersion: draft.templateVersion,
         creationSourceKind: draft.sourceKind,
         sourceEventId: draft.sourceEventId,
-        activationDraftId: draft.betaActivationRequired ? draft.id : null,
-        newExperience: options.newExperience === true || draft.betaActivationRequired,
+        newExperience: options.newExperience === true,
         coordinatorSettings: {version:1,personality:SetupCoordinatorStateSchema.parse(draft.coordinator).personality},
         eventBrief: EventBriefSchema.parse(draft.brief),
       }).returning({ id: commons.id });
@@ -551,7 +534,7 @@ export async function commitEventCreationDraft(
         source: "created_event",
       });
 
-      const draftPeople = leavePeopleOut ? [] : await transaction.select().from(eventCreationDraftPeople)
+      const draftPeople = await transaction.select().from(eventCreationDraftPeople)
         .where(and(eq(eventCreationDraftPeople.draftId, draftId), eq(eventCreationDraftPeople.included, true)))
         .orderBy(eventCreationDraftPeople.position);
       const peopleNeedingContact: string[] = [];
@@ -606,8 +589,6 @@ export async function commitEventCreationDraft(
           role: "member",
           status: "invited",
         }).onConflictDoNothing();
-        // Mark the person as invited so the first-invite flow never offers them as saved again.
-        if (draft.betaActivationRequired) await transaction.update(eventCreationDraftPeople).set({ personId }).where(eq(eventCreationDraftPeople.id, candidate.id));
         const token = mintRecoverableOpaqueToken();
         await transaction.insert(invitations).values({
           commonsId: createdEvent.id,
@@ -624,12 +605,6 @@ export async function commitEventCreationDraft(
           expiresAt: null,
         });
         unsentInvitationCount += 1;
-      }
-
-      // Paid first: the fee lands with the trip. Paid after commit, the verified webhook calls this same helper.
-      if (draft.betaActivationRequired) {
-        const [activationPayment] = await transaction.select().from(tripActivationPayments).where(eq(tripActivationPayments.draftId, draft.id)).for("update");
-        if (activationPayment) await recordActivationFeeExpense(transaction, activationPayment, createdEvent.id);
       }
 
       await transaction.insert(auditEvents).values({

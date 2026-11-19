@@ -6,8 +6,6 @@ import {
   getTravelerProfile,
   updateManagedTravelerProfile,
   updateTravelerProfile,
-  listEventDigestPreferences,
-  updateEventDigestPreference,
 } from "@commons/database";
 import { TravelerProfileSchema, UpdateTravelerProfileRequestSchema } from "@commons/contracts";
 import { getCommonsAuthIdentity } from "@/lib/supabase/server";
@@ -21,16 +19,6 @@ async function profileContext() {
   const personId = await findOrClaimPersonForAuthIdentity(identity, databaseUrl);
   if (!personId) throw new Error("Confirm your name before creating a travel profile.");
   return { identity, databaseUrl, personId };
-}
-
-export async function loadAuthenticatedEventDigestPreferences() {
-  const context = await profileContext();
-  return listEventDigestPreferences(context.personId, context.databaseUrl);
-}
-
-export async function updateAuthenticatedEventDigestPreference(input: unknown) {
-  const context = await profileContext();
-  return updateEventDigestPreference(context.personId, input, context.databaseUrl);
 }
 
 export async function loadAuthenticatedTravelerProfile() {

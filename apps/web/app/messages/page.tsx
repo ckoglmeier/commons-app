@@ -3,7 +3,6 @@ import { notFound, redirect } from "next/navigation";
 import { CommonsWordmark } from "@commons/ui";
 import { CommonsAuthenticationRequiredError, CommonsMembershipRequiredError } from "@/lib/server/commons-access-errors";
 import { readWebThread } from "@/lib/server/messaging/web-thread";
-import { betaReworkEnabled } from "@/lib/server/runtime-environment";
 import { WebThread } from "./web-thread";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +10,6 @@ export const metadata = { title: "Messages", robots: { index: false, follow: fal
 
 /** A person's own conversation with Commons, across the trips they turned it on for. Nobody else sees it. */
 export default async function MessagesPage() {
-  if (!betaReworkEnabled()) notFound();
   let thread: Awaited<ReturnType<typeof readWebThread>>;
   try { thread = await readWebThread(); }
   catch (error) {

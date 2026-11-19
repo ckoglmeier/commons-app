@@ -16,7 +16,6 @@ export type ShellAccount = {
   /** "Organizer" | "Traveler" */
   roleLabel: string;
   signInHref: string;
-  feedbackCommonsSlug: string;
 };
 
 const DESKTOP_QUERY = "(min-width: 1100px)";
@@ -99,7 +98,7 @@ export function TripApplicationShell({ tripStage = null, commonsId, view, naviga
           {newTrip}
           {yourTrips}
           {account.signedIn
-            ? <AccountMenu variant="rail" showTrips={false} initials={account.actorInitials} label={account.actorName} roleLabel={account.roleLabel} canSignOut feedbackCommonsSlug={account.feedbackCommonsSlug} />
+            ? <AccountMenu variant="rail" showTrips={false} initials={account.actorInitials} label={account.actorName} roleLabel={account.roleLabel} canSignOut />
             : <Link className="trip-shell__sign-in" href={account.signInHref}>Sign in</Link>}
         </div>
       </aside>
@@ -118,7 +117,7 @@ export function TripApplicationShell({ tripStage = null, commonsId, view, naviga
         <section className="trip-shell__menu-account" aria-label="Account">
           <h3>{account.signedIn ? account.actorName : "Account"}{account.signedIn ? <small>{account.roleLabel}</small> : null}</h3>
           {account.signedIn
-            ? <AccountMenu inline showTrips={false} initials={account.actorInitials} label={account.actorName} canSignOut feedbackCommonsSlug={account.feedbackCommonsSlug} />
+            ? <AccountMenu inline showTrips={false} initials={account.actorInitials} label={account.actorName} canSignOut />
             : <nav aria-label="Account navigation"><Link href={account.signInHref}>Sign in</Link></nav>}
         </section>
       </dialog>

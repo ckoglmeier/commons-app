@@ -3,8 +3,7 @@ import { z } from "zod";
 import { contactUpdateError } from "@/lib/contact-methods";
 import { json, messagingRoute } from "@/lib/server/messaging/http";
 import { confirmPhoneCode, sendPhoneCode } from "@/lib/server/messaging/phone-verification";
-import { textMessagingAvailableToViewer } from "@/lib/server/messaging/test-thread";
-import { commonsSiteOrigin } from "@/lib/server/runtime-environment";
+import { commonsSiteOrigin, textMessagingAvailable } from "@/lib/server/runtime-environment";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const RequestSchema = z.discriminatedUnion("kind", [
@@ -12,7 +11,7 @@ const RequestSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("email"), value: z.email() }),
 ]);
 
-/** Until a provider is chosen and sending is on, a phone request is refused before it touches the session, the database or a provider. */
+/** Without Twilio settings, a phone request is refused before it touches the session, the database or a provider. */
 const phoneUnavailable = () => NextResponse.json({ error: "Text-message verification is not available yet. Use email to sign in." }, { status: 503 });
 const refusal = (result: { status: number; code: string; message: string }) => json({ error: result.message, code: result.code }, result.status);
 
@@ -21,7 +20,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Check that contact method and try again." }, { status: 400 });
 
   if (parsed.data.kind === "phone") {
-    if (!await textMessagingAvailableToViewer()) return phoneUnavailable();
+    if (!textMessagingAvailable()) return phoneUnavailable();
     const { value } = parsed.data;
     return messagingRoute(async () => {
       const result = await sendPhoneCode({ value });
@@ -46,7 +45,7 @@ export async function POST(request: Request) {
 
 /** Check a code. The number becomes the person's verified number; texts stay off until they turn them on for a trip. */
 export async function PUT(request: Request) {
-  if (!await textMessagingAvailableToViewer()) return phoneUnavailable();
+  if (!textMessagingAvailable()) return phoneUnavailable();
   return messagingRoute(async () => {
     const result = await confirmPhoneCode(await request.json());
     return result.ok ? json({ status: "verified", phone: result.phone }) : refusal(result);

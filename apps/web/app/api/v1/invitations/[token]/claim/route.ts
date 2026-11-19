@@ -5,7 +5,6 @@ import {
   CommonsAuthenticationRequiredError,
   loadCommonsSnapshot,
 } from "@/lib/server/commons";
-import { recordBetaAttribution } from "@/lib/server/beta-completion";
 import { recordOutcome, recordOperationFailure } from "@/lib/server/outcome-telemetry";
 import { createHash } from "node:crypto";
 
@@ -19,7 +18,6 @@ export async function POST(
     recordOutcome({ event: "invitation_accepted", key: createHash("sha256").update(token).digest("hex"), perActor: true, trip: slug, request });
     const snapshot = await loadCommonsSnapshot(slug);
     if (!snapshot) return NextResponse.json({ error: "Invitation event not found." }, { status: 404 });
-    await recordBetaAttribution("traveler_participation", { entryKind: "unknown" }, snapshot.commons.id);
     return NextResponse.json({ commonsId: snapshot.commons.id, slug });
   } catch (error) {
     if (error instanceof CommonsAuthenticationRequiredError) {

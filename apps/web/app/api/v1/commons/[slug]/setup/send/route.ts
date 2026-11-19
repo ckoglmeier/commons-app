@@ -1,4 +1,3 @@
-import { activationRefusal } from "@/lib/server/trip-activation";
 import { NextResponse } from "next/server";
 import {
   CommonsAuthenticationRequiredError,
@@ -16,8 +15,6 @@ export async function POST(
     const result = await sendAuthenticatedCommonsInvitations(slug, origin);
     return NextResponse.json({ result });
   } catch (error) {
-    const refused = activationRefusal(error);
-    if (refused) return refused;
     if (error instanceof CommonsAuthenticationRequiredError) {
       return NextResponse.json({ error: error.message }, { status: 401 });
     }

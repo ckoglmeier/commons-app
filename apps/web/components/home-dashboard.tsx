@@ -11,13 +11,10 @@ import { useTripTaskIntakes } from "./use-trip-task-intakes";
 import { homeShortcuts, homeUpdates } from "@/lib/home-dashboard";
 import { DEFAULT_LETTER_SECTIONS, tripLetterDateline, tripLetterFacts, tripLetterUpdateText } from "@/lib/trip-letter";
 import { TripLetterArrange, TripLetterShareUpdate, TripLetterWelcome } from "./trip-letter-controls";
-import { FirstInviteNotice } from "./first-invite-notice";
 import { TripBigQuestions } from "./trip-big-questions";
 import { CalendarIcon, ImageIcon, PinIcon, QuestionIcon, ReceiptIcon } from "./icons";
-import { ParticipantQuestionNextSteps } from "./participant-question-next-steps";
 import { LogisticsAddMenu, type LogisticsAddKind } from "./logistics-add-menu";
 
-const ignoreMayInvite = () => undefined;
 /** Where a traveler can talk with Commons from this trip: messages in Commons ("web"), texting ("sms"), or neither. */
 export type TextMessagingChannel = false | "sms" | "web";
 
@@ -112,7 +109,6 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
   }
   const actionItems = thingsToDo({tripId:commons.id,personId:currentActorId,organizer:canAskGroup,state,travel:nextStep,tripTasks:tripTasksUnavailable ? [] : tripTasks,today:now === null ? undefined : new Intl.DateTimeFormat("en-CA",{timeZone:commons.timezone,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(now))});
   const [showAllSteps, setShowAllSteps] = useState(false);
-  const [firstInviteWaiting, setFirstInviteWaiting] = useState(false);
   const stepCount = actionItems.length;
   const next = now === null ? undefined : shortcuts.next;
   const stay = shortcuts.stay ?? shortcuts.legacyStay;
@@ -132,22 +128,19 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
         <div className="trip-letter__side">
           <section className="trip-letter__needs-section" aria-labelledby="trip-letter-needs-title">
             <h3 id="trip-letter-needs-title">Needs you</h3>
-            {canAskGroup ? <FirstInviteNotice slug={commons.slug} prominent onMayInvite={ignoreMayInvite} onActionChange={setFirstInviteWaiting} /> : null}
             {stepCount ? <ul className="trip-letter__needs">{(showAllSteps ? actionItems : actionItems.slice(0,3)).map(item => {
               const content = <><strong>{item.title}</strong><span>{item.detail}</span><small>{item.action}</small></>;
               const poll = (item.target.kind === "poll" || item.target.kind === "poll_results") ? state.pollRequests?.find(poll=>poll.id === item.target.id) : undefined;
               return <li key={item.id}>{item.target.kind === "todo" && openTodo ? <button type="button" className="home-next-step" onClick={()=>openTodo(item.target.id)}>{content}</button> : item.target.kind === "todo" ? <Link className="home-next-step" href={`${commonsPath(commons.id)}?arrival=0&view=home&todo=${encodeURIComponent(item.target.id)}`}>{content}</Link> : item.target.kind === "travel_item" ? <Link className="home-next-step" href={`${commonsPath(commons.id)}?arrival=0&view=logistics&travelId=${encodeURIComponent(item.target.id)}`}>{content}</Link> : poll ? <Link className="home-next-step" href={item.target.kind === "poll_results" ? `${commonsPath(commons.id)}/polls/${poll.id}` : poll.canManage ? `${commonsPath(commons.id)}/polls/${poll.id}` : `/c/poll/${poll.publicId}`}>{content}</Link> : <button className="home-next-step" type="button" disabled={item.target.kind === "travel" && checkingStep} onClick={()=>{if(item.target.kind === "travel") void openNextStep();}}>{content}</button>}{item.target.kind === "todo" ? <button type="button" className="text-action" disabled={completingTodo !== null} onClick={()=>void completeTodo(item.target.id)}>{completingTodo === item.target.id ? "Saving…" : "Mark complete"}</button> : null}</li>;
-            })}</ul> : firstInviteWaiting ? null : <p className="trip-letter__quiet">{now === null ? "Checking your to-dos…" : "Nothing is waiting for you."}</p>}
-            <ParticipantQuestionNextSteps slug={commons.slug} />
+            })}</ul> : <p className="trip-letter__quiet">{now === null ? "Checking your to-dos…" : "Nothing is waiting for you."}</p>}
             {stepCount > 3 ? <button className="text-action" type="button" onClick={()=>setShowAllSteps(value=>!value)}>{showAllSteps ? "Show fewer" : `Show ${stepCount-3} more`}</button> : null}
             {tripTasksUnavailable ? <p className="cm-note" role="status">Couldn’t reload your assigned to-dos. They’re still saved.</p> : null}
             {stepError ? <p className="cm-note" role="alert">{stepError}</p> : null}
           </section>
           {/* One primary action at a time: inviting while that's the step, otherwise Ask the group. The rest are quiet rows in two groups. */}
           <section className="trip-letter__tools" aria-label="Actions">
-            {askHref && !firstInviteWaiting ? <Link className="view-primary-action" href={askHref}><QuestionIcon /> Ask the group</Link> : null}
+            {askHref ? <Link className="view-primary-action" href={askHref}><QuestionIcon /> Ask the group</Link> : null}
             {askHref || canAskGroup ? <div className="trip-letter__tool-group">
-              {askHref && firstInviteWaiting ? <Link className="home-action" href={askHref}><QuestionIcon /><span>Ask the group</span></Link> : null}
               {canAskGroup ? <Link className="home-action" href={`${commonsPath(commons.id)}/polls`}><QuestionIcon /><span>Polls and results</span></Link> : null}
               {canAskGroup ? <TripLetterShareUpdate slug={commons.slug} canText={Boolean(textMessaging)} canWrite={textMessaging === "web"} tripEnded={Boolean(commons.endsOn && now !== null && commons.endsOn < new Date(now).toISOString().slice(0, 10))} text={tripLetterUpdateText({ name: commons.name, facts, updates: updates.filter(update => update.destination !== "plan" || state.itinerary.some(item => item.id === update.itemId && item.participantScope === "everyone")), url: origin ? `${origin}${commonsPath(commons.id)}` : commonsPath(commons.id) })} recipients={participants.filter(person => person.id !== currentActorId && person.membershipStatus === "active").map(person => person.displayName)} /> : null}
             </div> : null}
@@ -210,7 +203,6 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
             const poll = (item.target.kind === "poll" || item.target.kind === "poll_results") ? state.pollRequests?.find(poll=>poll.id === item.target.id) : undefined;
             return <li key={item.id}>{item.target.kind === "todo" && openTodo ? <button type="button" className="home-next-step" onClick={()=>openTodo(item.target.id)}>{content}</button> : item.target.kind === "todo" ? <Link className="home-next-step" href={`${commonsPath(commons.id)}?arrival=0&view=home&todo=${encodeURIComponent(item.target.id)}`}>{content}</Link> : item.target.kind === "travel_item" ? <Link className="home-next-step" href={`${commonsPath(commons.id)}?arrival=0&view=logistics&travelId=${encodeURIComponent(item.target.id)}`}>{content}</Link> : poll ? <Link className="home-next-step" href={item.target.kind === "poll_results" ? `${commonsPath(commons.id)}/polls/${poll.id}` : poll.canManage ? `${commonsPath(commons.id)}/polls/${poll.id}` : `/c/poll/${poll.publicId}`}>{content}</Link> : <button className="home-next-step" type="button" disabled={item.target.kind === "travel" && checkingStep} data-next-step={item.descriptor?.reason} onClick={()=>{if(item.target.kind === "travel") void openNextStep();}}>{content}</button>}{item.target.kind === "todo" ? <button type="button" className="text-action" disabled={completingTodo !== null} onClick={()=>void completeTodo(item.target.id)}>{completingTodo === item.target.id ? "Saving…" : "Mark complete"}</button> : null}</li>;
           })}</ul> : <p className="home-next-steps__empty">{now === null || confirmationIntakeEnabled && intakeState === "unavailable" ? "Checking your to-dos…" : "No to-dos waiting for you."}</p>}
-          <ParticipantQuestionNextSteps slug={commons.slug} />
           {stepCount > 3 ? <button className="text-action" type="button" onClick={()=>setShowAllSteps(value=>!value)}>{showAllSteps ? "Show fewer" : `Show ${stepCount-3} more`}</button> : null}
           {stepError ? <p className="cm-note" role="alert">{stepError}</p> : null}
         </section>

@@ -9,7 +9,6 @@ import { getEarlyPollTemplate } from "@/lib/early-poll-templates";
 import { housingConceptQuestion, movePollQuestion, newPollOption, newPollQuestion, pollDraftError } from "@/lib/poll-builder";
 import { PollHousingFacts } from "@/components/poll-housing-facts";
 import { PollQuestionAssistance } from "@/components/poll-question-assistance";
-import { TRIP_FEE_LABEL, TRIP_UPGRADE_HELP } from "@/lib/trip-activation/copy";
 import { PollQuestionSection } from "@/components/poll-question-section";
 import { PollAvailabilityEditor, newAvailabilityQuestion } from "@/components/poll-availability-editor";
 import { PlusIcon } from "@/components/icons";
@@ -24,13 +23,11 @@ function stayPollIntro(options: StayPollOption[]) {
   return `We’re choosing where to stay${same && first.startsOn && first.endsOn ? ` ${day(first.startsOn)}–${day(first.endsOn)}` : ""}. Pick every place that could work for you, then your first choice if you have one. Nothing is booked yet.`;
 }
 
-export function PollStarter({ linkOnly = false, bigQuestion, upgradeHref, slug, eventName, timezone = "UTC", defaultCurrency = "USD", startsOn, canSuggest = false, suggestionsAvailable = false, people = [], sourcePoll, stayOptions = [], transportOptions = [], activityOptions = [], templateId, initialDraft, savedDrafts = [] }: {
+export function PollStarter({ linkOnly = false, bigQuestion, slug, eventName, timezone = "UTC", defaultCurrency = "USD", startsOn, canSuggest = false, suggestionsAvailable = false, people = [], sourcePoll, stayOptions = [], transportOptions = [], activityOptions = [], templateId, initialDraft, savedDrafts = [] }: {
   /** Free stage: a link poll. Nobody joins the trip, and Commons sends nothing. */
   linkOnly?: boolean;
   /** Which big question this poll asks, when opened from Trip. */
   bigQuestion?: "where" | "when" | "who";
-  /** AI help isn't unlocked on this trip yet: offer the upgrade instead of the help. */
-  upgradeHref?: string;
   slug: string; eventName: string; timezone?: string; defaultCurrency?: string; startsOn?: string | null; canSuggest?: boolean; suggestionsAvailable?: boolean; people?: Array<{ id: string; name: string }>; sourcePoll?: { id: string; title: string }; stayOptions?: StayPollOption[]; transportOptions?: Array<{ id: string; name: string; description: string | null }>; activityOptions?: Array<{ id: string; name: string; description: string | null }>; templateId?: string; initialDraft?: PollWorkingDraft; savedDrafts?: PollWorkingDraft[] }) {
   const router = useRouter();
   const sourcePollId = initialDraft?.data.sourcePollId ?? sourcePoll?.id;
@@ -214,7 +211,7 @@ export function PollStarter({ linkOnly = false, bigQuestion, upgradeHref, slug, 
         {questions.map((question, index) => <div className="poll-preview__question" key={question.id}><span>{index + 1}</span><div><strong>{question.prompt}</strong><p>{question.required ? "Required" : "Optional"} · {pollQuestionFormat(question)}</p>{question.kind !== "text" ? <ul>{question.options.map(item => <li key={item.id}>{item.label}{item.description ? ` — ${item.description}` : ""}{item.exclusive ? " (cannot be combined)" : ""}{item.housing ? <PollHousingFacts housing={item.housing} /> : null}{item.url ? <a href={item.url} target="_blank" rel="noreferrer">View source</a> : null}</li>)}</ul> : null}</div></div>)}
         <p>Publishing doesn’t email anyone or change the trip. You share the link next.</p>
       </section> : <fieldset className="fieldnotes-editing" disabled={busy}>
-        {upgradeHref ? <p className="poll-upgrade-offer"><strong>{TRIP_UPGRADE_HELP.lead}</strong> <a href={upgradeHref}>{TRIP_UPGRADE_HELP.action}</a> <span>{TRIP_FEE_LABEL}</span></p> : canSuggest ? <PollQuestionAssistance available={suggestionsAvailable} slug={slug} revision={framingRevision({ framingRequest, intro, settledFacts, title, questions })} title={title} defaultTitle={defaultTitle} intro={intro} questions={questions}
+        {canSuggest ? <PollQuestionAssistance available={suggestionsAvailable} slug={slug} revision={framingRevision({ framingRequest, intro, settledFacts, title, questions })} title={title} defaultTitle={defaultTitle} intro={intro} questions={questions}
           framingRequest={framingRequest} onFramingRequest={value => { edit(); setFramingRequest(value); }} ready={framingRequest.trim().length >= 5 || (!framingRequest.trim() && intro.trim().length >= 5)} saveDraft={saveDraft} onApply={applySuggestion} /> : null}
         <label className="fieldnotes-field"><span>Introduction for the group</span><textarea value={intro} onChange={event => { edit(); setIntro(event.target.value); }} maxLength={500} rows={3} placeholder="Saturday is open. Pick every activity you’d do." /></label>
         <details className="fieldnotes-context"><summary>Already decided · Optional</summary><label className="fieldnotes-field"><span>What should stay fixed?</span><textarea value={settledFacts} onChange={event => { edit(); setSettledFacts(event.target.value); }} maxLength={1500} rows={2} placeholder="Saturday evening; staying in Denver." /><small>Private. Doesn’t change the trip.</small></label></details>

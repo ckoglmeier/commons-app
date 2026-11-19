@@ -4,8 +4,7 @@ import { z } from "zod";
 import { createDatabase } from "./client";
 import { CommandAccessError, type CommandTransaction } from "./event-command";
 import { isCommonsId } from "./commons-identifier";
-import { auditEvents, commons, expenses, memberships, moments, pollResponses, polls, people, eventCreationDrafts, tripActivationPayments } from "./schema";
-import { readTripInviteGate, TripActivationRequiredError } from "./trip-activation-repository";
+import { auditEvents, commons, expenses, memberships, moments, pollResponses, polls } from "./schema";
 
 /*
  * Two stages of one trip (docs/TRIP-STAGES-DIRECTION.md). A new-experience trip starts out getting to a decision and moves
@@ -23,7 +22,7 @@ export function tripStage(trip: { newExperience: boolean; goingAt: Date | null }
 type Options = { databaseUrl?: string; actorPersonId: string };
 
 async function organizerTrip(tx: Pick<CommandTransaction, "select">, identifier: string, actorPersonId: string, lock = false) {
-  const query = tx.select({ id: commons.id, name: commons.name, locationName: commons.locationName, startsOn: commons.startsOn, endsOn: commons.endsOn, activationDraftId: commons.activationDraftId, newExperience: commons.newExperience, goingAt: commons.goingAt, bigQuestions: commons.bigQuestions, welcomeMessage: commons.welcomeMessage, role: memberships.role, status: memberships.status })
+  const query = tx.select({ id: commons.id, name: commons.name, locationName: commons.locationName, startsOn: commons.startsOn, endsOn: commons.endsOn, newExperience: commons.newExperience, goingAt: commons.goingAt, bigQuestions: commons.bigQuestions, welcomeMessage: commons.welcomeMessage, role: memberships.role, status: memberships.status })
     .from(commons).innerJoin(memberships, and(eq(memberships.commonsId, commons.id), eq(memberships.personId, actorPersonId)))
     .where(isCommonsId(identifier) ? eq(commons.id, identifier) : eq(commons.slug, identifier));
   const [trip] = await (lock ? query.for("update", { of: commons }) : query);
@@ -52,9 +51,7 @@ export async function readBigQuestions(identifier: string, options: Options) {
       const poll = rows.find(row => row.id === saved[id]?.pollId);
       return { id, decided: decidedFor[id], poll: poll ? { id: poll.id, publicId: poll.publicId, title: poll.title, open: poll.status === "open", answers: Number(answers.find(row => row.pollId === poll.id)?.total ?? 0) } : null };
     });
-    const [payment] = trip.activationDraftId ? await database.db.select({ status: tripActivationPayments.status }).from(tripActivationPayments).where(eq(tripActivationPayments.draftId, trip.activationDraftId)) : [];
-    const [owner] = trip.activationDraftId ? await database.db.select({ doNotCharge: people.doNotCharge }).from(eventCreationDrafts).innerJoin(people, eq(people.id, eventCreationDrafts.createdByPersonId)).where(eq(eventCreationDrafts.id, trip.activationDraftId)) : [];
-    return { stage: tripStage(trip), paid: payment?.status === "paid", upgrade: Boolean(trip.activationDraftId) && !owner?.doNotCharge, questions, welcome: trip.welcomeMessage, decideBy: saved.decideBy ?? null, roughCost: saved.roughCost ?? null };
+    return { stage: tripStage(trip), questions, welcome: trip.welcomeMessage, decideBy: saved.decideBy ?? null, roughCost: saved.roughCost ?? null };
   } finally { await database.close(); }
 }
 
@@ -115,7 +112,7 @@ export async function saveTripBrief(identifier: string, raw: unknown, options: O
 const ExperienceSchema = z.object({ enabled: z.boolean() }).strict();
 
 /**
- * The organizer's "New experience" setting. It changes presentation only: plans, costs, people and any trip fee stay exactly
+ * The organizer's "New experience" setting. It changes presentation only: plans, costs and people stay exactly
  * as they are, and turning it off hides nothing permanently. A trip that already has people, costs or photos is past deciding.
  */
 export async function setTripExperience(identifier: string, raw: unknown, options: Options) {
@@ -146,30 +143,17 @@ export async function tripIsNewExperience(identifier: string, databaseUrl?: stri
   } finally { await database.close(); }
 }
 
-/** "We're going." An explicit organizer action after the fee is paid. Repeating it changes nothing. */
+/** "We're going." An explicit organizer action. Repeating it changes nothing. */
 export async function markTripGoing(identifier: string, options: Options) {
   const database = createDatabase(options.databaseUrl);
   try {
     return await database.db.transaction(async tx => {
       const trip = await organizerTrip(tx, identifier, options.actorPersonId, true);
       if (tripStage(trip) === "going") return { stage: "going" as const };
-      const gate = await readTripInviteGate(tx, trip.id, { lock: true });
-      if (!gate.mayInvite) throw new TripActivationRequiredError(gate.state);
       const now = new Date();
       await tx.update(commons).set({ goingAt: now, updatedAt: now }).where(eq(commons.id, trip.id));
       await tx.insert(auditEvents).values({ commonsId: trip.id, commandId: `trip-going:${trip.id}`, actorId: options.actorPersonId, actorType: "human", action: "trip.going", resourceType: "commons", resourceId: trip.id, summary: `Said ${trip.name} is going ahead.` }).onConflictDoNothing();
       return { stage: "going" as const };
     });
-  } finally { await database.close(); }
-}
-
-/** AI poll help is part of the $20. Trips with no activation draft keep the help they have today. */
-export async function tripHasPaidHelp(identifier: string, databaseUrl?: string) {
-  const database = createDatabase(databaseUrl);
-  try {
-    const [trip] = await database.db.select({ id: commons.id }).from(commons).where(isCommonsId(identifier) ? eq(commons.id, identifier) : eq(commons.slug, identifier));
-    if (!trip) return false;
-    const gate = await readTripInviteGate(database.db, trip.id);
-    return gate.state === "exempt" || gate.state === "allowed";
   } finally { await database.close(); }
 }

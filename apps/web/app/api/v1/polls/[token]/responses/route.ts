@@ -6,12 +6,8 @@ import { savePublicPollResponse, savePublicPollResponseByPublicId } from "@/lib/
 import { readBoundedJson } from "@/lib/bounded-json";
 import { recordOutcome, recordOperationFailure } from "@/lib/server/outcome-telemetry";
 import { createHash } from "node:crypto";
-import { publicPollsPaused } from "@/lib/beta/flags";
-import { scheduleTrafficWatch } from "@/lib/server/traffic-watch";
 
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
-  if (publicPollsPaused()) return NextResponse.json({ error: "Answers are paused for a moment. Try again soon." }, { status: 503 });
-  scheduleTrafficWatch();
   try {
     const { token } = await params;
     const input = await readBoundedJson(request, 128_000);

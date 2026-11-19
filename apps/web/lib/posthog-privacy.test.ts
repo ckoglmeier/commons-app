@@ -32,7 +32,7 @@ test('Replay retains readable labels and CSS but strips credentials and form val
   assert.equal(replayAttribute('src', '/covers/savannah.webp'), '/covers/savannah.webp');
   assert.equal(replayAttribute('src', 'https://example.com/photo?token=SECRET'), '');
   assert.equal(replayAttribute('src', 'data:text/html,SECRET'), '');
-  assert.equal(replayAttribute('href', 'https://www.commons.travel/_next/static/css/123.css'), 'https://www.commons.travel/_next/static/css/123.css');
+  assert.equal(replayAttribute('href', 'https://commons.invalid/_next/static/css/123.css'), 'https://commons.invalid/_next/static/css/123.css');
   assert.equal(replayAttribute('class', 'cm-action'), 'cm-action');
   assert.equal(replayAttribute('aria-expanded', 'true'), 'true');
 });

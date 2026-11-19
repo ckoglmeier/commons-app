@@ -1,9 +1,7 @@
 import {
-  claimDueOutbound, closeQuestion, expireQuestions, getQuestion, membershipAttendance, personAuth, phoneNumberFor, recentProactive, recordSendResult, sendEligibility, tripIdForPoll, tripInfo, unprocessedInbound, type MessageRow,
+    claimDueOutbound, closeQuestion, expireQuestions, getQuestion, membershipAttendance, personAuth, phoneNumberFor, recentProactive, recordSendResult, sendEligibility, tripIdForPoll, tripInfo, unprocessedInbound, type MessageRow,
 } from "@commons/database";
-import { cadenceDecision, DEFAULT_CADENCE, isQuietHours, quietHoursEnd, smsSegments } from "@commons/domain";
-import { gateUsage } from "../beta-completion";
-import { messageDeliveryConfigured } from "../runtime-environment";
+import { cadenceDecision, DEFAULT_CADENCE, isQuietHours, quietHoursEnd } from "@commons/domain";
 import { dbOptions, messagingDeps, type MessagingDeps } from "./core";
 import { processInbound } from "./inbound";
 import { openBalances, planQuestions, planQuestionsForTrip, pollNoticeStillNeeded, questionState } from "./planner";
@@ -26,7 +24,7 @@ export async function dispatchOutbox(deps: MessagingDeps, limit = 25): Promise<D
   const summary: DispatchSummary = { sent: 0, deferred: 0, suppressed: 0, failed: 0, retried: 0, blocked: null };
   const batchGate = sendGate(deps.provider, "+10000000000");
   // A paused or missing SMS provider holds SMS only. Messages to threads in Commons still go out.
-  const smsBlocked = !batchGate.allowed && batchGate.reason !== "not_allowlisted";
+  const smsBlocked = !batchGate.allowed;
   if (smsBlocked) { summary.blocked = batchGate.reason; if (deps.provider !== unconfiguredProvider) warn("commons.messaging.send_blocked", { reason: batchGate.reason, provider: deps.provider.name }); }
   for (const message of await claimDueOutbound(limit, { ...dbOptions(deps), ...(smsBlocked ? { providers: [webCarrier.name] } : {}) })) {
     try { await sendOne(deps, message, summary); }
@@ -86,14 +84,9 @@ async function sendOne(deps: MessagingDeps, message: MessageRow, summary: Dispat
     }
   }
 
-  const carrier = carrierFor(message.provider, deps.provider), web = carrier === webCarrier;
+  const carrier = carrierFor(message.provider, deps.provider);
   const gate = sendGate(carrier, e164);
-  if (!gate.allowed) return defer(gate.reason, gate.reason === "not_allowlisted" ? null : new Date(now.getTime() + 15 * 60_000));
-  // The per-trip usage bound and kill switches. The message id keeps a retry from being counted twice. A thread in Commons spends no SMS.
-  if (message.commonsId && !web) {
-    const usage = await gateUsage(message.commonsId, "sms_segment", { units: smsSegments(message.body), dedupeKey: message.id });
-    if (!usage.proceed) return defer(`usage_${usage.reason}`, null);
-  }
+  if (!gate.allowed) return defer(gate.reason, new Date(now.getTime() + 15 * 60_000));
   try {
     const outcome = await carrier.send({ to: e164, body: message.body, idempotencyKey: message.idempotencyKey ?? message.id });
     await recordSendResult(message.id, { ok: true, providerMessageId: outcome.providerMessageId, status: "sent" }, options);
@@ -126,7 +119,6 @@ export async function runMessagingTick(deps: MessagingDeps) {
  * texts can actually be sent, and a failure here is logged and goes no further.
  */
 export async function textAboutPublishedPoll(pollId: string) {
-  if (!messageDeliveryConfigured()) return;
   try {
     const deps = await messagingDeps({ allowNoProvider: true });
     const tripId = await tripIdForPoll(pollId, dbOptions(deps));

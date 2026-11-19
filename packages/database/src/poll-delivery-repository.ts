@@ -7,7 +7,6 @@ import { commons, identities, invitations, memberships, people, pollDeliveries, 
 import { PollAudienceSchema, PollCommunicationSchema, type PollAudience } from "@commons/contracts";
 import { isCommonsId } from "./commons-identifier";
 import { hashNormalizedEmail } from "./tokens";
-import { assertTripMayInvite, audienceReachesOutsiders, readTripInviteGate } from "./trip-activation-repository";
 
 type VerifiedEmailResolver = PollRepositoryOptions["resolveVerifiedEmail"];
 export async function resolvePollRecipients(tx: Pick<CommandTransaction, "select">, poll: { commonsId: string; audience: PollAudience | null }, resolveVerifiedEmail?: VerifiedEmailResolver) {
@@ -109,7 +108,6 @@ export async function queuePollDeliveries(slug: string, pollId: string, rawInput
       async () => { await manageable(tx, slug, pollId, options.actorPersonId); }, async context => {
         const poll = await manageable(tx, slug, pollId, options.actorPersonId);
         const deliveryAudience = deliveryAudienceFor(poll.audience, input.audience);
-        if (await audienceReachesOutsiders(tx, context.id, deliveryAudience)) await assertTripMayInvite(tx, context.id);
         if (poll.status !== "open" || !deliveryAudience) throw new PollRepositoryError("invalid_response", "Choose recipients for an open poll before sending.");
         const selected = await recipients(tx, { ...poll, audience: deliveryAudience }, options.resolveVerifiedEmail);
         // Explicit selections must all resolve. Legacy delivery approves the resolved
@@ -132,8 +130,6 @@ export async function queuePollDeliveries(slug: string, pollId: string, rawInput
 async function stillEligible(tx: Pick<CommandTransaction, "select">, delivery: typeof pollDeliveries.$inferSelect, resolveVerifiedEmail?: VerifiedEmailResolver) {
   const [poll] = await tx.select().from(polls).where(eq(polls.id, delivery.pollId));
   if (!poll || poll.status !== "open") return null;
-  const [activeRecipient] = delivery.personId ? await tx.select({ id: memberships.id }).from(memberships).where(and(eq(memberships.commonsId, poll.commonsId), eq(memberships.personId, delivery.personId), eq(memberships.status, "active"))) : [];
-  if (!activeRecipient && !(await readTripInviteGate(tx, poll.commonsId)).mayInvite) return null;
   if (delivery.personId) {
     const [member] = await tx.select().from(memberships).where(and(eq(memberships.commonsId, poll.commonsId), eq(memberships.personId, delivery.personId)));
     if (!member || !["active", "invited"].includes(member.status)) return null;

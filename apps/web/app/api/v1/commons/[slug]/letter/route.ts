@@ -6,16 +6,11 @@ import {
   CommonsMembershipRequiredError,
   persistTripLetterUpdate,
 } from "@/lib/server/commons";
-import { betaReworkEnabled } from "@/lib/beta/flags";
-import { readCommonsRuntimeEnvironment } from "@/lib/server/runtime-environment";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
-  if (!betaReworkEnabled(readCommonsRuntimeEnvironment())) {
-    return NextResponse.json({ error: "Not found." }, { status: 404 });
-  }
   try {
     const { slug } = await params;
     const snapshot = await persistTripLetterUpdate(slug, await request.json());

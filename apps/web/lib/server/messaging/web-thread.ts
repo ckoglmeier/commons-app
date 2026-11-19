@@ -1,17 +1,15 @@
 import {
   consentedMembers, consentedNumber, enrolledTripsForNumber, enrollmentStatus, enrollPersonInTrip, getCommonsSnapshot, listCommonsMembershipsForPerson, membershipAttendance, MessagingEnrollmentError,
-  organizerSharesSince, personAuth, recordInbound, threadForPhone, touchPhone, tripTextingFunded, webAddressFor, withdrawFromTrip,
+  organizerSharesSince, personAuth, recordInbound, threadForPhone, touchPhone, webAddressFor, withdrawFromTrip,
 } from "@commons/database";
 import { ORGANIZER_SHARE_MAX_LENGTH, ORGANIZER_SHARES_PER_DAY, sanitizeInbound, WEB_MESSAGES_CONSENT_TEXT, WEB_MESSAGES_CONSENT_WORDING } from "@commons/domain";
 import { z } from "zod";
 import { authenticatedConfirmationIntakeOptions } from "../commons";
 import { CommonsMembershipRequiredError } from "../commons-access-errors";
-import { webMessagesEnabledFor } from "../runtime-environment";
 import { copyFor, dbOptions, messagingDeps, queue } from "./core";
 import { dispatchOutbox } from "./dispatch";
 import { processInbound } from "./inbound";
 import { askNextFor, queueWelcome } from "./planner";
-import { viewerEmail } from "./test-thread";
 
 /*
  * Messages with Commons on the web: the text conversation, in a person's own thread in Commons, with no phone. Everything after "a message arrived"
@@ -21,11 +19,8 @@ import { viewerEmail } from "./test-thread";
 export const WebThreadMessageSchema = z.object({ id: z.string().uuid(), body: z.string().trim().min(1).max(1600) });
 export const OrganizerShareSchema = z.object({ id: z.string().uuid(), body: z.string().trim().min(1).max(ORGANIZER_SHARE_MAX_LENGTH) });
 
-export async function webMessagesAvailableToViewer() { return webMessagesEnabledFor(await viewerEmail()); }
-
 async function viewer() {
   const options = await authenticatedConfirmationIntakeOptions();
-  if (!webMessagesEnabledFor(await viewerEmail())) throw new CommonsMembershipRequiredError();
   const deps = await messagingDeps({ allowNoProvider: true });
   return { options, deps, address: webAddressFor(options.actorPersonId) };
 }
@@ -75,7 +70,6 @@ export async function readWebMessagesForTrip(slug: string) {
   return {
     tripName: trip.name, consentText: WEB_MESSAGES_CONSENT_TEXT(trip.name),
     on: status.enrolled && status.onWeb, onPhone: status.enrolled && !status.onWeb,
-    funded: await tripTextingFunded(trip.id, dbOptions(deps)),
     organizer: member?.role === "organizer",
   };
 }
@@ -97,7 +91,7 @@ export async function setWebMessagesForTrip(slug: string, on: boolean): Promise<
   return { ok: true };
 }
 
-export type ShareResult = { ok: true; recipients: number } | { ok: false; code: "organizer_only" | "trip_not_funded" | "share_limit"; message: string };
+export type ShareResult = { ok: true; recipients: number } | { ok: false; code: "organizer_only" | "share_limit"; message: string };
 
 /**
  * An organizer's short message, posted by Commons into the thread of every traveler who has messages on for the trip (web or phone), with the
@@ -108,7 +102,6 @@ export async function shareWithTravelers(slug: string, raw: unknown): Promise<Sh
   const trip = await tripFor(slug, options);
   const member = await membershipAttendance(options.actorPersonId, trip.id, dbOptions(deps));
   if (member?.role !== "organizer" || member.status !== "active") return { ok: false, code: "organizer_only", message: "Only an organizer can share a message with the group." };
-  if (!await tripTextingFunded(trip.id, dbOptions(deps))) return { ok: false, code: "trip_not_funded", message: "Messages start once this trip's fee is paid." };
   const since = new Date(deps.now().getTime() - 86_400_000);
   if (await organizerSharesSince(trip.id, since, dbOptions(deps)) >= ORGANIZER_SHARES_PER_DAY) return { ok: false, code: "share_limit", message: `You can share ${ORGANIZER_SHARES_PER_DAY} messages a day on a trip. Try again tomorrow.` };
   const organizer = (await personAuth(options.actorPersonId, dbOptions(deps)))?.displayName?.trim() || "An organizer";

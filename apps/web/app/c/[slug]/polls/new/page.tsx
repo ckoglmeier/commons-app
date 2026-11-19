@@ -7,7 +7,6 @@ import { stayComparison, stayPollDescription } from "@/lib/stay-compare";
 import { readCommonsRuntimeEnvironment } from "@/lib/server/runtime-environment";
 import { pollAssistanceEnabled } from "@/lib/server/poll-inference";
 import { activityPollOptions } from "@/lib/activity-poll-options";
-import { pollHelpUnlocked, tripStagesEnabled } from "@/lib/server/trip-stages";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +56,6 @@ export default async function NewPollPage({ params, searchParams }: { params: Pr
     if (!sourcePoll.currentActorCanManage) notFound();
   }
   const environment = readCommonsRuntimeEnvironment();
-  const deciding = tripStagesEnabled() && snapshot.commons.stage === "deciding";
-  const helpUnlocked = await pollHelpUnlocked(slug).catch(() => false);
-  return <PollStarter linkOnly={deciding} bigQuestion={deciding && (question === "where" || question === "when" || question === "who") ? question : undefined} upgradeHref={snapshot.currentActor.role === "organizer" && !helpUnlocked ? `/c/${slug}/first-invite?for=help` : undefined} key={draftId ?? followUp ?? "new"} slug={slug} eventName={snapshot.commons.name} defaultCurrency={snapshot.commons.currency ?? "USD"} timezone={snapshot.commons.timezone} startsOn={snapshot.commons.startsOn} canSuggest={snapshot.currentActor.role === "organizer"} suggestionsAvailable={Boolean(pollAssistanceEnabled() && environment.OPENAI_API_KEY && environment.COMMONS_POLL_MODEL)} people={snapshot.participants.map(person => ({ id: person.id, name: person.displayName }))} sourcePoll={sourcePoll ? { id: sourcePoll.id, title: sourcePoll.title } : undefined} stayOptions={stayOptions} transportOptions={transportOptions} activityOptions={activityOptions} templateId={template} initialDraft={draft} savedDrafts={drafts} />;
+  const deciding = snapshot.commons.stage === "deciding";
+  return <PollStarter linkOnly={deciding} bigQuestion={deciding && (question === "where" || question === "when" || question === "who") ? question : undefined} key={draftId ?? followUp ?? "new"} slug={slug} eventName={snapshot.commons.name} defaultCurrency={snapshot.commons.currency ?? "USD"} timezone={snapshot.commons.timezone} startsOn={snapshot.commons.startsOn} canSuggest={snapshot.currentActor.role === "organizer"} suggestionsAvailable={Boolean(pollAssistanceEnabled() && environment.OPENAI_API_KEY && environment.COMMONS_POLL_MODEL)} people={snapshot.participants.map(person => ({ id: person.id, name: person.displayName }))} sourcePoll={sourcePoll ? { id: sourcePoll.id, title: sourcePoll.title } : undefined} stayOptions={stayOptions} transportOptions={transportOptions} activityOptions={activityOptions} templateId={template} initialDraft={draft} savedDrafts={drafts} />;
 }

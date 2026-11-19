@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { FakeProvider, signFakeBody } from "./fake-provider";
-import { ProviderSendError, sendGate, unconfiguredProvider } from "./provider";
+import { LogProvider } from "./log-provider";
+import { messagingProvider, ProviderSendError, sendGate, unconfiguredProvider } from "./provider";
 import { TwilioProvider, twilioSignature, type FetchLike } from "./twilio-provider";
 
 /* Adapter shape only. No Twilio account exists and no request here leaves the process: the Twilio adapter is driven with an injected fetch. */
@@ -54,15 +55,45 @@ test("the Twilio adapter refuses to send without credentials and classifies fail
   await assert.rejects(new TwilioProvider(config).fetchMedia!({ url: "https://evil.test/x.png", contentType: "image/png" }), /media_host_not_allowed/);
 });
 
-test("the send gate keeps a real provider silent unless explicitly configured, and lets only the allowlist through", () => {
+test("the send gate keeps a real provider silent until its credentials are complete; synthetic providers cannot reach anyone", () => {
   const complete = new TwilioProvider({ accountSid: "ACsynthetic", authToken: "t", messagingServiceSid: "MGsynthetic" });
-  assert.equal(sendGate(complete, "+14155550101", {}).allowed, false, "default send mode is disabled");
-  assert.deepEqual(sendGate(complete, "+14155550101", { COMMONS_SMS_SEND_MODE: "disabled" }), { allowed: false, reason: "send_disabled" });
-  assert.equal(sendGate(new TwilioProvider({}), "+14155550101", { COMMONS_SMS_SEND_MODE: "live" }).allowed, false, "incomplete credentials never send");
-  assert.deepEqual(sendGate(complete, "+14155550102", { COMMONS_SMS_SEND_MODE: "allowlist", COMMONS_SMS_RECIPIENT_ALLOWLIST: "+14155550101" }), { allowed: false, reason: "not_allowlisted" });
-  assert.equal(sendGate(complete, "+14155550101", { COMMONS_SMS_SEND_MODE: "allowlist", COMMONS_SMS_RECIPIENT_ALLOWLIST: "+14155550101, +14155550103" }).allowed, true);
-  assert.equal(sendGate(unconfiguredProvider, "+14155550101", { COMMONS_SMS_SEND_MODE: "live" }).allowed, false);
-  assert.equal(sendGate(new FakeProvider(), "+14155550101", {}).allowed, true, "the synthetic provider cannot reach anyone");
+  assert.equal(sendGate(complete, "+14155550101").allowed, true);
+  assert.equal(sendGate(new TwilioProvider({}), "+14155550101").allowed, false, "incomplete credentials never send");
+  assert.equal(sendGate(unconfiguredProvider, "+14155550101").allowed, false);
+  assert.equal(sendGate(new FakeProvider(), "+14155550101").allowed, true, "the synthetic provider cannot reach anyone");
+  assert.equal(sendGate(new LogProvider(), "+14155550101").allowed, true, "the log provider cannot reach anyone");
+});
+
+test("texting is configured by the three Twilio settings; log mode records messages in the server log with no network", async () => {
+  const names = ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_MESSAGING_SERVICE_SID", "COMMONS_SMS_SEND_MODE", "COMMONS_SMS_WEBHOOK_ORIGIN"];
+  const previous = Object.fromEntries(names.map(name => [name, process.env[name]]));
+  const env = process.env as Record<string, string | undefined>;
+  const set = (values: Record<string, string>) => { for (const name of names) delete env[name]; Object.assign(env, values); };
+  const originalFetch = globalThis.fetch, originalInfo = console.info;
+  const logged: unknown[][] = [];
+  globalThis.fetch = async () => { throw new Error("no network in these tests"); };
+  console.info = (...args: unknown[]) => { logged.push(args); };
+  try {
+    set({});
+    assert.equal(await messagingProvider(), null, "no Twilio settings: no provider");
+    set({ TWILIO_ACCOUNT_SID: "ACsynthetic", TWILIO_AUTH_TOKEN: "t" });
+    assert.equal(await messagingProvider(), null, "a partial configuration is not configured");
+    const all = { TWILIO_ACCOUNT_SID: "ACsynthetic", TWILIO_AUTH_TOKEN: "t", TWILIO_MESSAGING_SERVICE_SID: "MGsynthetic" };
+    set(all);
+    assert.equal((await messagingProvider())?.name, "twilio", "live is the default once configured");
+    set({ ...all, COMMONS_SMS_SEND_MODE: "live" });
+    assert.equal((await messagingProvider())?.name, "twilio");
+    set({ ...all, COMMONS_SMS_SEND_MODE: "log" });
+    const provider = await messagingProvider();
+    assert.equal(provider?.name, "log");
+    const outcome = await provider!.send({ to: "+14155550101", body: "hello", idempotencyKey: "key-1" });
+    assert.deepEqual(outcome, { providerMessageId: "log-key-1", status: "accepted" });
+    assert.equal(logged[0]?.[0], "commons.sms.logged");
+    assert.equal(provider!.verifyWebhook({ url: "https://x.test", headers: new Headers(), rawBody: "" }), false, "nothing can be received in log mode");
+  } finally {
+    globalThis.fetch = originalFetch; console.info = originalInfo;
+    for (const name of names) { if (previous[name] === undefined) delete env[name]; else env[name] = previous[name]; }
+  }
 });
 
 test("the fake provider signs and verifies like a real one and records what it was asked to send", async () => {

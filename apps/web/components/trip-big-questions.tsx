@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TripLetterWelcome } from "./trip-letter-controls";
-import { TRIP_UPGRADE_HELP } from "@/lib/trip-activation/copy";
 import { GoingAction } from "./trip-stage-gate";
 
 /*
@@ -14,7 +13,7 @@ import { GoingAction } from "./trip-stage-gate";
 type QuestionId = "where" | "when" | "who";
 type Question = { id: QuestionId; decided: string | null; poll: { id: string; publicId: string; title: string; open: boolean; answers: number } | null };
 
-type Loaded = { paid: boolean; upgrade: boolean; questions: Question[]; welcome: string | null; decideBy: string | null; roughCost: string | null };
+type Loaded = { questions: Question[]; welcome: string | null; decideBy: string | null; roughCost: string | null };
 
 const COPY: Record<QuestionId, { title: string; help: string }> = {
   where: { title: "Where are we going?", help: "Add it if you know, or ask your group." },
@@ -51,7 +50,7 @@ function Decide({ slug, id, onSaved, onCancel }: { slug: string; id: QuestionId;
 
 export function TripBigQuestions({ slug, tripName }: { slug: string; tripName: string }) {
   const [questions, setQuestions] = useState<Question[] | null>(null);
-  const [brief, setBrief] = useState<{ paid: boolean; upgrade: boolean; welcome: string | null; decideBy: string | null; roughCost: string | null } | null>(null);
+  const [brief, setBrief] = useState<{ welcome: string | null; decideBy: string | null; roughCost: string | null } | null>(null);
   const [failed, setFailed] = useState(false), [deciding, setDeciding] = useState<QuestionId | null>(null), [copied, setCopied] = useState<QuestionId | null>(null);
   const load = useCallback(async () => {
     const response = await fetch(`/api/v1/commons/${encodeURIComponent(slug)}/big-questions`, { cache: "no-store" }).catch(() => null);
@@ -83,7 +82,6 @@ export function TripBigQuestions({ slug, tripName }: { slug: string; tripName: s
       <p className="trip-letter__dateline">Only you can see this page</p>
       <h2 id="big-questions-title" className="trip-letter__name">{tripName}</h2>
       <p className="big-questions__lede">Get this trip out of the group chat. Settle these three and it’s real.</p>
-      {brief?.upgrade && !brief.paid ? <p className="big-questions__upgrade">{TRIP_UPGRADE_HELP.lead} <a href={`/c/${encodeURIComponent(slug)}/first-invite?for=help`}>{TRIP_UPGRADE_HELP.action}</a></p> : null}
     </header>
     {brief ? <div className="big-questions__opening">
       <TripLetterWelcome slug={slug} welcome={brief.welcome} authorName={null} canEdit emptyText="Say why this trip, in a line or two. It goes at the top of every poll." hint="At the top of every poll you share." onSaved={text => setBrief(current => current && { ...current, welcome: text })} />
@@ -109,7 +107,7 @@ export function TripBigQuestions({ slug, tripName }: { slug: string; tripName: s
       {deciding === question.id ? <Decide slug={slug} id={question.id} onCancel={() => setDeciding(null)} onSaved={() => { setDeciding(null); void load(); }} /> : null}
     </li>)}</ol> : null}
     <footer className="big-questions__footer">
-      {brief ? <GoingAction slug={slug} offer={brief} emphasized={!nextQuestion} /> : null}
+      {brief ? <GoingAction slug={slug} emphasized={!nextQuestion} /> : null}
     </footer>
   </section>;
 }

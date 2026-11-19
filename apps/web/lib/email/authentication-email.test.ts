@@ -34,19 +34,6 @@ test("uses account and invitation language for their respective entry points", (
   assert.match(invited.html, /Event invitation/);
 });
 
-test("continues a beta access request without promising immediate access", () => {
-  const rendered = renderCommonsAuthenticationEmail({
-    email: "traveler@example.com",
-    signInUrl: "https://commons.travel/auth/confirm?next=%2Fnew%3Faccess%3Drequest",
-    intent: "access",
-  });
-
-  assert.equal(rendered.subject, "Continue your Commons beta request");
-  assert.match(rendered.html, /Request beta access/);
-  assert.match(rendered.html, /Continue request/);
-  assert.match(rendered.text, /request access to the Commons beta/);
-});
-
 test("rejects unsafe authentication links", () => {
   assert.throws(
     () => renderCommonsAuthenticationEmail({ email: "traveler@example.com", signInUrl: "javascript:alert(1)", intent: "sign-in" }),

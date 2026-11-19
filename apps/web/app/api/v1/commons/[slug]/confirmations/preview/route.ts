@@ -14,7 +14,6 @@ import { readUploadedFile } from "@/lib/import/read-uploaded-file";
 import { beginConfirmationIntake, finishConfirmationIntake } from "@commons/database";
 import { authenticatedConfirmationIntakeOptions } from "@/lib/server/commons";
 import { confirmationIntakeEnabled, parseIntakeBytes } from "@/lib/server/confirmation-intake";
-import { gateUsage } from "@/lib/server/beta-completion";
 import { storeCommonsConfirmationAsset, createCommonsConfirmationUploadToken } from "@/lib/supabase/admin";
 import { identifyConfirmationFile } from "@/lib/import/confirmation-file";
 
@@ -64,8 +63,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     const storagePath = `${slug}/${snapshot.currentActor.id}/${digest}.${extension}`;
     const existing = await loadCommonsConfirmationImport(slug, storagePath);
     if (existing) return NextResponse.json({ error: "This confirmation is already saved. Open the existing record to make corrections.", existing }, { status: 409 });
-    const usage = await gateUsage(snapshot.commons.id, "extraction_call", { dedupeKey: digest });
-    if (!usage.proceed) return NextResponse.json({ error: "Reading confirmations is paused for this trip. You can add the details by hand." }, { status: 429 });
     if (confirmationIntakeEnabled()) {
       const options = await authenticatedConfirmationIntakeOptions();
       const started = await beginConfirmationIntake(slug, { digest, kind: expectedKind, storagePath, fileName: file.name.slice(0,180), mimeType }, options);

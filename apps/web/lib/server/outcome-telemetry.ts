@@ -1,21 +1,16 @@
 import "server-only";
-import { acquisitionFromCookie } from "@/lib/analytics-attribution";
 import { createHash, randomUUID } from "node:crypto";
+import { acquisitionFromCookie } from "@/lib/analytics-attribution";
 import { after } from "next/server";
-import { recordServerOutcomeEvent } from "@commons/database";
 import type { ProductAnalyticsEventName } from "@commons/contracts";
 import { getCommonsAuthIdentity } from "@/lib/supabase/server";
-import { isPosthogExcluded } from "@/lib/posthog-exclusions";
-import { commonsDatabaseUrl } from "./runtime-environment";
 
 /*
- * Persisted-outcome and sanitized failure telemetry for the free beta
- * (docs/plans/2026-10-26-free-beta-analytics-extension.md). Rules:
+ * Optional server-side outcome and sanitized failure telemetry. It goes to PostHog only, and only when NEXT_PUBLIC_POSTHOG_KEY is set; nothing
+ * is stored in the Commons database. Rules:
  *   - record only after the command committed (call it after the service returned), never from a click;
- *   - one row per outcome: the id derives from the event and its command or resource identity, so retries, reloads
- *     and duplicate deliveries cannot double count (first-party insert ON CONFLICT DO NOTHING; PostHog `uuid`);
+ *   - the event id derives from the event and its command or resource identity, so retries and duplicate deliveries share one PostHog `uuid`;
  *   - closed-vocabulary properties only: never trip text, names, amounts, receipts, tokens, raw URLs, prompts or replies;
- *   - internal accounts are persisted with internal=true for exclusion and never sent to PostHog;
  *   - telemetry runs after the response and its failure never affects the user's action.
  */
 
@@ -72,7 +67,6 @@ export function releaseLabel(environment: { [name: string]: unknown } = process.
 }
 
 type Deps = {
-  persist?: typeof recordServerOutcomeEvent;
   identity?: () => Promise<{ authUserId: string; email?: string } | null>;
   send?: typeof fetch;
   schedule?: (task: () => Promise<void>) => void;
@@ -86,84 +80,51 @@ function defaultSchedule(task: () => Promise<void>) {
 }
 
 function posthogEligible(request: Request | undefined, environment: { [name: string]: unknown }) {
-  if (environment.VERCEL_ENV !== "production" || typeof environment.NEXT_PUBLIC_POSTHOG_KEY !== "string" || !environment.NEXT_PUBLIC_POSTHOG_KEY) return false;
+  if (typeof environment.NEXT_PUBLIC_POSTHOG_KEY !== "string" || !environment.NEXT_PUBLIC_POSTHOG_KEY) return false;
   if (!request) return false;
   // DNT, GPC and the Commons opt-out (mirrored to a cookie by analytics-attribution.ts) keep outcomes out of PostHog.
-  // First-party rows remain as operational records, like the daily report's counts of saved tables.
   const optedOut = (request.headers.get("cookie") ?? "").split(/;\s*/).includes("commons_analytics_opt_out=1");
   return request.headers.get("dnt") !== "1" && request.headers.get("sec-gpc") !== "1" && !optedOut;
 }
 
-async function deliver(input: { event: string; id: string; authUserId: string | null; properties: Record<string, Scalar>; tripId: string | null; request?: Request }, deps: Required<Pick<Deps, "send">> & { environment: { [name: string]: unknown } }) {
+async function deliver(input: { event: string; id: string; authUserId: string | null; properties: Record<string, Scalar>; trip: string | null; request?: Request }, deps: Required<Pick<Deps, "send">> & { environment: { [name: string]: unknown } }) {
   if (!posthogEligible(input.request, deps.environment)) return;
-  const properties: Record<string, unknown> = { ...input.properties, ...(input.tripId ? { trip_group: tripGroupKey(input.tripId) } : {}), $process_person_profile: Boolean(input.authUserId), $geoip_disable: true };
+  const host = typeof deps.environment.NEXT_PUBLIC_POSTHOG_HOST === "string" && deps.environment.NEXT_PUBLIC_POSTHOG_HOST ? deps.environment.NEXT_PUBLIC_POSTHOG_HOST : "https://us.i.posthog.com";
+  const properties: Record<string, unknown> = { ...input.properties, ...(input.trip ? { trip_group: tripGroupKey(input.trip) } : {}), $process_person_profile: Boolean(input.authUserId), $geoip_disable: true };
   const body = JSON.stringify({ api_key: deps.environment.NEXT_PUBLIC_POSTHOG_KEY, event: input.event, uuid: input.id,
     distinct_id: input.authUserId ?? `server:${input.id}`, properties });
-  const result = await deps.send("https://us.i.posthog.com/i/v0/e/", { method: "POST", headers: { "Content-Type": "application/json" }, body, signal: AbortSignal.timeout(4000) });
+  const result = await deps.send(`${new URL(host).origin}/i/v0/e/`, { method: "POST", headers: { "Content-Type": "application/json" }, body, signal: AbortSignal.timeout(4000) });
   if (!result.ok) console.warn("commons.telemetry.delivery_failed", { status: result.status });
 }
 
 /** Record a committed outcome. `key` is the command id or saved resource id that makes retries idempotent; `perActor` scopes it to the signed-in account (shared links). */
 export function recordOutcome(input: { event: OutcomeEvent; key: string; perActor?: boolean; trip?: string | null; properties?: Record<string, unknown>; request?: Request; authUserId?: string | null }, deps: Deps = {}) {
   const environment = deps.environment ?? process.env, schedule = deps.schedule ?? defaultSchedule;
+  if (typeof environment.NEXT_PUBLIC_POSTHOG_KEY !== "string" || !environment.NEXT_PUBLIC_POSTHOG_KEY) return;
   schedule(async () => {
-    const databaseUrl = commonsDatabaseUrl();
-    if (!databaseUrl && !deps.persist) return;
     const identity = input.authUserId !== undefined ? (input.authUserId ? { authUserId: input.authUserId } : null) : await (deps.identity ?? getCommonsAuthIdentity)().catch(() => null);
-    const internal = isPosthogExcluded((identity as { email?: string } | null)?.email);
-    // Scoped to the trip so equal client command ids on different trips never collapse into one row.
+    // Scoped to the trip so equal client command ids on different trips never collapse into one event.
     const scoped = `${input.trip ?? ""}:${input.key}`;
     const id = outcomeEventId(input.event, input.perActor ? `${scoped}:${identity?.authUserId ?? "anonymous"}` : scoped);
-    const acquisition = input.request && input.request.headers.get("dnt") !== "1" && input.request.headers.get("sec-gpc") !== "1" && !internal ? acquisitionFromCookie(input.request.headers.get("cookie") ?? "") : {};
-    const properties = { ...acquisition, ...sanitizeOutcomeProperties(input.properties), outcome: "succeeded", internal, sample: false, release: releaseLabel(environment) };
-    const saved = await (deps.persist ?? recordServerOutcomeEvent)({ id, eventName: input.event, authUserId: identity?.authUserId ?? null, tripIdentifier: input.trip ?? null, properties }, databaseUrl ?? undefined);
-    if (!saved.inserted || internal) return;
-    await deliver({ event: input.event, id, authUserId: identity?.authUserId ?? null, properties: { ...properties, role: saved.role, source: "server" }, tripId: saved.tripId, request: input.request }, { send: deps.send ?? fetch, environment });
+    const acquisition = input.request && input.request.headers.get("dnt") !== "1" && input.request.headers.get("sec-gpc") !== "1" ? acquisitionFromCookie(input.request.headers.get("cookie") ?? "") : {};
+    const properties = { ...acquisition, ...sanitizeOutcomeProperties(input.properties), outcome: "succeeded", release: releaseLabel(environment) };
+    await deliver({ event: input.event, id, authUserId: identity?.authUserId ?? null, properties: { ...properties, source: "server" }, trip: input.trip ?? null, request: input.request }, { send: deps.send ?? fetch, environment });
   });
 }
 
 /**
- * Record a sanitized failure of a critical operation: a structured log line for the existing runtime logs plus one
- * first-party row and (when eligible) a PostHog event. Carries the operation, category and release only.
+ * Record a sanitized failure of a critical operation: a structured log line for the runtime logs plus, when eligible, a PostHog event.
+ * Carries the operation, category and release only.
  */
 export function recordOperationFailure(input: { operation: FailureOperation; error: unknown; trip?: string | null; request?: Request }, deps: Deps = {}) {
   const environment = deps.environment ?? process.env, schedule = deps.schedule ?? defaultSchedule;
   const category = errorCategory(input.error), release = releaseLabel(environment);
   console.error("commons.operation_failed", { operation: input.operation, category, release });
+  if (typeof environment.NEXT_PUBLIC_POSTHOG_KEY !== "string" || !environment.NEXT_PUBLIC_POSTHOG_KEY) return;
   schedule(async () => {
-    const databaseUrl = commonsDatabaseUrl();
-    if (!databaseUrl && !deps.persist) return;
     const identity = await (deps.identity ?? getCommonsAuthIdentity)().catch(() => null);
-    const internal = isPosthogExcluded((identity as { email?: string } | null)?.email);
     const id = randomUUID();
-    const properties = { operation: input.operation, errorCategory: category, outcome: "failed", internal, sample: false, release };
-    const saved = await (deps.persist ?? recordServerOutcomeEvent)({ id, eventName: "operation_failed", authUserId: identity?.authUserId ?? null, tripIdentifier: input.trip ?? null, properties }, databaseUrl ?? undefined);
-    if (internal) return;
-    await deliver({ event: "operation_failed", id, authUserId: identity?.authUserId ?? null, properties: { ...properties, role: saved.role, source: "server" }, tripId: saved.tripId, request: input.request }, { send: deps.send ?? fetch, environment });
-  });
-}
-
-/**
- * First-party cost and reliability record for one poll-help provider call, including failed and later-abandoned
- * calls. Missing usage or rates stay unknown (null with coverage "unknown"), never zero. PostHog receives the
- * separate $ai_generation event from posthog-ai.ts; this row is not forwarded.
- */
-export function recordPollAssistGeneration(input: { generation: import("./ai-observability").AiGeneration; trip?: string | null }, deps: Deps = {}) {
-  const environment = deps.environment ?? process.env, schedule = deps.schedule ?? defaultSchedule, generation = input.generation;
-  schedule(async () => {
-    const databaseUrl = commonsDatabaseUrl();
-    if (!databaseUrl && !deps.persist) return;
-    const identity = await (deps.identity ?? getCommonsAuthIdentity)().catch(() => null);
-    const tokens = (value: number | undefined) => typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
-    const cost = generation.cost ?? generation.estimatedApiCostUsd;
-    const properties = {
-      feature: "poll_framing", outcome: generation.failed ? "failed" : "succeeded",
-      model: /^[a-zA-Z0-9._/-]{1,80}$/.test(generation.returnedModel ?? generation.model) ? (generation.returnedModel ?? generation.model) : "unknown",
-      latencyMs: Math.round(Math.max(0, generation.latency) * 1000), inputTokens: tokens(generation.inputTokens), outputTokens: tokens(generation.outputTokens),
-      costCoverage: generation.cost !== undefined ? "provider_reported" : generation.estimatedApiCostUsd !== undefined ? "estimated" : "unknown",
-      costMicroUsd: typeof cost === "number" && Number.isFinite(cost) ? Math.round(cost * 1_000_000) : null,
-      internal: isPosthogExcluded((identity as { email?: string } | null)?.email), sample: false, release: releaseLabel(environment),
-    };
-    await (deps.persist ?? recordServerOutcomeEvent)({ id: randomUUID(), eventName: "poll_assist_generation", authUserId: identity?.authUserId ?? null, tripIdentifier: input.trip ?? null, properties }, databaseUrl ?? undefined);
+    const properties = { operation: input.operation, errorCategory: category, outcome: "failed", release };
+    await deliver({ event: "operation_failed", id, authUserId: identity?.authUserId ?? null, properties: { ...properties, source: "server" }, trip: input.trip ?? null, request: input.request }, { send: deps.send ?? fetch, environment });
   });
 }

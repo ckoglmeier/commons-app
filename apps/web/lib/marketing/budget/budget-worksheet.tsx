@@ -1,6 +1,4 @@
 'use client';
-import Link from 'next/link';
-import { useBudgetCapture } from './use-budget-capture';
 import { useId, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import { SUPPORTED_CURRENCIES } from '@commons/contracts';
 import {
@@ -13,11 +11,10 @@ import css from './budget-worksheet.module.css';
 export type GroupBudgetWorksheetProps = {
   /** Destination display name, e.g. "Sedona". */
   destinationName?: string;
-  captureEnabled?: boolean;
   embedded?: boolean;
   summaryActions?: ReactNode;
   summarySupplement?: ReactNode;
-  /** Controlled trip worksheet. Never enable marketing capture for these inputs. */
+  /** Controlled trip worksheet. */
   value?: BudgetInputs;
   onChange?: (inputs: BudgetInputs) => void;
   readOnly?: boolean;
@@ -32,7 +29,7 @@ export type GroupBudgetWorksheetProps = {
 
 type TextField = Exclude<keyof BudgetInputs, 'currency' | 'lodgingBasis' | 'mealDaysFollowNights' | 'optional'>;
 
-export function GroupBudgetWorksheet({ destinationName, defaultCurrency = 'USD', startingLodging, captureEnabled = false, value, onChange, readOnly = false, title = 'Estimate your group budget', embedded = false, summaryActions, summarySupplement, storageNotice, lodgingReferenceLabel }: GroupBudgetWorksheetProps) {
+export function GroupBudgetWorksheet({ destinationName, defaultCurrency = 'USD', startingLodging, value, onChange, readOnly = false, title = 'Estimate your group budget', embedded = false, summaryActions, summarySupplement, storageNotice, lodgingReferenceLabel }: GroupBudgetWorksheetProps) {
   const uid = useId();
   const id = (field: string) => `${uid}-${field.replace(/\./g, '-')}`;
   const [localInputs, setLocalInputs] = useState<BudgetInputs>(() => startingBudgetInputs(defaultCurrency, startingLodging?.nightlyUsd));
@@ -42,9 +39,7 @@ export function GroupBudgetWorksheet({ destinationName, defaultCurrency = 'USD',
     if (value !== undefined) onChange?.(updated);
     else setLocalInputs(updated);
   };
-  const [edited, setEdited] = useState(false);
   const [usingStartingPrice, setUsingStartingPrice] = useState(!!startingLodging);
-  useBudgetCapture(inputs, startingLodging?.slug, edited, !usingStartingPrice, captureEnabled && value === undefined);
   const showingPrefill = usingStartingPrice && inputs.lodgingBasis === 'property';
   const [currencyError, setCurrencyError] = useState('');
   const [originals, setOriginals] = useState<CurrencyOriginals>(startingLodging ? { lodgingPerNight: { amount: String(startingLodging.nightlyUsd), currency: 'USD' } } : {});
@@ -52,7 +47,6 @@ export function GroupBudgetWorksheet({ destinationName, defaultCurrency = 'USD',
   const [announcement, setAnnouncement] = useState('');
   // Any edit replaces a one-off announcement (cleared, removed) with the live total.
   const setInputs: typeof setInputsState = next => {
-    setEdited(true);
     setAnnouncement('');
     setCurrencyError('');
     const value = typeof next === 'function' ? next(inputs) : next;
@@ -74,7 +68,6 @@ export function GroupBudgetWorksheet({ destinationName, defaultCurrency = 'USD',
       setCurrencyError('Check the money amounts before converting. An amount is invalid or too large in the selected currency.');
       return;
     }
-    setEdited(true);
     setOriginals(references);
     setInputsState(converted);
     setCurrencyError('');
@@ -110,7 +103,6 @@ export function GroupBudgetWorksheet({ destinationName, defaultCurrency = 'USD',
   const mealDaysValue = inputs.mealDaysFollowNights ? (result.nights !== null ? String(result.nights + 1) : '') : inputs.mealDays;
 
   const reset = () => {
-    setEdited(false);
     setOriginals(startingLodging ? { lodgingPerNight: { amount: String(startingLodging.nightlyUsd), currency: 'USD' } } : {});
     setUsingStartingPrice(!!startingLodging);
     setInputsState(startingBudgetInputs(defaultCurrency, startingLodging?.nightlyUsd));
@@ -178,7 +170,7 @@ export function GroupBudgetWorksheet({ destinationName, defaultCurrency = 'USD',
               </select>
               {currencyError && <p id={`${id('currency')}-error`} className={css.error} role="alert">{currencyError}</p>}
             </div></div>
-      <p className={css.intro}>{!embedded && <>Plan what {place} could cost. </>} {startingLodging ? 'Start with a local lodging estimate and adjust it for your group. ' : ''}{storageNotice ?? (captureEnabled ? <>Commons saves the fields you enter, including optional activity descriptions and unfinished estimates, to understand trip costs. <Link href="/support/#analytics">Analytics choices</Link>.</> : 'Your entries stay in this browser.')}</p>
+      <p className={css.intro}>{!embedded && <>Plan what {place} could cost. </>} {startingLodging ? 'Start with a local lodging estimate and adjust it for your group. ' : ''}{storageNotice ?? 'Your entries stay in this browser.'}</p>
       <div className={css.layout} data-readonly={readOnly || undefined}>
         {!readOnly && <form className={css.form} aria-label="Budget worksheet" noValidate onSubmit={e => e.preventDefault()}>
           <fieldset>

@@ -2,7 +2,6 @@
 
 import {
   CommonsSetupSchema,
-  CreateCommonsDraftResultSchema,
   SendSetupInvitationsResultSchema,
   type CommonsSetup,
   type InvitationDelivery,
@@ -12,7 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { commonsPath, commonsSetupPath } from "@/lib/commons-route";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckIcon, CloseIcon, ImageIcon, PlusIcon, UsersIcon } from "@/components/icons";
 import { getSupabaseBrowserClient, uploadCommonsCover } from "@/lib/supabase/browser";
 import { createCoverCardImage } from "@/lib/cover-image";
@@ -78,37 +77,19 @@ async function responseJson(response: Response, fallback: string) {
 }
 
 export function NewCommonsForm({
-  dataMode,
-  signedIn,
-  suggestedName,
   initialSetup,
   initialStep,
-  initialDetails,
 }: {
-  dataMode: "database" | "demo";
-  signedIn: boolean;
-  suggestedName?: string;
-  initialSetup?: CommonsSetup;
+  /** The trip this setup continues. Creating a trip happens at /new. */
+  initialSetup: CommonsSetup;
   initialStep?: string;
-  initialDetails?: Partial<{
-    organizerName: string;
-    tripName: string;
-    locationName: string;
-    startsOn: string;
-    endsOn: string;
-  }>;
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverObjectUrlRef = useRef<string | null>(null);
   const requestedStep = validStep(initialStep);
-  const [step, setStep] = useState<SetupStep>(initialSetup ? requestedStep === "details" ? "people" : requestedStep : "details");
-  const [setup, setSetup] = useState<CommonsSetup | null>(initialSetup ?? null);
-  const [organizerName, setOrganizerName] = useState(initialSetup?.organizerName ?? initialDetails?.organizerName ?? suggestedName ?? "");
-  const [tripName, setTripName] = useState(initialSetup?.commons.name ?? initialDetails?.tripName ?? "");
-  const [locationName, setLocationName] = useState(initialSetup?.commons.locationName ?? initialDetails?.locationName ?? "");
-  const [startsOn, setStartsOn] = useState(initialSetup?.commons.startsOn ?? initialDetails?.startsOn ?? "");
-  const [endsOn, setEndsOn] = useState(initialSetup?.commons.endsOn ?? initialDetails?.endsOn ?? "");
+  const [step, setStep] = useState<SetupStep>(requestedStep === "details" ? "people" : requestedStep);
+  const [setup, setSetup] = useState<CommonsSetup | null>(initialSetup);
   const [travelers, setTravelers] = useState<TravelerDraft[]>(initialSetup?.travelers.length ? initialSetup.travelers.map(({ displayName, email }) => ({ displayName, email })) : [{ displayName: "", email: "" }]);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(initialSetup?.commons.coverImageUrl ?? null);
@@ -116,20 +97,8 @@ export function NewCommonsForm({
   const [copied, setCopied] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
-  const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || "America/New_York", []);
   const completeTravelers = travelers.filter((traveler) => traveler.displayName.trim() && traveler.email.trim());
   const travelersToInvite = setup?.travelers.filter((traveler) => traveler.deliveryState !== "sent") ?? [];
-  const signInReturn = useMemo(() => {
-    const params = new URLSearchParams();
-    if (tripName) params.set("name", tripName);
-    if (locationName) params.set("place", locationName);
-    if (startsOn) params.set("starts", startsOn);
-    if (endsOn) params.set("ends", endsOn);
-    if (organizerName) params.set("organizer", organizerName);
-    const next = params.size ? `/new?${params.toString()}` : "/new";
-    return `/sign-in?next=${encodeURIComponent(next)}`;
-  }, [endsOn, locationName, organizerName, startsOn, tripName]);
-
   useEffect(() => {
     return () => {
       if (coverObjectUrlRef.current) URL.revokeObjectURL(coverObjectUrlRef.current);
@@ -148,39 +117,6 @@ export function NewCommonsForm({
     setStep(next);
     if (setup) router.replace(commonsSetupPath(setup.commons.id, next), { scroll: false });
     window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-  }
-
-  async function createDraft(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
-    if (dataMode !== "database") {
-      setError("Connect the Commons database to create a trip.");
-      return;
-    }
-    setPending(true);
-    try {
-      const response = await fetch("/api/v1/commons", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ organizerDisplayName: organizerName, name: tripName, startsOn, endsOn, locationName, timezone }),
-      });
-      const payload = await responseJson(response, "Trip not created. Your details are still here. Try again.");
-      const result = CreateCommonsDraftResultSchema.parse(payload.result);
-      const draft = CommonsSetupSchema.parse({
-        commons: { id: result.commonsId, slug: result.slug, name: tripName.trim(), startsOn, endsOn, locationName: locationName.trim(), timezone, status: "planning", coverImageUrl: null, setupCompletedAt: null, firstSharedAt: null },
-        organizerName: organizerName.trim(),
-        travelers: [],
-        importedPlanCount: 0,
-      });
-      setSetup(draft);
-      setStep("people");
-      trackProductEvent("trip_created", { commonsSlug: result.slug });
-      router.replace(commonsSetupPath(result.commonsId));
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Trip not created. Your details are still here. Try again.");
-    } finally {
-      setPending(false);
-    }
   }
 
   function updateTraveler(index: number, patch: Partial<TravelerDraft>) {
@@ -285,28 +221,6 @@ export function NewCommonsForm({
     trackProductEvent("invitation_link_copied", { commonsSlug: setup?.commons.slug, properties: { source: "setup" } });
     setCopied(delivery.invitationId);
     window.setTimeout(() => setCopied(null), 1800);
-  }
-
-  if (step === "details") {
-    return (
-      <section className="setup-panel-wrap">
-        <SetupProgress current="details" />
-        <form className="new-commons-form setup-panel" onSubmit={createDraft}>
-          <span className="view-kicker">Setup</span>
-          <h2>Set up the trip.</h2>
-          <p className="setup-lede">Add the basics now. You’ll choose who to invite next.</p>
-          <div className="form-grid setup-fields">
-            <label className="field field--wide"><span>Trip name</span><input value={tripName} onChange={(event) => setTripName(event.target.value)} placeholder="Scotland 2027" required /></label>
-            <label className="field field--wide"><span>Place</span><input value={locationName} onChange={(event) => setLocationName(event.target.value)} placeholder="Edinburgh, Scotland" required /></label>
-            <label className="field"><span>Starts</span><input value={startsOn} onChange={(event) => setStartsOn(event.target.value)} type="date" required /></label>
-            <label className="field"><span>Ends</span><input value={endsOn} onChange={(event) => setEndsOn(event.target.value)} type="date" required /></label>
-            <label className="field field--wide"><span>Your name</span><input value={organizerName} onChange={(event) => setOrganizerName(event.target.value)} placeholder="Casey" required /></label>
-          </div>
-          {error ? <p className="form-error" role="alert">{error}</p> : null}
-          {!signedIn && dataMode === "database" ? <Link className="form-submit" href={signInReturn}>Sign in to start this trip</Link> : <button className="form-submit" type="submit" disabled={pending}><CommonsMark /> {pending ? "Saving trip…" : "Save trip"}</button>}
-        </form>
-      </section>
-    );
   }
 
   if (!setup) return null;

@@ -5,7 +5,6 @@ import { loadCommonsSnapshot } from "@/lib/server/commons";
 import { messagingDeps } from "@/lib/server/messaging/core";
 import { queueSettlementReminders, queueTripChange } from "@/lib/server/messaging/planner";
 import { messagingRoute } from "@/lib/server/messaging/http";
-import { readCommonsRuntimeEnvironment, webMessagesEnabled } from "@/lib/server/runtime-environment";
 
 const RequestSchema = z.object({ kind: z.enum(["update", "settlement"]) }).strict();
 
@@ -14,14 +13,13 @@ const RequestSchema = z.object({ kind: z.enum(["update", "settlement"]) }).stric
  * taken from the browser. Each change is queued once per person, and quiet hours, cadence, consent and usage limits still apply at send.
  */
 export const POST = (request: Request, { params }: { params: Promise<{ slug: string }> }) => messagingRoute(async () => {
-  if (readCommonsRuntimeEnvironment().COMMONS_BETA_REWORK_ENABLED === "false") return NextResponse.json({ error: "Not found." }, { status: 404 });
   const { slug } = await params;
   const parsed = RequestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Choose what to text." }, { status: 400 });
   const snapshot = await loadCommonsSnapshot(slug).catch(() => null);
   if (!snapshot || snapshot.currentActor.role !== "organizer") return NextResponse.json({ error: "Only an organizer can text the group." }, { status: 403 });
-  // With only messages in Commons on, there's no SMS provider; those still reach travelers' threads.
-  const deps = await messagingDeps({ allowNoProvider: webMessagesEnabled() });
+  // Without Twilio settings there's no SMS provider; messages in Commons still reach travelers' threads.
+  const deps = await messagingDeps({ allowNoProvider: true });
   if (parsed.data.kind === "settlement") return NextResponse.json({ queued: await queueSettlementReminders(deps, snapshot.commons.id) });
   const forEveryone = new Set(snapshot.state.itinerary.filter(item => item.participantScope === "everyone").map(item => item.id));
   const updates = homeUpdates(snapshot.state, { includeMessages: false })

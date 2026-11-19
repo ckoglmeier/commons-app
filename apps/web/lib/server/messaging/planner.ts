@@ -1,7 +1,7 @@
 import { eventAttendanceDates } from "@commons/contracts";
 import {
   closeQuestion, consentedMembers, consentedNumber, consentedPairs, getPublicPollByPublicId, hasQueuedProactive, membershipAttendance, messageKeyExists, openIntakes, openQuestion, openQuestionsForPerson, personAuth,
-  isWebAddress, recentQuestions, tripInfo, tripTextingFunded, type EnrolledTrip, type QuestionRow,
+  isWebAddress, recentQuestions, tripInfo, type EnrolledTrip, type QuestionRow,
 } from "@commons/database";
 
 /** One welcome per trip per place: moving a trip from a phone to the web thread (or back) says hello again there. */
@@ -165,8 +165,7 @@ export async function queueWelcome(deps: MessagingDeps, person: Person, tripId: 
 export async function askNextFor(deps: MessagingDeps, pair: { personId: string; commonsId: string }) {
   const trip = await tripInfo(pair.commonsId, dbOptions(deps));
   const auth = await personAuth(pair.personId, dbOptions(deps));
-  // No question is opened on a trip that can't text yet: it would only expire unsent.
-  if (!trip || !auth || !await tripTextingFunded(pair.commonsId, dbOptions(deps))) return false;
+  if (!trip || !auth) return false;
   const open = (await openQuestionsForPerson(pair.personId, dbOptions(deps))).filter(question => question.expiresAt > deps.now() && !["booking_review", "booking_info", "money_review", "money_info"].includes(question.kind) || question.kind === "trip_choice");
   if (open.length || await hasQueuedProactive(pair.personId, dbOptions(deps))) return false;
   const person = { id: pair.personId, name: auth.displayName };

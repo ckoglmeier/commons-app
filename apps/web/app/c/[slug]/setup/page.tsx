@@ -7,8 +7,6 @@ import { commonsSetupPath } from "@/lib/commons-route";
 import {
   CommonsAuthenticationRequiredError,
   CommonsMembershipRequiredError,
-  getCommonsDataMode,
-  getCurrentCommonsIdentity,
   loadAuthenticatedCommonsSetup,
 } from "@/lib/server/commons";
 
@@ -38,7 +36,6 @@ export default async function CommonsSetupPage({
     throw error;
   }
   if (identifier !== setup.commons.id) redirect(commonsSetupPath(setup.commons.id, step ?? "people"));
-  const identity = await getCurrentCommonsIdentity();
 
   return (
     <main className="creation-shell">
@@ -54,8 +51,6 @@ export default async function CommonsSetupPage({
           <div className="creation-promise"><CommonsMark /><p><strong>Trip setup</strong><br />Invite people, then review before sending.</p></div>
         </aside>
         <NewCommonsForm
-          dataMode={getCommonsDataMode(identifier)}
-          signedIn={Boolean(identity)}
           initialSetup={setup}
           initialStep={step}
         />

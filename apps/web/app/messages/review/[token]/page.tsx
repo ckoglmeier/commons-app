@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { CommonsWordmark } from "@commons/ui";
 import { SignInForm } from "@/app/sign-in/sign-in-form";
 import { CommonsAuthenticationRequiredError } from "@/lib/server/commons-access-errors";
 import { readReview } from "@/lib/server/messaging/web";
-import { betaReworkEnabled } from "@/lib/server/runtime-environment";
 import { isSupabaseAuthConfigured } from "@/lib/supabase/config";
 import { ReviewActions } from "./review-actions";
 
@@ -16,7 +14,6 @@ export const metadata = { title: "Check a booking", robots: { index: false, foll
  * credential; the signed-in person must own the review. Nothing here is saved until Save is chosen for the exact version shown.
  */
 export default async function ReviewPage({ params }: { params: Promise<{ token: string }> }) {
-  if (!betaReworkEnabled()) notFound();
   const { token } = await params;
   let view: Awaited<ReturnType<typeof readReview>> = null, signedOut = false;
   try { view = await readReview(token); } catch (error) { if (error instanceof CommonsAuthenticationRequiredError) signedOut = true; else throw error; }

@@ -1,12 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { aiEventProperties, estimatedOpenAiCost, observeAiCall, type AiGeneration } from './ai-observability';
-import { isPosthogExcluded } from '../posthog-exclusions';
 
-test('internal exclusions are exact and case-insensitive', () => {
-  for (const email of ['organizer@example.com', ' organizer+COMMONS-BETA-QA@example.com ']) assert.equal(isPosthogExcluded(email), true);
-  for (const email of [undefined, null, 'tester@example.com', 'organizer+vacation@example.com']) assert.equal(isPosthogExcluded(email), false);
-});
 test('cached input and cache writes are priced separately; reasoning is included in output, and unknown is not free', () => {
   assert.equal(estimatedOpenAiCost('openai/gpt-6.1-sol', { input: 1000, cached: 500, written: 100, output: 100 }), 0.0021);
   assert.equal(estimatedOpenAiCost('openai/gpt-6.1-terra', { input: 1000, cached: 500, written: 100, output: 100 }), 0.00105);

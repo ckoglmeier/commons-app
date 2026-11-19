@@ -5,6 +5,8 @@ import { identities, messagingConsents, messagingMessages, messagingPhoneVerific
 import { actAs, json, loadRoutes, skip, testDatabaseUrl, world } from "./test-world";
 import { normalizePhone } from "../../contact-methods";
 import { ProviderSendError } from "./provider";
+/** Texting is configured by the three Twilio settings; the provider itself is the fake one. */
+const TWILIO_TEST_ENV = { TWILIO_ACCOUNT_SID: "ACsynthetic", TWILIO_AUTH_TOKEN: "synthetic", TWILIO_MESSAGING_SERVICE_SID: "MGsynthetic" };
 
 /* Synthetic evidence: the fake provider, a disposable database and invented numbers. No message leaves the process. */
 const contact = () => import("../../../app/api/v1/profile/contact/route");
@@ -13,8 +15,8 @@ const confirm = async (value: string, code: string) => { const { PUT } = await c
 const lastCode = (w: { last(): string }) => /code is (\d{6})/.exec(w.last())?.[1] ?? "";
 const newPhone = () => `+1415666${String(Math.floor(1000 + Math.random() * 8999))}`;
 function available() {
-  process.env.COMMONS_SMS_PROVIDER = "twilio"; process.env.COMMONS_SMS_SEND_MODE = "live";
-  return () => { delete process.env.COMMONS_SMS_PROVIDER; delete process.env.COMMONS_SMS_SEND_MODE; };
+  Object.assign(process.env, TWILIO_TEST_ENV);
+  return () => { for (const name of Object.keys(TWILIO_TEST_ENV)) delete process.env[name]; };
 }
 
 test("people type numbers the way they say them", () => {
@@ -29,7 +31,7 @@ test("until texts can be sent, a phone request is refused and nothing is stored 
   const w = await world();
   try {
     actAs(w.ids.maya);
-    delete process.env.COMMONS_SMS_PROVIDER;
+    for (const name of Object.keys(TWILIO_TEST_ENV)) delete process.env[name];
     const before = (await w.q(db => db.select().from(messagingPhoneVerifications).where(eq(messagingPhoneVerifications.personId, w.ids.maya)))).length;
     assert.equal((await send(newPhone())).status, 503);
     assert.equal((await confirm(newPhone(), "123456")).status, 503);
@@ -40,7 +42,7 @@ test("until texts can be sent, a phone request is refused and nothing is stored 
 
 test("a code proves the number, grants no consent, and is never stored readable", { skip }, async () => {
   const restore = available(); const w = await world(); const phone = newPhone();
-  process.env.COMMONS_SMS_PROVIDER = "twilio";
+  Object.assign(process.env, TWILIO_TEST_ENV);
   try {
     actAs(w.ids.maya);
     const sent = await send(phone);
@@ -73,7 +75,7 @@ test("a code proves the number, grants no consent, and is never stored readable"
 });
 
 test("wrong codes are counted and stop working, and limits hold however often someone asks", { skip }, async () => {
-  const restore = available(); const w = await world(); process.env.COMMONS_SMS_PROVIDER = "twilio";
+  const restore = available(); const w = await world(); Object.assign(process.env, TWILIO_TEST_ENV);
   const phones = [newPhone(), newPhone()];
   try {
     actAs(w.ids.sam);
@@ -109,7 +111,7 @@ test("wrong codes are counted and stop working, and limits hold however often so
 });
 
 test("a number on someone else's account can't be taken, and the answer only comes after proving control", { skip }, async () => {
-  const restore = available(); const w = await world(); process.env.COMMONS_SMS_PROVIDER = "twilio";
+  const restore = available(); const w = await world(); Object.assign(process.env, TWILIO_TEST_ENV);
   try {
     actAs(w.ids.sam);
     assert.equal((await send(w.phones.maya)).status, 200, "asking for a code doesn't reveal the number is taken");
@@ -121,7 +123,7 @@ test("a number on someone else's account can't be taken, and the answer only com
 });
 
 test("changing number stops everything on the old one, and nothing carries over without a new yes", { skip }, async () => {
-  const restore = available(); const w = await world(); process.env.COMMONS_SMS_PROVIDER = "twilio"; const phone = newPhone();
+  const restore = available(); const w = await world(); Object.assign(process.env, TWILIO_TEST_ENV); const phone = newPhone();
   try {
     const routes = await loadRoutes();
     assert.equal((await w.enroll(routes, "maya", "sonoma")).status, 200);
@@ -143,7 +145,7 @@ test("changing number stops everything on the old one, and nothing carries over 
 });
 
 test("an opted-out number gets no code, and a provider failure leaves nothing redeemable", { skip }, async () => {
-  const restore = available(); const w = await world(); process.env.COMMONS_SMS_PROVIDER = "twilio"; const phone = newPhone();
+  const restore = available(); const w = await world(); Object.assign(process.env, TWILIO_TEST_ENV); const phone = newPhone();
   try {
     const routes = await loadRoutes();
     await w.text(routes, phone, "STOP");

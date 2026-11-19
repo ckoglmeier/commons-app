@@ -8,9 +8,6 @@ import {
   loadCurrentCommonsMemberships,
   loadCurrentPendingInvitations,
 } from "@/lib/server/commons";
-import { isCommonsOperatorEmail } from "@/lib/server/operator";
-import { getEventCreationPageAccess } from "@/lib/server/event-creation";
-import { publicFreeBetaEnabled } from "@/lib/server/trip-capabilities";
 
 export const dynamic = "force-dynamic";
 
@@ -31,10 +28,7 @@ export default async function TripsPage() {
     }
     throw error;
   }
-  const [accountInitials, creationAccess] = await Promise.all([
-    getCurrentAccountInitials(identity),
-    getEventCreationPageAccess().catch(() => ({ signedIn: true, allowed: false, status: null })),
-  ]);
+  const accountInitials = await getCurrentAccountInitials(identity);
   const joinedCommonsIds = new Set(memberships.map((membership) => membership.commons.id));
 
   return (
@@ -44,10 +38,6 @@ export default async function TripsPage() {
       canSignOut={getCommonsDataMode() === "database" && Boolean(identity)}
       accountInitials={accountInitials}
       signedIn={Boolean(identity)}
-      creationAccessAllowed={creationAccess.allowed}
-      creationAccessStatus={creationAccess.status}
-      operator={isCommonsOperatorEmail(identity.email)}
-      publicFreeBeta={publicFreeBetaEnabled()}
       organizesTrips={memberships.some((membership) => membership.role === "organizer")}
     />
   );

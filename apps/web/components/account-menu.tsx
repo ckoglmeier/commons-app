@@ -5,15 +5,13 @@ import Link from "next/link";
 import { commonsPath, PUBLIC_DEMO_COMMONS_ID } from "@/lib/commons-route";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { FeedbackSheet } from "./feedback-sheet";
+import { feedbackHref, useFeedbackEmail } from "./feedback-sheet";
 import { LogInIcon, LogOutIcon, MessageIcon, PlusIcon, RouteIcon } from "./icons";
 
 export function AccountMenu({
   initials,
   label = "Account",
   canSignOut,
-  feedbackCommonsSlug = "product",
-  operator = false,
   inline = false,
   showTrips = true,
   variant = "avatar",
@@ -22,8 +20,6 @@ export function AccountMenu({
   initials: string;
   label?: string;
   canSignOut: boolean;
-  feedbackCommonsSlug?: string;
-  operator?: boolean;
   inline?: boolean;
   /** Off where the page already shows "Your trips" (the trip rail and Menu). */
   showTrips?: boolean;
@@ -32,7 +28,7 @@ export function AccountMenu({
   roleLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [feedbackRequested, setFeedbackRequested] = useState(false);
+  const feedbackEmail = useFeedbackEmail();
   const pathname = usePathname();
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -83,12 +79,11 @@ export function AccountMenu({
     <Link href="/new" role="menuitem" onClick={() => setOpen(false)} data-analytics-event="event_creation_viewed" data-analytics-detail="account_menu"><PlusIcon /><span>Start new event</span></Link>
     {showTrips ? <Link href="/trips" role="menuitem" onClick={() => setOpen(false)}><RouteIcon /><span>Your trips</span></Link> : null}
     {canSignOut ? <Link href="/profile" role="menuitem" onClick={() => setOpen(false)}><span aria-hidden="true">○</span><span>Your profile</span></Link> : null}
-    {operator ? <Link href="/admin" role="menuitem" onClick={() => setOpen(false)}><span aria-hidden="true">⚙</span><span>Pilot admin</span></Link> : null}
     {pathname !== commonsPath(PUBLIC_DEMO_COMMONS_ID) ? <Link href={commonsPath(PUBLIC_DEMO_COMMONS_ID)} role="menuitem" onClick={() => setOpen(false)} data-analytics-event="demo_opened" data-analytics-commons="cape-cod-couples-week" data-analytics-detail="account_menu"><CommonsMark /><span>View demo</span></Link> : null}
-    {canSignOut ? <button type="button" role="menuitem" onClick={() => { setOpen(false); setFeedbackRequested(true); }} data-analytics-event="feedback_opened" data-analytics-commons={feedbackCommonsSlug} data-analytics-detail="account_menu"><MessageIcon /><span>Give feedback</span></button> : null}
+    {canSignOut && feedbackEmail ? <a href={`mailto:${feedbackEmail}`} role="menuitem" onClick={event => { event.currentTarget.href = feedbackHref(feedbackEmail); setOpen(false); }}><MessageIcon /><span>Give feedback</span></a> : null}
     {canSignOut ? <form action="/auth/sign-out" method="post"><button type="submit" role="menuitem"><LogOutIcon /><span>Sign out</span></button></form> : <Link href={`/sign-in?next=${encodeURIComponent(pathname)}`} role="menuitem" onClick={() => setOpen(false)} data-analytics-event="sign_in_started" data-analytics-detail="account_menu"><LogInIcon /><span>Sign in</span></Link>}
   </>;
-  if (inline) return <><div className="account-menu__inline" role="menu" aria-label={label}>{items}</div>{canSignOut ? <FeedbackSheet open={feedbackRequested} close={() => setFeedbackRequested(false)} commonsSlug={feedbackCommonsSlug} respondentName={label === "Account" ? undefined : label} /> : null}</>;
+  if (inline) return <><div className="account-menu__inline" role="menu" aria-label={label}>{items}</div></>;
   return (
     <>
       <div className={`account-menu${variant === "rail" ? " account-menu--rail" : ""}`} ref={rootRef}>
@@ -114,14 +109,6 @@ export function AccountMenu({
         </div>
       ) : null}
       </div>
-      {canSignOut ? (
-        <FeedbackSheet
-          open={feedbackRequested}
-          close={() => { setFeedbackRequested(false); requestAnimationFrame(() => triggerRef.current?.focus()); }}
-          commonsSlug={feedbackCommonsSlug}
-          respondentName={label === "Account" ? undefined : label}
-        />
-      ) : null}
     </>
   );
 }

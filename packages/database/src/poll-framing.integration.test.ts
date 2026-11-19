@@ -68,8 +68,6 @@ test("legacy drafts without a private request use the introduction, and a free t
     await reservePollFraming(f.slug, { draftId: legacy.id, version: legacy.version, commandId: randomUUID() }, f.options, { hourlyCap: 3 });
     await reservePollFraming(f.slug, { draftId: legacy.id, version: legacy.version, commandId: randomUUID() }, f.options, { hourlyCap: 3 });
     await assert.rejects(reservePollFraming(f.slug, { draftId: legacy.id, version: legacy.version, commandId: randomUUID() }, f.options, { hourlyCap: 3 }), PollInferenceLimitError);
-    // An exempt person (an operator, or a paid trip) still reserves past the cap, and only because the server said so.
-    assert.ok(await reservePollFraming(f.slug, { draftId: legacy.id, version: legacy.version, commandId: randomUUID() }, { ...f.options, inferenceLimitExempt: true }, { hourlyCap: 3 }));
     const empty = await f.save({ intro: null });
     await assert.rejects(reservePollFraming(f.slug, { draftId: empty.id, version: empty.version, commandId: randomUUID() }, f.options));
   } finally { await f.close(); }

@@ -28,15 +28,5 @@
 @media (max-width: 480px) { .beta-wrap__row { grid-template-columns: 1fr 5.5rem; } .beta-wrap__actions > .cm-action { flex: 1 1 100%; } }
 @media (prefers-reduced-motion: reduce) { .beta-wrap * { transition: none !important; animation: none !important; } }
 
-/* /admin/beta: actions beside operator rows reuse the existing operator-* layout. */
-.operator-actions { display: flex; flex-wrap: wrap; align-items: end; gap: var(--cm-space-3); }
-.operator-actions form { display: flex; align-items: end; gap: var(--cm-space-3); }
-.operator-actions button, .operator-actions input:not([type="checkbox"]) { min-height: var(--cm-touch-target); }
-.operator-actions input:not([type="checkbox"]) { width: 6.5rem; padding: 0 var(--cm-space-3); font-size: 1rem; }
-.operator-actions label { display: grid; gap: .25rem; font-size: var(--cm-text-meta); font-weight: 600; }
-.operator-check { display: flex !important; align-items: center; min-height: var(--cm-touch-target); }
-.operator-actions button:focus-visible, .operator-actions input:focus-visible, .operator-row summary:focus-visible { outline: 3px solid var(--cm-color-ember); outline-offset: 2px; }
-.operator-message { margin: .5rem 0 0; white-space: pre-wrap; max-width: 68ch; }
-.operator-row summary { display: inline-flex; align-items: center; min-height: var(--cm-touch-target); cursor: pointer; color: var(--cm-color-green); font-weight: 600; }
 .beta-wrap__report summary { display: flex; align-items: center; min-height: var(--cm-touch-target); font-size: var(--cm-text-utility); font-weight: 500; cursor: pointer; }
 .beta-wrap__report[open] summary { margin-bottom: var(--cm-space-2); }

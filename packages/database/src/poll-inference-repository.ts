@@ -30,14 +30,13 @@ export async function reservePollInference(identifier: string, raw: unknown, opt
       const goal = purpose === "questions" ? z.string().trim().min(5).max(500).parse(draft.data.intro) : "";
       if (purpose === "review" && !draft.data.communication) throw new CommandAccessError();
       const [usage] = await tx.select({ count: sql<number>`count(*)::int` }).from(processedCommands).where(and(eq(processedCommands.commonsId, event.id), gte(processedCommands.processedAt, new Date(Date.now() - 3600_000)), sql`${processedCommands.result}->>'kind' = 'poll_inference'`));
-      if (!options.inferenceLimitExempt && usage.count >= COORDINATOR_HOURLY_LIMIT) throw new PollInferenceLimitError();
+      if (usage.count >= COORDINATOR_HOURLY_LIMIT) throw new PollInferenceLimitError();
       await tx.insert(processedCommands).values({ commonsId: event.id, commandId: crypto.randomUUID(), result: { kind: "poll_inference", actorPersonId: options.actorPersonId } });
       return { goal, settledFacts: draft.data.settledFacts ?? "" };
     });
   } finally { await database.close(); }
 }
 
-export const FREE_TRIP_POLL_ASSIST_HOURLY_CAP = 20;
 const FramingRequest = z.object({ draftId: z.string().uuid(), version: z.number().int().positive(), commandId: z.string().uuid(), change: z.string().trim().max(300).optional() }).strict();
 
 /** Participant-safe facts only. No names, notes, codes, private travel, other drafts, conversations or responses. */
@@ -81,8 +80,8 @@ export async function reservePollFraming(identifier: string, raw: unknown, optio
       const text = z.string().trim().min(5).max(500).parse(draft.data.framingRequest?.trim() ? draft.data.framingRequest : draft.data.intro);
       const since = new Date(Date.now() - 3600_000);
       const [usage] = await tx.select({ count: sql<number>`count(*)::int` }).from(processedCommands).where(and(eq(processedCommands.commonsId, event.id), gte(processedCommands.processedAt, since), sql`${processedCommands.result}->>'kind' = 'poll_inference'`));
-      if (!options.inferenceLimitExempt && policy.hourlyCap !== undefined && usage.count >= policy.hourlyCap) throw new PollInferenceLimitError(`This trip has used its ${policy.hourlyCap} writing-help requests for this hour. Keep editing, or ask again later.`);
-      if (!options.inferenceLimitExempt && usage.count >= COORDINATOR_HOURLY_LIMIT) throw new PollInferenceLimitError();
+      if (policy.hourlyCap !== undefined && usage.count >= policy.hourlyCap) throw new PollInferenceLimitError(`This trip has used its ${policy.hourlyCap} writing-help requests for this hour. Keep editing, or ask again later.`);
+      if (usage.count >= COORDINATOR_HOURLY_LIMIT) throw new PollInferenceLimitError();
       await tx.insert(processedCommands).values({ commonsId: event.id, commandId: receiptId(input.commandId), result: { kind: "poll_inference", actorPersonId: options.actorPersonId, phase: "reserved", request } });
       const optionIds = [...new Set(draft.data.questions.flatMap(question => question.kind === "choice" ? question.options.flatMap(option => [option.id, ...(option.resource?.type === "stay" ? [option.resource.id] : [])]) : []))];
       const [travelers] = await tx.select({ count: sql<number>`count(*)::int` }).from(memberships).where(and(eq(memberships.commonsId, event.id), eq(memberships.status, "active"), sql`${memberships.attendanceState} <> 'declined'`));

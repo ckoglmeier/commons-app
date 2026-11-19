@@ -14,7 +14,7 @@ export function SignInForm({
   next: string;
   enabled: boolean;
   submitLabel?: string;
-  intent?: "sign-in" | "create" | "invited" | "access";
+  intent?: "sign-in" | "create" | "invited";
 }) {
   const [emailState, emailAction, emailPending] = useActionState(requestSignInLink, initialState);
 

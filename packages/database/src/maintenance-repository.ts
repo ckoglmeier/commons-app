@@ -56,3 +56,10 @@ export async function getPhotoDeletionCounts(databaseUrl?: string) {
       .groupBy(photoDeletions.status);
   } finally { await database.close(); }
 }
+
+/** Proves the database answers. Used by the health endpoint. */
+export async function pingDatabase(databaseUrl?: string) {
+  const database = createDatabase(databaseUrl);
+  try { await database.db.execute(sql`select 1`); return true; }
+  finally { await database.close(); }
+}

@@ -4,12 +4,10 @@ import test from "node:test";
 import { eq, inArray } from "drizzle-orm";
 import { createDatabase } from "./client";
 import {
-  admitTripUsage, attributionSummary, BetaError, completePartnerInquiry, createPartnerInquiry, createPaymentReport, dismissPaymentReport, getTripRecap,
-  leasePartnerInquiry, listOperatorFailures, listPaymentReports, loadSuccessorSource, operatorStates, recordAttribution, recordOperatorAction,
-  recordPaymentReportReceipt, requeuePartnerInquiry, saveTripRecap, setTripUsageControl, tripUsageSummary,
+    BetaError, createPaymentReport, dismissPaymentReport, getTripRecap, listPaymentReports, loadSuccessorSource, recordPaymentReportReceipt, saveTripRecap,
 } from "./beta-completion-repository";
 import { addCommonsExpense, confirmCommonsExpensesComplete } from "./pilot-repository";
-import { commons, itineraryItems, memberships, moments, partnerInquiries, paymentReports, people, reimbursements, stays } from "./schema";
+import { commons, itineraryItems, memberships, moments, paymentReports, people, reimbursements, stays } from "./schema";
 
 const run = process.env.COMMONS_RUN_DATABASE_TESTS === "1";
 
@@ -115,103 +113,4 @@ test("recap shares only after organizer approval, with this trip's photos only; 
     assert.deepEqual(source.activities.map(a => a.title), ["Everyone hike"]);
     await assert.rejects(loadSuccessorSource(f.slug, { ...options, actorPersonId: randomUUID() }), (e: unknown) => e instanceof BetaError);
   } finally { await cleanup(f); await cleanup(other); }
-});
-
-test("partner inquiries are deduplicated, rate limited, leased once and retried safely", { skip: !run }, async () => {
-  const url = testUrl();
-  const options = { databaseUrl: url };
-  const database = createDatabase(url);
-  const marker = randomUUID().slice(0, 8);
-  const base = (over: Record<string, unknown> = {}) => ({ kind: "dmo" as const, organization: `Visit ${marker}`, contactName: "Pat", contactEmail: `pat-${marker}@example.test`, website: null, region: "Utah",
-    message: `We would like to talk about group travel ${marker}.`, sourcePath: "/destinations", idempotencyKey: randomUUID(), clientHash: `client-${marker}`, routedTo: "ops@example.test", ...over });
-  const limits = { perClientPerHour: 2, globalPerHour: 1000 };
-  try {
-    const first = await createPartnerInquiry(base(), limits, options);
-    assert.equal(first.status, "created");
-    assert.equal((await createPartnerInquiry(base(), limits, options)).status, "duplicate", "same sender and message within a day");
-    const second = await createPartnerInquiry(base({ message: `A different question about ${marker} please.` }), limits, options);
-    assert.equal(second.status, "created");
-    assert.equal((await createPartnerInquiry(base({ message: `Third distinct question about ${marker}.` }), limits, options)).status, "rate_limited");
-    const sameKey = base({ message: `Keyed question about ${marker} ok.` }); const keyed = await createPartnerInquiry(sameKey, { perClientPerHour: 99, globalPerHour: 1000 }, options);
-    assert.equal((await createPartnerInquiry({ ...sameKey, message: `Entirely other text ${marker} here.` }, limits, options)).id, keyed.id, "an idempotency key replays its inquiry");
-
-    const lease = await leasePartnerInquiry(first.id!, options);
-    assert.ok(lease && lease.deliveryAttempts === 1);
-    assert.equal(await leasePartnerInquiry(first.id!, options), null, "a second worker cannot take an inquiry being sent");
-    assert.equal(await completePartnerInquiry(first.id!, 1, { sent: false, errorCode: "provider_unavailable" }, options), true);
-    assert.equal(await completePartnerInquiry(first.id!, 1, { sent: false, errorCode: "provider_unavailable" }, options), false, "a stale completion changes nothing");
-    assert.ok((await listOperatorFailures(options)).some(item => item.id === first.id && item.kind === "partner_inquiry" && item.retryable));
-
-    const again = await leasePartnerInquiry(first.id!, options);
-    assert.equal(again?.deliveryAttempts, 2);
-    assert.equal(await completePartnerInquiry(first.id!, 2, { sent: true, providerMessageId: "msg_test_1" }, options), true);
-    assert.equal(await leasePartnerInquiry(first.id!, options), null, "a sent inquiry is never leased again");
-    assert.equal(await requeuePartnerInquiry(first.id!, "ops@example.test", options), false, "retry never resends a sent inquiry");
-
-    const unrouted = await createPartnerInquiry(base({ message: `Unrouted question about ${marker} please.`, routedTo: null, clientHash: `other-${marker}` }), limits, options);
-    const [row] = await database.db.select().from(partnerInquiries).where(eq(partnerInquiries.id, unrouted.id!));
-    assert.equal(row!.deliveryStatus, "not_routed");
-    assert.equal(await leasePartnerInquiry(unrouted.id!, options), null, "nothing is delivered without a configured route");
-    assert.equal(await requeuePartnerInquiry(unrouted.id!, "ops@example.test", options), true);
-    assert.equal((await leasePartnerInquiry(unrouted.id!, options))?.deliveryAttempts, 1);
-  } finally {
-    await database.db.delete(partnerInquiries).where(inArray(partnerInquiries.clientHash, [`client-${marker}`, `other-${marker}`]));
-    await database.close();
-  }
-});
-
-test("attribution counts each step once per subject and stores no private data", { skip: !run }, async () => {
-  const url = testUrl();
-  const options = { databaseUrl: url };
-  const subject = `draft-${randomUUID()}`;
-  assert.equal(await recordAttribution({ event: "draft_started", entryKind: "template", entryRef: "girls-trip", subjectKey: subject }, options), true);
-  assert.equal(await recordAttribution({ event: "draft_started", entryKind: "template", entryRef: "girls-trip", subjectKey: subject }, options), false);
-  assert.equal(await recordAttribution({ event: "approved", entryKind: "template", entryRef: "girls-trip", subjectKey: subject }, options), true);
-  await assert.rejects(recordAttribution({ event: "approved", entryKind: "template", entryRef: "Not A Slug?x=1", subjectKey: `${subject}-x` }, options));
-  const summary = await attributionSummary(new Date(Date.now() - 60_000), options);
-  assert.ok(summary.some(row => row.event === "draft_started" && row.entryKind === "template" && Number(row.total) >= 1));
-});
-
-test("usage is bounded per trip, can be disabled, replays by dedupe key and is recorded as an operator action", { skip: !run }, async () => {
-  const url = testUrl();
-  const options = { databaseUrl: url };
-  const f = await fixture(url);
-  try {
-    const defaults = { sms_segment: 5, extraction_call: 2, model_call: null, map_lookup: 3, payment_fee: null } as const;
-    assert.equal((await admitTripUsage(f.tripId, { kind: "sms_segment", units: 3, defaultLimit: defaults.sms_segment }, options)).allowed, true);
-    const over = await admitTripUsage(f.tripId, { kind: "sms_segment", units: 3, defaultLimit: defaults.sms_segment }, options);
-    assert.deepEqual([over.allowed, over.allowed ? null : over.reason, over.used], [false, "limit_reached", 3], "a denied request records nothing");
-    assert.equal((await admitTripUsage(f.tripId, { kind: "extraction_call", units: 1, dedupeKey: "intake-1", defaultLimit: 2 }, options)).allowed, true);
-    assert.equal((await admitTripUsage(f.tripId, { kind: "extraction_call", units: 1, dedupeKey: "intake-1", defaultLimit: 2 }, options)).used, 1, "a replay is not counted twice");
-    assert.equal((await admitTripUsage(f.tripId, { kind: "payment_fee", units: 1, costMicros: 1_000_000, defaultLimit: null }, options)).allowed, true, "null default means measure only");
-
-    await setTripUsageControl(f.tripId, "map_lookup", { limitUnits: null, disabled: true }, f.organizer, options);
-    const disabled = await admitTripUsage(f.tripId, { kind: "map_lookup", units: 1, defaultLimit: 3 }, options);
-    assert.deepEqual([disabled.allowed, disabled.allowed ? null : disabled.reason], [false, "trip_disabled"]);
-    await setTripUsageControl(f.tripId, "sms_segment", { limitUnits: 20, disabled: false }, f.organizer, options);
-    assert.equal((await admitTripUsage(f.tripId, { kind: "sms_segment", units: 3, defaultLimit: 5 }, options)).allowed, true, "a raised per-trip limit applies");
-    await assert.rejects(setTripUsageControl(f.tripId, "sms_segment", { limitUnits: -1, disabled: false }, f.organizer, options), BetaError);
-
-    const summary = await tripUsageSummary(f.tripId, defaults, options);
-    assert.equal(summary.find(row => row.kind === "sms_segment")!.used, 6);
-    assert.equal(summary.find(row => row.kind === "payment_fee")!.costMicros, 1_000_000);
-    assert.equal(summary.find(row => row.kind === "map_lookup")!.disabled, true);
-  } finally { await cleanup(f); }
-});
-
-test("operator actions distinguish reviewed from resolved, and a retry reopens", { skip: !run }, async () => {
-  const url = testUrl();
-  const options = { databaseUrl: url };
-  const f = await fixture(url);
-  try {
-    const id = randomUUID();
-    const state = async () => (await operatorStates("partner_inquiry", [id], options)).get(id)?.state ?? "open";
-    assert.equal(await state(), "open");
-    await recordOperatorAction({ operatorPersonId: f.organizer, subjectKind: "partner_inquiry", subjectId: id, action: "reviewed", note: "Looked" }, options);
-    assert.equal(await state(), "reviewed");
-    await recordOperatorAction({ operatorPersonId: f.organizer, subjectKind: "partner_inquiry", subjectId: id, action: "resolved" }, options);
-    assert.equal(await state(), "resolved");
-    await recordOperatorAction({ operatorPersonId: f.organizer, subjectKind: "partner_inquiry", subjectId: id, action: "retry_requested" }, options);
-    assert.equal(await state(), "open", "a retry puts the item back to open");
-  } finally { await cleanup(f); }
 });

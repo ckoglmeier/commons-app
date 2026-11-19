@@ -3,12 +3,12 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import {
-  commons, createCommonsPoll, messagingBookingIntakes, messagingConsents, messagingMessages, messagingPhones, messagingQuestions, messagingWebhookEvents, memberships, phoneHashOf, pollResponses, setEventAttendance,
-  updateCommonsPollStatus, getCommonsSnapshot, messagingHealth, addCommonsExpense, addCommonsReimbursement,
+    commons, createCommonsPoll, messagingBookingIntakes, messagingConsents, messagingMessages, messagingPhones, messagingQuestions, messagingWebhookEvents, memberships, phoneHashOf, pollResponses, setEventAttendance,
+    updateCommonsPollStatus, getCommonsSnapshot, messagingHealth, addCommonsExpense, addCommonsReimbursement,
 } from "@commons/database";
 import { FAKE_SIGNATURE_HEADER } from "./fake-provider";
 import { ProviderSendError } from "./provider";
-import { actAs, json, loadRoutes, skip, world } from "./test-world";
+import { json, loadRoutes, skip, world } from "./test-world";
 
 /*
  * Beta Rework BR-04 through the real route handlers, the real repositories and a disposable database, with the in-memory fake provider.
@@ -19,29 +19,6 @@ const services = async () => ({
 });
 const get = (url = "http://localhost/x") => new Request(url);
 const post = (body: unknown) => new Request("http://localhost/x", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-
-test("flag off: every messaging route is a plain not-found, nothing is stored and nothing is sent", { skip }, async () => {
-  const w = await world();
-  try {
-    const routes = await loadRoutes();
-    process.env.COMMONS_BETA_REWORK_ENABLED = "false";
-    const inbound = await w.text(routes, w.phones.maya, "yes");
-    assert.equal(inbound.status, 404);
-    assert.equal((await routes.status.POST(w.provider.statusRequest({ eventId: "e1", messageId: "m1", status: "delivered" }))).status, 404);
-    assert.equal((await routes.tick.GET(new Request("http://localhost/x", { headers: { authorization: "Bearer synthetic-cron-secret-0001" } }))).status, 404);
-    actAs(w.ids.maya);
-    assert.equal((await w.enroll(routes, "maya", "sonoma")).status, 404);
-    assert.equal((await routes.enrollment.GET(get(), { params: Promise.resolve({ slug: w.slugs.sonoma }) })).status, 404);
-    assert.equal((await routes.review.GET(get(), { params: Promise.resolve({ token: "anything" }) })).status, 404);
-    assert.equal((await w.q(db => db.select().from(messagingMessages).where(eq(messagingMessages.provider, "fake")))).length, 0);
-    assert.equal((await w.q(db => db.select().from(messagingWebhookEvents).where(eq(messagingWebhookEvents.provider, "fake")))).length, 0);
-    assert.equal((await w.q(db => db.select().from(messagingConsents))).filter(row => row.personId === w.ids.maya).length, 0);
-    assert.equal(w.provider.outbox.length, 0);
-    // The same request with the flag on is accepted, which proves the 404s above came from the flag.
-    process.env.COMMONS_BETA_REWORK_ENABLED = "true";
-    assert.equal((await w.text(routes, w.phones.stranger, "hello")).status, 204);
-  } finally { await w.cleanup(); }
-});
 
 test("a forged or unsigned webhook creates no record and sends nothing", { skip }, async () => {
   const w = await world();

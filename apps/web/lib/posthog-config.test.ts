@@ -11,11 +11,11 @@ test('SDK payload filter strips implicit identity, referrer, URL queries, and un
   assert.ok(result);
   assert.equal(result.properties.personality, 'joan');
   assert.equal(result.properties.token, 'phc_public_project');
-  assert.equal(result.properties.$current_url, 'https://www.commons.travel/new');
+  assert.equal(result.properties.$current_url, 'https://commons.invalid/new');
   assert.ok(!JSON.stringify(result).includes('PRIVATE'));
   const pageview = filter({ uuid: 'pageview-id', event: '$pageview', properties: { token: 'phc_public_project', distinct_id: 'anonymous', $current_url: 'PRIVATE' } });
   assert.equal(pageview?.event, '$pageview');
-  assert.equal(pageview?.properties.$current_url, 'https://www.commons.travel/new');
+  assert.equal(pageview?.properties.$current_url, 'https://commons.invalid/new');
   assert.equal(filter({ uuid: 'id', event: '$autocapture', properties: {} }), null);
 });
 
@@ -30,7 +30,7 @@ test('network capture removes requests and normalizes replay navigation', () => 
   const mask = config.session_recording?.maskCapturedNetworkRequestFn;
   assert.ok(mask);
   assert.equal(mask({ name: 'https://private.example', method: 'POST', duration: 0, entryType: 'resource', startTime: 0 }), null);
-  assert.equal(mask({ name: 'https://www.commons.travel/c/PRIVATE', isInitial: true, duration: 0, entryType: 'navigation', startTime: 0 })?.name, 'https://www.commons.travel/c/[trip]/coordinator');
+  assert.equal(mask({ name: 'https://commons.invalid/c/PRIVATE', isInitial: true, duration: 0, entryType: 'navigation', startTime: 0 })?.name, 'https://commons.invalid/c/[trip]/coordinator');
   assert.equal(config.enable_recording_console_log, false);
   assert.equal(config.disable_session_recording, true);
   assert.equal(config.session_recording?.inlineStylesheet, false);
@@ -55,7 +55,7 @@ test('marketing pageviews retain only the canonical route and approved metadata'
   if (typeof filter !== 'function') throw new Error('Missing filter');
   const result = filter({uuid:'test', event:'$pageview', properties: { $referrer:'PRIVATE', inputs:'PRIVATE', lodgingPerNight:123, $current_url:'PRIVATE', deviceClass:'mobile' }});
   assert.equal(result?.properties.$pathname, '/destinations/savannah');
-  assert.equal(result?.properties.$current_url, 'https://www.commons.travel/destinations/savannah');
+  assert.equal(result?.properties.$current_url, 'https://commons.invalid/destinations/savannah');
   assert.equal(result?.properties.deviceClass, 'mobile');
   assert.equal(result?.properties.lodgingPerNight, undefined);
   assert.ok(!JSON.stringify(result).includes('PRIVATE'));

@@ -29,12 +29,14 @@ export async function reportServerError(error: unknown, request: { method?: stri
   const environment = deps.environment ?? process.env;
   const report = sanitizedServerError(error, request, context, environment);
   console.error("commons.server_error", report);
+  // PostHog is optional: nothing is sent unless NEXT_PUBLIC_POSTHOG_KEY is set.
   const key = environment.NEXT_PUBLIC_POSTHOG_KEY;
-  if (environment.VERCEL_ENV !== "production" || typeof key !== "string" || !key) return report;
+  if (typeof key !== "string" || !key) return report;
   const cookie = request.headers?.cookie;
   if (request.headers?.dnt === "1" || request.headers?.["sec-gpc"] === "1" || (typeof cookie === "string" && cookie.split(/;\s*/).includes("commons_analytics_opt_out=1"))) return report;
   try {
-    const result = await (deps.send ?? fetch)("https://us.i.posthog.com/i/v0/e/", { method: "POST", headers: { "Content-Type": "application/json" },
+    const host = typeof environment.NEXT_PUBLIC_POSTHOG_HOST === "string" && environment.NEXT_PUBLIC_POSTHOG_HOST ? environment.NEXT_PUBLIC_POSTHOG_HOST : "https://us.i.posthog.com";
+    const result = await (deps.send ?? fetch)(`${new URL(host).origin}/i/v0/e/`, { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ api_key: key, event: "server_error", distinct_id: "commons-server", properties: { ...report, $process_person_profile: false, $geoip_disable: true } }),
       signal: AbortSignal.timeout(3000) });
     if (!result.ok) console.warn("commons.telemetry.delivery_failed", { status: result.status });

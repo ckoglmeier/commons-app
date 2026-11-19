@@ -6,7 +6,6 @@ import { CommandAccessError, CommandConflictError, commandFingerprint, runEventC
 import { isCommonsId } from "./commons-identifier";
 import { findOrClaimPersonForAuthIdentity, type AuthenticatedIdentity } from "./onboarding-repository";
 import { auditEvents, commons, consentEvents, groupInvitations, invitations, invitationDeliveryAttempts, memberships, people, processedCommands } from "./schema";
-import { assertTripMayInvite, readTripInviteGate, TripActivationRequiredError } from "./trip-activation-repository";
 import { expiresAfterDays, generateOpaqueToken, hashOpaqueToken, protectOpaqueToken, revealOpaqueToken, revokedOpaqueTokenHash } from "./tokens";
 
 /** Trusted server policy, never a browser-supplied permission or identity. */
@@ -36,7 +35,7 @@ export async function getGroupInvitation(identifier: string, options: Options, n
     const [row] = await database.db.select({ link: groupInvitations, name: people.displayName }).from(groupInvitations)
       .innerJoin(people, eq(people.id, groupInvitations.createdByPersonId)).where(eq(groupInvitations.commonsId, actor.tripId));
     if (!row) return null;
-    const state = row.link.revokedAt || !(await readTripInviteGate(database.db, actor.tripId)).mayInvite || !await creatorAuthorized(database.db, actor.tripId, row.link.createdByPersonId, options.creatorCheck) ? "revoked" : row.link.expiresAt <= now ? "expired" : "active";
+    const state = row.link.revokedAt  || !await creatorAuthorized(database.db, actor.tripId, row.link.createdByPersonId, options.creatorCheck) ? "revoked" : row.link.expiresAt <= now ? "expired" : "active";
     return GroupInvitationSchema.parse({ id: row.link.id, tripId: actor.tripId, version: row.link.version, state,
       expiresAt: row.link.expiresAt.toISOString(), createdByName: row.name,
       token: state === "active" && row.link.protectedToken ? revealOpaqueToken(row.link.protectedToken) : null });
@@ -55,7 +54,6 @@ export async function manageGroupInvitation(identifier: string, raw: unknown, op
       const [trip] = await tx.select({ status: commons.status }).from(commons).where(eq(commons.id, context.id));
       if (member.attendanceState === "declined" || !["planning", "active"].includes(trip.status) && input.action !== "revoke") throw new CommandAccessError();
       // Disabling a link is always allowed; making or rotating one is an invitation.
-      if (input.action !== "revoke") await assertTripMayInvite(tx, context.id);
     }, async context => {
       const [old] = await tx.select().from(groupInvitations).where(eq(groupInvitations.commonsId, context.id)).for("update");
       if ((old?.version ?? 0) !== input.expectedVersion || (input.action === "create") !== !old) throw new CommandConflictError();
@@ -86,7 +84,7 @@ export async function getGroupInvitationPreview(token: string, databaseUrl?: str
     const [row] = await database.db.select({ link: groupInvitations, tripName: commons.name, tripStatus: commons.status, inviterName: people.displayName })
       .from(groupInvitations).innerJoin(commons, eq(commons.id, groupInvitations.commonsId)).innerJoin(people, eq(people.id, groupInvitations.createdByPersonId))
       .where(and(eq(groupInvitations.tokenHash, hashOpaqueToken(token)), isNull(groupInvitations.revokedAt)));
-    if (!row || row.link.expiresAt <= now || !["planning", "active"].includes(row.tripStatus) || !(await readTripInviteGate(database.db, row.link.commonsId)).mayInvite || !await creatorAuthorized(database.db, row.link.commonsId, row.link.createdByPersonId, creatorCheck)) return null;
+    if (!row || row.link.expiresAt <= now || !["planning", "active"].includes(row.tripStatus) || !await creatorAuthorized(database.db, row.link.commonsId, row.link.createdByPersonId, creatorCheck)) return null;
     return { tripId: row.link.commonsId, linkId: row.link.id, version: row.link.version, tripName: row.tripName, inviterName: row.inviterName, expiresAt: row.link.expiresAt.toISOString() };
   } finally { await database.close(); }
 }
@@ -107,7 +105,6 @@ export async function joinGroupInvitation(token: string, identity: Authenticated
       const now = new Date();
       if (!trip || !["planning", "active"].includes(trip.status) || !link || link.revokedAt || link.expiresAt <= now || link.version !== input.version || link.tokenHash !== hashOpaqueToken(token)) throw new GroupInvitationUnavailableError();
       // A reusable link adds new people, so revoked approval stops it too. Same answer as any unavailable link.
-      await assertTripMayInvite(tx, trip.id).catch((error: unknown) => { if (error instanceof TripActivationRequiredError) throw new GroupInvitationUnavailableError(); throw error; });
       // Hold creator membership/identity locks through the join. A concurrent
       // removal/demotion cannot pass between this check and granting access.
       if (!await creatorAuthorized(tx, trip.id, link.createdByPersonId, creatorCheck, true)) throw new GroupInvitationUnavailableError();

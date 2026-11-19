@@ -62,9 +62,7 @@ export async function processInbound(deps: MessagingDeps, messageId: string) {
   };
   if (!state.personId) return handoff(copyFor(e164).unknownSender(`${deps.origin}/sign-in`), "unknown_sender");
   if (!state.trips.length) return handoff(copyFor(e164).notEnrolled(deps.origin), "not_enrolled");
-  // A trip whose fee isn't settled is invisible to replies, like one never enrolled; if it's the only one, the person learns why once a day.
-  const trips = state.trips.filter(trip => trip.funded);
-  if (!trips.length) return handoff(copyFor(e164).textsPaused(state.trips[0]!.name, tripUrl(deps, state.trips[0]!)), "trip_not_funded");
+  const trips = state.trips;
 
   const person: Person = { id: state.personId, name: state.displayName ?? "there" };
   const c: Conversation = { deps, e164, phoneHash: message.phoneHash, person, trips, message };

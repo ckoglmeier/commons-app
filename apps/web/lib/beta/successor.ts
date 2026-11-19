@@ -55,6 +55,3 @@ export function buildSuccessorDraft(source: SuccessorSource, selection: Successo
     includePeople: selection.includePeople,
   };
 }
-
-/** The attribution entry for this path: a quiet recap invitation, never a referral code or a person. */
-export const SUCCESSOR_ATTRIBUTION = { entryKind: "recap" as const, entryRef: "plan-the-next-one" };
