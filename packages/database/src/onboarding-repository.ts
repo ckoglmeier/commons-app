@@ -1,3 +1,4 @@
+import { claimInstanceAdminIfUnset } from "./instance-repository";
 import { randomBytes } from "node:crypto";
 import {
     AddCommonsPersonRequestSchema,
@@ -300,7 +301,17 @@ export async function findPersonProfileForAuthUser(
   }
 }
 
+/** The person for a signed-in account, creating or claiming it as needed. The first person resolved this way becomes the instance admin. */
 export async function findOrClaimPersonForAuthIdentity(
+  identity: AuthenticatedIdentity,
+  databaseUrl?: string,
+) {
+  const personId = await resolvePersonForAuthIdentity(identity, databaseUrl);
+  if (personId) await claimInstanceAdminIfUnset(personId, databaseUrl);
+  return personId;
+}
+
+async function resolvePersonForAuthIdentity(
   identity: AuthenticatedIdentity,
   databaseUrl?: string,
 ) {

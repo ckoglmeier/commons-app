@@ -1,5 +1,8 @@
 import postgres from "postgres";
+import { applyEnvironmentAliases } from "./environment-aliases";
 import { runDatabaseMigrations } from "./migration-state";
+
+applyEnvironmentAliases();
 
 if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
   console.log(`Skipping database migrations in Vercel ${process.env.VERCEL_ENV}.`);
