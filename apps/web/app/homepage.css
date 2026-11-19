@@ -81,11 +81,3 @@
 /* Quiet operational link (Support and your data). */
 .homepage-support { margin: var(--cm-space-4) 0 0; font-size: var(--cm-text-meta); }
 .homepage-support a { display: inline-flex; min-height: var(--cm-touch-target); align-items: center; color: var(--cm-color-green); }
-
-/* With the marketing footer, stacked artwork ends the hero naturally.
-   The standalone homepage still retains its viewport-height canvas. */
-@media (max-width: 1099px) {
-  .trips-shell.public-trips-shell:has(+ footer[aria-label="Explore Commons"]) {
-    min-height: 0;
-  }
-}

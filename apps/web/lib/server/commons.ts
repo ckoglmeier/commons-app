@@ -79,7 +79,7 @@ import {
 } from "@/lib/supabase/server";
 import { renderCommonsInvitationEmail } from "@/lib/email/invitation-email";
 import { renderCommonsAuthenticationEmail } from "@/lib/email/authentication-email";
-import { createPasswordlessEmailProof, getSupabaseAuthUserEmail } from "@/lib/supabase/admin";
+import { createPasswordlessEmailProof, getSupabaseAuthUserEmail, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { invitationReturnPath } from "@/lib/invitation-entry-flow";
 import { EmailDeliveryError, sendEmail } from "@/lib/email/resend";
 import { createPublicDemoSnapshotLookup } from "./public-demo";
@@ -731,13 +731,14 @@ export async function processInvitationDelivery(deliveryAttemptId: string | null
       ? await getSupabaseAuthUserEmail(context.acceptedAuthUserId) : invitation.recipientEmail;
     const joinPath = invitationReturnPath(invitation.token, invitation.returnPollPublicId);
     let entry = invitation.authenticationEntry;
-    if (!entry) {
+    // Without Supabase admin access (the local test sign-in) there is no email proof: the link opens the join page, where the traveler signs in.
+    if (!entry && isSupabaseAdminConfigured()) {
       const proof = await createPasswordlessEmailProof(recipientEmail, `${origin}${joinPath}`);
       entry = await cacheInvitationAuthenticationEntry(invitation.deliveryAttemptId, invitation.leaseAttempt,
         sealInvitationEmailProof({ ...proof, token: invitation.token, tokenVersion: invitation.tokenVersion, email: recipientEmail }), url);
     }
     const entryUrl = new URL(joinPath, origin);
-    entryUrl.searchParams.set("entry", entry);
+    if (entry) entryUrl.searchParams.set("entry", entry);
     const tripUrl = entryUrl.toString();
     const rendered = context.status === "accepted"
       ? renderCommonsAuthenticationEmail({ email: recipientEmail, signInUrl: tripUrl, intent: "invited" })

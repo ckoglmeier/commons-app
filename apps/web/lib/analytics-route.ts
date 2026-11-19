@@ -1,5 +1,4 @@
-import marketingRoutes from './marketing/analytics-routes.json';
-const publicRoutes = new Set([...marketingRoutes, '/support', '/legal/privacy', '/legal/terms']);
+const publicRoutes = new Set(['/support', '/legal/privacy', '/legal/terms']);
 
 /** Only route shapes and explicitly approved scalar properties leave Commons. */
 export function analyticsRoute(path: string): string | null {

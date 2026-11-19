@@ -2,9 +2,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { planTemplateFor } from "@commons/domain";
 import { TripBudgetInputsSchema, TripBudgetViewSchema, type TripBudgetView } from "@commons/contracts";
-import { GroupBudgetWorksheet } from "@/lib/marketing/budget/budget-worksheet";
+import { GroupBudgetWorksheet } from "@/lib/budget/budget-worksheet";
 import { prefillTripBudget, tripBudgetLodgingReference } from "@/lib/trip-budget/prefill";
-import { type BudgetInputs } from "@/lib/marketing/budget/budget-calculations";
+import { type BudgetInputs } from "@/lib/budget/budget-calculations";
 import css from "./trip-budget-panel.module.css";
 
 const COST_BASIS = { shared: "Everyone shares", per_person: "Each person pays", optional: "Only people who opt in" } as const;
@@ -26,7 +26,7 @@ export type TripBudgetPanelProps = {
   onSaved?: (inputs: BudgetInputs | null) => void;
 };
 
-/** Uses the same deterministic worksheet as the public pages, without marketing telemetry. */
+/** Uses the same deterministic worksheet as the public calculator. */
 export function TripBudgetPanel(props: TripBudgetPanelProps) {
   return <TripBudgetEditor key={props.tripId} {...props} />;
 }

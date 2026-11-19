@@ -100,7 +100,6 @@ export function TripsIndex({
   signedIn,
   publicPage = false,
   organizesTrips = true,
-  supportInFooter = false,
 }: {
   memberships: CommonsMembershipSummary[];
   pendingInvitations?: PendingCommonsInvitationSummary[];
@@ -110,8 +109,6 @@ export function TripsIndex({
   publicPage?: boolean;
   /** False for a signed-in person who is not an organizer of any trip: offers a quiet path to their own trip. */
   organizesTrips?: boolean;
-  /** True when the homepage footer is shown: Support and your data lives there, so the main area leaves it out. */
-  supportInFooter?: boolean;
 }) {
   if (publicPage || !signedIn) {
     return (
@@ -156,9 +153,9 @@ export function TripsIndex({
               ? <p>Planning a trip? <Link href="/new" data-analytics-event="event_creation_viewed" data-analytics-detail="homepage_beta">Start a trip</Link></p>
               : <p>Invited to a trip? <Link href="/sign-in?next=%2Ftrips&intent=invited" data-analytics-event="sign_in_started" data-analytics-detail="invited_router">Sign in to your trip</Link> with the email your invitation was sent to.</p>}
           </section>
-          {supportInFooter ? null : <p className="homepage-support"><Link href="/support">Support and your data</Link></p>}
+          <p className="homepage-support"><Link href="/support">Support and your data</Link></p>
         </div>
-        <div className="homepage-coast" aria-hidden="true"><Image src="/brand/coast.webp" alt="" fill sizes="100vw" priority /></div>
+        <div className="homepage-coast" aria-hidden="true"><Image src="/covers/coast.svg" alt="" fill sizes="100vw" priority /></div>
         </div>
       </main>
     );

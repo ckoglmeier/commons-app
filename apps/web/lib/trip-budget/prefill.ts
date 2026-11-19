@@ -1,5 +1,5 @@
-import { CITY_LODGING_BASE_RATES, type CityLodgingBaseRate } from "@/lib/marketing/budget/city-lodging-rates";
-import { BUDGET_LIMITS, startingBudgetInputs, type BudgetInputs } from "@/lib/marketing/budget/budget-calculations";
+import { CITY_LODGING_BASE_RATES, type CityLodgingBaseRate } from "@/lib/budget/city-lodging-rates";
+import { BUDGET_LIMITS, startingBudgetInputs, type BudgetInputs } from "@/lib/budget/budget-calculations";
 
 /** Match a supplied city or city, region; never infer a destination from prose or a partial word. */
 export function tripBudgetLodgingReference(destinationName?: string): CityLodgingBaseRate | undefined {

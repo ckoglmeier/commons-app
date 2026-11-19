@@ -49,12 +49,12 @@ test('identified testers have only explicitly authorized name and email person p
   assert.ok(!JSON.stringify(result).includes('PRIVATE'));
 });
 
-test('marketing pageviews retain only the canonical route and approved metadata', () => {
-  const filter = posthogConfig('https://us.i.posthog.com', () => true, () => '/destinations/savannah/?email=PRIVATE#PRIVATE').before_send;
+test('public pageviews retain only the canonical route and approved metadata', () => {
+  const filter = posthogConfig('https://us.i.posthog.com', () => true, () => '/support/?email=PRIVATE#PRIVATE').before_send;
   if (typeof filter !== 'function') throw new Error('Missing filter');
   const result = filter({uuid:'test', event:'$pageview', properties: { $referrer:'PRIVATE', inputs:'PRIVATE', lodgingPerNight:123, $current_url:'PRIVATE', deviceClass:'mobile' }});
-  assert.equal(result?.properties.$pathname, '/destinations/savannah');
-  assert.equal(result?.properties.$current_url, 'https://commons.invalid/destinations/savannah');
+  assert.equal(result?.properties.$pathname, '/support');
+  assert.equal(result?.properties.$current_url, 'https://commons.invalid/support');
   assert.equal(result?.properties.deviceClass, 'mobile');
   assert.equal(result?.properties.lodgingPerNight, undefined);
   assert.ok(!JSON.stringify(result).includes('PRIVATE'));

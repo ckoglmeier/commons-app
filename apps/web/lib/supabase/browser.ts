@@ -34,6 +34,14 @@ function resumableStorageEndpoint(supabaseUrl: string) {
 }
 
 export async function uploadCommonsPhoto(storagePath: string, photo: Blob) {
+  // Local development without Supabase (the local test sign-in): the server keeps the photo in a folder instead.
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    const [slug, filename] = storagePath.split("/");
+    const id = filename?.replace(/\.[^.]+$/, "") ?? "";
+    const response = await fetch(`/api/v1/commons/${slug}/moments/local-upload?id=${encodeURIComponent(id)}`, { method: "PUT", headers: { "content-type": photo.type }, body: photo }).catch(() => null);
+    if (!response?.ok) throw new Error((await response?.json().catch(() => null) as { error?: string } | null)?.error ?? "Photo upload isn’t available on this copy yet.");
+    return;
+  }
   const supabase = getSupabaseBrowserClient();
   if (photo.size <= resumableUploadThreshold) {
     const [slug, filename] = storagePath.split("/");

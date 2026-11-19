@@ -29,14 +29,10 @@ test('Replay retains readable labels and CSS but strips credentials and form val
   assert.equal(replayAttribute('aria-expanded', 'true'), 'true');
 });
 
-test('every marketing publication candidate has an explicit, query-free analytics route', async () => {
-  const { publicPageCandidates } = await import('./marketing/pages/metadata-map');
-  const { default: routes } = await import('./marketing/analytics-routes.json');
-  const candidates = publicPageCandidates().map(page => page.path.replace(/\/$/, ''));
-  assert.deepEqual([...routes].sort(), candidates.sort(), 'Update the lightweight route manifest when adding pages');
-  for (const path of [...candidates, '/support', '/legal/terms', '/legal/privacy']) {
+test('public pages have explicit, query-free analytics routes', () => {
+  for (const path of ['/support', '/legal/terms', '/legal/privacy']) {
     assert.equal(analyticsRoute(`${path}/?email=PRIVATE#PRIVATE`), path);
     assert.equal(analyticsRoute(path), path);
   }
-  for (const path of ['/destinations/PRIVATE', '/trip-templates/PRIVATE', '/guides/PRIVATE', '/assistants/PRIVATE', '/legal/PRIVATE', '/profile', '/group-join/PRIVATE']) assert.equal(analyticsRoute(path), null);
+  for (const path of ['/destinations/PRIVATE', '/trip-templates/PRIVATE', '/legal/PRIVATE', '/profile', '/group-join/PRIVATE']) assert.equal(analyticsRoute(path), null);
 });

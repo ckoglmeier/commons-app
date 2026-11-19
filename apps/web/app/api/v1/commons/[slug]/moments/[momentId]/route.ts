@@ -12,6 +12,8 @@ import {
   persistMomentUpdate,
 } from "@/lib/server/commons";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isSupabaseAuthConfigured } from "@/lib/supabase/config";
+import { devSignInAvailable } from "@/lib/server/dev-session";
 import { runCommonsMaintenance } from "@/lib/server/maintenance";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +35,9 @@ export async function GET(
   const { slug, momentId } = await params;
   try {
     const dataMode = getCommonsDataMode(slug);
-    const supabase = dataMode === "database"
+    // Local development with the local test sign-in keeps photos in a folder (see moments/local-upload).
+    const localPhotos = dataMode === "database" && !isSupabaseAuthConfigured() && await devSignInAvailable();
+    const supabase = dataMode === "database" && !localPhotos
       ? await createSupabaseServerClient()
       : null;
     const identity = supabase
@@ -50,7 +54,7 @@ export async function GET(
     const asset = await loadCommonsMomentAsset(slug, momentId, identity);
     if (!asset) return new Response("Photo not found.", { status: 404 });
 
-    if (dataMode === "demo") {
+    if (dataMode === "demo" || localPhotos) {
       const localRoot = process.env.COMMONS_LOCAL_MOMENTS_DIR;
       if (!localRoot) return new Response("Photo media is not configured.", { status: 404 });
       const root = resolve(localRoot);

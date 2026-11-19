@@ -14,7 +14,7 @@ test("the coastal homepage keeps real authentication and lets any signed-in acco
   assert.match(source, /href="\/sign-in\?next=%2Fnew&intent=create"/);
   assert.doesNotMatch(source, /creationAccess|betaAccessHref|Request access|access=request/);
   assert.doesNotMatch(source, /View sample trip|homepage-sample/);
-  assert.match(source, /src="\/brand\/coast.webp" alt=""/);
+  assert.match(source, /src="\/covers\/coast.svg" alt=""/);
   assert.doesNotMatch(source, /brand-exploration|\.png" alt="" fill sizes="100vw"/);
 });
 

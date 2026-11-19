@@ -145,7 +145,7 @@ test("counts tracking-only family spending as actual without creating forecast d
   assert.equal(result.expectedTotalCents, 85_000);
 });
 
-import { emptyBudgetInputs } from "./marketing/budget/budget-calculations";
+import { emptyBudgetInputs } from "./budget/budget-calculations";
 import { calculateBudgetForecastAdjustment } from "./expected-trip-cost";
 test("saved worksheet supplies remaining category estimates without duplicating plans or spending", () => {
   const worksheet = { ...emptyBudgetInputs(), travelers: "4", nights: "2", lodgingPerNight: "500", mealsPerPersonPerDay: "25", activitiesTotal: "200", transportTotal: "80" };

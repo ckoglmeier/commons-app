@@ -1,20 +1,20 @@
 import { AnalyticsChoices } from '@/components/analytics-choices';
 import Link from 'next/link';
-import { marketingOrigin } from '@/lib/marketing/route-mode';
+import { siteOrigin } from '@/lib/site-origin';
 import { instanceSettings } from '@/lib/instance';
-import { MarketingShell } from '@/lib/marketing/pages/layout';
-import css from '@/lib/marketing/pages/pages.module.css';
+import { PageShell } from '@/components/page-shell';
+import css from '@/components/page-shell.module.css';
 
 export const metadata = {
   title: 'Support and your data — Commons',
-  alternates: { canonical: `${marketingOrigin()}/support/` },
+  alternates: { canonical: `${siteOrigin()}/support/` },
   description: 'Get help with Commons, find your trip, download expense records, or request a copy or deletion of your personal data.',
 };
 
 export default function SupportPage() {
   const contactEmail = instanceSettings().contactEmail;
   const request = (subject: string) => `mailto:${contactEmail}?subject=${encodeURIComponent(subject)}`;
-  return <MarketingShell>
+  return <PageShell>
     <h1>Support and your data</h1>
     <p className={css.lead}>A little help getting back to your trip, and clear ways to manage your information.</p>
     <section className={css.section}>
@@ -52,5 +52,5 @@ export default function SupportPage() {
       {contactEmail ? <a href={request('Commons data deletion request')}>Request deletion by email →</a> : null}
     </section>
     <section id="analytics" className={css.section}><h2>Analytics choices</h2><AnalyticsChoices /></section>
-  </MarketingShell>;
+  </PageShell>;
 }

@@ -1363,9 +1363,9 @@ export function PlanView({
 
 import "./trip-workspace-refinements.css";
 import "./trip-journal.css";
-import { commonsCoverArtwork, suggestTripCover, type LocalArtwork } from "@/lib/marketing/artwork";
+import { commonsCoverArtwork, suggestTripCover, type LocalArtwork } from "@/lib/covers";
 import { TripBudgetPanel } from "./trip-budget-panel";
-import type { BudgetInputs } from "@/lib/marketing/budget/budget-calculations";
+import type { BudgetInputs } from "@/lib/budget/budget-calculations";
 
 type MoneyViewProps = Omit<Parameters<typeof MoneyCurrencySection>[0], "currency" | "primary" | "showCurrencyLabel">;
 
@@ -4023,7 +4023,8 @@ export function CommonsApp({
     const id = crypto.randomUUID();
     const extension = blob.type === "image/jpeg" ? "jpg" : blob.type.split("/")[1];
     const storagePath = `${initialSnapshot.commons.slug}/${id}.${extension}`;
-    const supabase = getSupabaseBrowserClient();
+    // Without Supabase (local development) there is no storage client; cleanup of a half-added photo is skipped.
+    const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL ? getSupabaseBrowserClient() : null;
     await uploadCommonsPhoto(storagePath, blob);
 
     let response: Response;
@@ -4050,7 +4051,7 @@ export function CommonsApp({
         },
       );
     } catch {
-      await supabase.storage.from("commons-moments").remove([storagePath]);
+      await supabase?.storage.from("commons-moments").remove([storagePath]);
       throw new Error("Photo not added. Your other photos are still here. Try again.");
     }
 
@@ -4062,7 +4063,7 @@ export function CommonsApp({
       payload = null;
     }
     if (!response.ok) {
-      await supabase.storage.from("commons-moments").remove([storagePath]);
+      await supabase?.storage.from("commons-moments").remove([storagePath]);
       throw new Error(payload?.error ?? "Photo not added. Your other photos are still here. Try again.");
     }
     if (!payload?.snapshot || !payload.momentId) {

@@ -28,7 +28,7 @@ test('PostHog runs on any host when a key is set, records no replay by default, 
   assert.ok(!JSON.stringify(client.state.events).includes('PRIVATE'));
   assert.ok(!JSON.stringify(client.state.events).includes('commons.travel'));
   // Rerenders on the same route do not duplicate views, and public routes are reported as shapes only.
-  for (const pathname of ['/trip-templates/friends-trips/', '/destinations/savannah/', '/support/']) {
+  for (const pathname of ['/legal/terms/', '/support/', '/legal/privacy/']) {
     Object.assign(location, { pathname });
     const before = client.state.events.filter((e: { event: string }) => e.event === '$pageview').length;
     await client.updatePosthogRoute(); await client.updatePosthogRoute();

@@ -1,4 +1,4 @@
-import { calculateBudget, type BudgetInputs } from "./marketing/budget/budget-calculations";
+import { calculateBudget, type BudgetInputs } from "./budget/budget-calculations";
 
 type CostedPlan = {
   mealType?: string | null;
