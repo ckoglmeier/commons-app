@@ -9,7 +9,7 @@
   },
   "scripts": {
     "discovery:example": "node --import tsx src/discovery-example.ts",
-    "test": "tsx --test src/**/*.test.ts",
+    "test": "tsx --test 'src/**/*.test.ts'",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {

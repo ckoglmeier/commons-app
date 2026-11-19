@@ -60,7 +60,8 @@ async function ownIntake(token: string) {
   const intake = await intakeByReviewToken(hashReviewToken(token), { databaseUrl: options.databaseUrl });
   // The same not-found for a wrong token, someone else's intake and an expired link: a guess learns nothing.
   if (!intake || intake.personId !== options.actorPersonId) return null;
-  return { options, intake, expired: Boolean(intake.reviewExpiresAt && intake.reviewExpiresAt <= new Date()) };
+  const now = (await messagingDeps()).now();
+  return { options, intake, expired: Boolean(intake.reviewExpiresAt && intake.reviewExpiresAt <= now) };
 }
 
 export type ReviewView = {
