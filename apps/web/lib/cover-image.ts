@@ -31,3 +31,23 @@ export async function createCoverCardImage(photo: Blob) {
     bitmap.close();
   }
 }
+
+/** Bundled covers are SVG drawings; covers are stored as raster images, so draw the SVG onto a canvas and keep it as a PNG. */
+export async function rasterizeCoverDrawing(svg: Blob, width = 1440): Promise<Blob> {
+  const url = URL.createObjectURL(svg);
+  try {
+    const image = new Image();
+    image.decoding = "async";
+    await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error("That cover couldn’t be loaded. Try another.")); image.src = url; });
+    const ratio = image.naturalWidth && image.naturalHeight ? image.naturalHeight / image.naturalWidth : 2 / 3;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = Math.max(1, Math.round(width * ratio));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("This browser could not prepare the cover.");
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    return await new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("This browser could not prepare the cover.")), "image/png"));
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}

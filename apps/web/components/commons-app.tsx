@@ -67,7 +67,7 @@ import { planAudienceValue, type PlanAudience } from "@/lib/plan-audience";
 import { commonsPath, commonsViewPath, commonsTravelPath, eventLocation, parsePlanSection, planSectionPath, PUBLIC_DEMO_COMMONS_ID, visiblePlanSection, type EventView, type PlanSection } from "@/lib/commons-route";
 import { trackProductEvent } from "@/lib/product-analytics";
 import { getSupabaseBrowserClient, uploadCommonsConfirmation, uploadCommonsCover, uploadCommonsPhoto } from "@/lib/supabase/browser";
-import { createCoverCardImage } from "@/lib/cover-image";
+import { createCoverCardImage, rasterizeCoverDrawing } from "@/lib/cover-image";
 import { hasTripStarted, isPostTrip } from "@/lib/trip-phase";
 import { PeopleSheet } from "./people-sheet";
 import { InlineEditor } from "./inline-editor";
@@ -2052,8 +2052,10 @@ function CoverPickerSheet({
     try {
       const response = await fetch(art.src);
       if (!response.ok) throw new Error("That cover couldn’t be loaded. Try another.");
-      const blob = await response.blob();
-      await uploadCover(new File([blob], "commons-cover.webp", { type: blob.type || "image/webp" }));
+      const fetched = await response.blob();
+      // Bundled covers are SVG drawings; covers are saved as raster images.
+      const blob = fetched.type === "image/svg+xml" || art.src.endsWith(".svg") ? await rasterizeCoverDrawing(fetched) : fetched;
+      await uploadCover(new File([blob], blob.type === "image/png" ? "commons-cover.png" : "commons-cover.webp", { type: blob.type || "image/webp" }));
       close(); notify("Cover updated.");
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Cover not updated. Try again."); setBusyId(null); }
   }
