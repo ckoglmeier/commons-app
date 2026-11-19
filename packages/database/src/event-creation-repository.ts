@@ -12,7 +12,7 @@ import {
     type EventCreationDraft,
     type RecentReusableEvent,
 } from "@commons/contracts";
-import { interpretEventDescription, interpretEventTitle } from "@commons/domain";
+import { interpretEventDescription, interpretEventTitle, newPlanTemplate, planTemplateFor } from "@commons/domain";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { createDatabase } from "./client";
 import {
@@ -25,6 +25,7 @@ import {
     invitations,
     memberships,
     people,
+    tripTasks,
 } from "./schema";
 import { hashNormalizedEmail, mintRecoverableOpaqueToken } from "./tokens";
 
@@ -203,6 +204,7 @@ export async function createEventCreationDraft(
           errorCode = "interpretation_failed";
           interpretation = interpretEventDescription("New travel event");
         }
+        const chosenTemplate = newPlanTemplate(request.templateKey);
         const [created] = await transaction.insert(eventCreationDrafts).values({
           createdByPersonId: options.actorPersonId,
           sourceKind: request.sourceKind,
@@ -214,8 +216,8 @@ export async function createEventCreationDraft(
           timezone: request.timezone,
           eventTypeKey: interpretation.eventTypeKey,
           eventContextKeys: interpretation.eventContextKeys,
-          templateKey: interpretation.templateKey,
-          templateVersion: interpretation.templateVersion,
+          templateKey: chosenTemplate.key,
+          templateVersion: chosenTemplate.version,
           supported: interpretation.supported,
           brief: interpretation.brief,
           entryContext: options.entryContext ?? null,
@@ -247,6 +249,7 @@ export async function createEventCreationDraft(
           locationName: commons.locationName,
           eventTypeKey: commons.eventTypeKey,
           eventContextKeys: commons.eventContextKeys,
+          templateKey: commons.templateKey,
         })
         .from(commons)
         .innerJoin(memberships, and(
@@ -270,8 +273,8 @@ export async function createEventCreationDraft(
         timezone: request.timezone,
         eventTypeKey: source.eventTypeKey,
         eventContextKeys: source.eventContextKeys,
-        templateKey: "travel-general",
-        templateVersion: 1,
+        templateKey: newPlanTemplate(source.templateKey).key,
+        templateVersion: newPlanTemplate(source.templateKey).version,
         supported: source.eventTypeKey === "travel",
         brief: {
           summary: `Planned from ${source.name}`,
@@ -588,6 +591,18 @@ export async function commitEventCreationDraft(
           expiresAt: null,
         });
         unsentInvitationCount += 1;
+      }
+
+      // Starter to-dos from the plan template, owned by the organizer, no due date. Same transaction as the trip.
+      const starterTodos = planTemplateFor(draft.templateKey).todos;
+      if (starterTodos.length) {
+        await transaction.insert(tripTasks).values(starterTodos.map((todo) => ({
+          id: randomUUID(),
+          commonsId: createdEvent.id,
+          createdByPersonId: options.actorPersonId,
+          ownerPersonId: options.actorPersonId,
+          title: todo.title,
+        })));
       }
 
       await transaction.insert(auditEvents).values({

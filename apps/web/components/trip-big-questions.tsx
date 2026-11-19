@@ -1,5 +1,6 @@
 "use client";
 
+import { planTemplateFor, welcomePollFor } from "@commons/domain";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TripLetterWelcome } from "./trip-letter-controls";
@@ -14,12 +15,6 @@ type QuestionId = "where" | "when" | "who";
 type Question = { id: QuestionId; decided: string | null; poll: { id: string; publicId: string; title: string; open: boolean; answers: number } | null };
 
 type Loaded = { questions: Question[]; welcome: string | null; decideBy: string | null; roughCost: string | null };
-
-const COPY: Record<QuestionId, { title: string; help: string }> = {
-  where: { title: "Where are we going?", help: "Add it if you know, or ask your group." },
-  when: { title: "When?", help: "Add the dates if you know, or ask what could work." },
-  who: { title: "Who’s in?", help: "Add who’s coming, or find out who can make it." },
-};
 
 const json = { "content-type": "application/json" };
 
@@ -48,7 +43,9 @@ function Decide({ slug, id, onSaved, onCancel }: { slug: string; id: QuestionId;
   </form>;
 }
 
-export function TripBigQuestions({ slug, tripName }: { slug: string; tripName: string }) {
+export function TripBigQuestions({ slug, tripName, templateKey = null }: { slug: string; tripName: string; templateKey?: string | null }) {
+  const template = planTemplateFor(templateKey);
+  const COPY = Object.fromEntries(template.welcomeQuestions.map(question => [question.id, question])) as unknown as Record<QuestionId, { title: string; help: string }>;
   const [questions, setQuestions] = useState<Question[] | null>(null);
   const [brief, setBrief] = useState<{ welcome: string | null; decideBy: string | null; roughCost: string | null } | null>(null);
   const [failed, setFailed] = useState(false), [deciding, setDeciding] = useState<QuestionId | null>(null), [copied, setCopied] = useState<QuestionId | null>(null);
@@ -101,11 +98,12 @@ export function TripBigQuestions({ slug, tripName }: { slug: string; tripName: s
           {question.poll ? <>
             <Link className="cm-action" href={`/c/${encodeURIComponent(slug)}/polls/${question.poll.id}/`}>{question.poll.answers ? "See answers" : "View poll"}</Link>
             <button type="button" className="cm-action" onClick={() => void copy(question)}>{copied === question.id ? "Copied" : "Copy link"}</button>
-          </> : !question.decided ? <Link className="cm-action" href={`/c/${encodeURIComponent(slug)}/polls/new?template=decide-${question.id}&question=${question.id}`}>Ask your group</Link> : null}
+          </> : !question.decided ? <Link className="cm-action" href={`/c/${encodeURIComponent(slug)}/polls/new?template=${encodeURIComponent(welcomePollFor(template, question.id)?.id ?? `decide-${question.id}`)}&question=${question.id}`}>Ask your group</Link> : null}
         </div>
       </div>
       {deciding === question.id ? <Decide slug={slug} id={question.id} onCancel={() => setDeciding(null)} onSaved={() => { setDeciding(null); void load(); }} /> : null}
     </li>)}</ol> : null}
+    {questions && template.openQuestions.length ? <section className="open-questions" aria-labelledby="open-questions-title"><h3 id="open-questions-title">Also to settle</h3><ul>{template.openQuestions.map(text => <li key={text}><span>{text}</span><Link className="cm-action" href={`/c/${encodeURIComponent(slug)}/polls/new?question=${encodeURIComponent(text)}`}>Ask your group</Link></li>)}</ul></section> : null}
     <footer className="big-questions__footer">
       {brief ? <GoingAction slug={slug} emphasized={!nextQuestion} /> : null}
     </footer>

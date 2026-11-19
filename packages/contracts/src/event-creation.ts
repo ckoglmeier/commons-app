@@ -92,6 +92,8 @@ export const CreateEventCreationDraftRequestSchema = z.discriminatedUnion("sourc
     sourceKind: z.literal("description"),
     title: z.string().trim().min(1).max(100),
     timezone: z.string().trim().min(1).max(80),
+    /** Which plan template to start from. Unknown keys are treated as the trip template where the draft is stored. */
+    templateKey: z.string().trim().max(80).optional(),
     entryContext: TripEntryContextSchema.optional(),
   }),
   z.object({

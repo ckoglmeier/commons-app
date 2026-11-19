@@ -1,4 +1,5 @@
 "use client";
+import { planTemplateFor } from "@commons/domain";
 import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import type { CommonsSummary, ItineraryItem, PlacePin, Stay, TravelPlan } from "@commons/contracts";
 import { directionsUrl, distanceKm, distanceLabel, filterTripMapPlaces, isRentalListing, pinSourceLabel, placeLocationNote, stayDistances, tripMapDays, tripMapPlaces, type TripMapFilter, type TripMapPlace } from "../lib/trip-map";
@@ -131,7 +132,7 @@ export function TripMapView({ commons, stays, itinerary, transport = [], canEdit
           </li>)}</ul>
           <p className="trip-map-meta">Straight-line distance, not drive time.{compared[0] && compared[0].unplacedCount ? ` ${compared[0].unplacedCount} of these activities ${compared[0].unplacedCount === 1 ? "isn’t" : "aren’t"} on the map yet.` : ""}</p>
         </section> : null}
-        {filter.kind !== "activity" && transport.length && travelPath ? <p className="trip-map-meta">Vans, rental cars, and rides are in <a href={travelPath}>Travel &amp; stays</a>.</p> : null}
+        {filter.kind !== "activity" && transport.length && travelPath ? <p className="trip-map-meta">Vans, rental cars, and rides are in <a href={travelPath}>{planTemplateFor(commons.templateKey).planSections.travel.label}</a>.</p> : null}
         {(["stay", "activity"] as const).map(kind => {
           const rows = shown.filter(place => place.kind === kind);
           if (!rows.length) return null;

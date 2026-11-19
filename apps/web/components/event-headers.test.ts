@@ -6,7 +6,8 @@ test("event destinations use plain headers without duplicate entry prompts", asy
   const app = await readFile(new URL("./commons-app.tsx", import.meta.url), "utf8");
   const home = await readFile(new URL("./home-dashboard.tsx", import.meta.url), "utf8");
   assert.match(home, /className="event-page-header trip-page-heading"><h2>Trip<\/h2>/);
-  for (const title of ["Activities", "Money", "Photos"]) assert.ok(app.includes(`<h2>${title}</h2>`));
+  for (const title of ["Money", "Photos"]) assert.ok(app.includes(`<h2>${title}</h2>`));
+  assert.ok(app.includes("<h2>{planTemplateFor(commons.templateKey).planSections.activities.label}</h2>"), "Activities heading uses the template label");
   assert.doesNotMatch(app, /planScopeTitle|costScopeTitle|Commons photo mapping/);
   const plan = app.slice(app.indexOf("function PlanView"), app.indexOf("function MoneyView"));
   assert.doesNotMatch(plan, /onClick=\{openTripDetails\}/);

@@ -9,6 +9,7 @@ import {
 } from "@commons/contracts";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { PLAN_TEMPLATES } from "@commons/domain";
 import { commonsPath } from "@/lib/commons-route";
 import { trackProductEvent } from "@/lib/product-analytics";
 import { tripEntrySignInPath, type TripEntryContext } from "@/lib/trip-entry/context";
@@ -46,7 +47,8 @@ function Progress({ stage }: { stage: Exclude<Stage, "entry"> }) {
   ))}</ol></nav>;
 }
 
-export function EventCreationFlow({ signedIn, initialRecentEvents, initialDraft, entry }: {
+export function EventCreationFlow({ signedIn, initialRecentEvents, initialDraft, initialTemplateKey, entry }: {
+  initialTemplateKey: string;
   entry: { entryContext: TripEntryContext; requestedDraftId: string | null; draftLoadFailed: boolean };
   signedIn: boolean; initialRecentEvents: RecentReusableEvent[]; initialDraft: EventCreationDraft | null;
 }) {
@@ -54,6 +56,7 @@ export function EventCreationFlow({ signedIn, initialRecentEvents, initialDraft,
   const [draft, setDraft] = useState(initialDraft);
   const [stage, setStage] = useState<Stage>(initialDraft ? "setup" : "entry");
   const [title, setTitle] = useState("");
+  const [templateKey, setTemplateKey] = useState(initialTemplateKey);
   const [name, setName] = useState(initialDraft?.proposedName ?? "");
   const [location, setLocation] = useState(initialDraft?.locationName ?? "");
   const [startsOn, setStartsOn] = useState(initialDraft?.startsOn ?? "");
@@ -104,7 +107,7 @@ export function EventCreationFlow({ signedIn, initialRecentEvents, initialDraft,
     event.preventDefault();
     if (!signedIn) { router.push(tripEntrySignInPath(entry.entryContext, entry.requestedDraftId)); return; }
     // A name is enough: the trip's questions take over from setup.
-    void createDraft({ sourceKind: "description", title, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, entryContext: entry.entryContext }, "description", true);
+    void createDraft({ sourceKind: "description", title, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, templateKey, entryContext: entry.entryContext }, "description", true);
   }
 
   async function saveSetup(forceTravel = false) {
@@ -189,7 +192,7 @@ export function EventCreationFlow({ signedIn, initialRecentEvents, initialDraft,
   if (entry.draftLoadFailed && !draft) return <section className="event-entry-card" role="alert"><h1>We couldn’t open your saved trip.</h1><p>It may still be saved. Nothing was replaced.</p><div className="setup-actions"><Link className="button-secondary" href="/trips">Your trips</Link><button type="button" onClick={() => window.location.reload()}>Try again</button></div></section>;
 
   if (stage === "entry") return <section className="event-entry-card"><span className="view-kicker">New trip</span><h1>What are you planning?</h1><p>Start with a name. You don’t need dates or a place yet.</p>
-    <form className="event-title-form" onSubmit={createFromDescription}><label className="field"><span>Trip name</span><input required maxLength={100} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Napa or Sonoma girls trip" /></label><button className="form-submit" disabled={busy || !title.trim()}>{busy ? "Starting…" : "Continue"}</button><p className="field-hint">Only you can see it until you invite people.</p></form>
+    <form className="event-title-form" onSubmit={createFromDescription}><label className="field"><span>Trip name</span><input required maxLength={100} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Napa or Sonoma girls trip" /></label>{PLAN_TEMPLATES.length > 1 ? <fieldset className="plan-kind"><legend>What kind of plan?</legend>{PLAN_TEMPLATES.map((template) => <label className="plan-kind__option" key={template.key}><input type="radio" name="plan-kind" value={template.key} checked={templateKey === template.key} onChange={() => setTemplateKey(template.key)} /><span className="plan-kind__label">{template.label}</span><small>{template.description}</small></label>)}</fieldset> : null}<button className="form-submit" disabled={busy || !title.trim()}>{busy ? "Starting…" : "Continue"}</button><p className="field-hint">Only you can see it until you invite people.</p></form>
     {initialRecentEvents.length ? <div className="recent-event-picker"><div className="event-section-heading"><h2>Or plan it again</h2><span>{initialRecentEvents.length} recent</span></div><div className="recent-event-list">{initialRecentEvents.map((event) => <button type="button" key={event.id} onClick={() => void createDraft({ sourceKind: "prior_event", sourceEventId: event.id, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }, "recent")} disabled={busy}><span><strong>{event.name}</strong><small>{event.locationName ?? "Place to be decided"} · {event.people.length} {event.people.length === 1 ? "person" : "people"}</small></span><em>Use this trip →</em></button>)}</div></div> : null}
     {error ? <p className="form-error" role="alert">{error}</p> : null}</section>;
 

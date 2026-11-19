@@ -23,7 +23,11 @@ function stayPollIntro(options: StayPollOption[]) {
   return `We’re choosing where to stay${same && first.startsOn && first.endsOn ? ` ${day(first.startsOn)}–${day(first.endsOn)}` : ""}. Pick every place that could work for you, then your first choice if you have one. Nothing is booked yet.`;
 }
 
-export function PollStarter({ linkOnly = false, bigQuestion, slug, eventName, timezone = "UTC", defaultCurrency = "USD", startsOn, canSuggest = false, suggestionsAvailable = false, people = [], sourcePoll, stayOptions = [], transportOptions = [], activityOptions = [], templateId, initialDraft, savedDrafts = [] }: {
+export function PollStarter({ linkOnly = false, bigQuestion, slug, eventName, timezone = "UTC", defaultCurrency = "USD", startsOn, canSuggest = false, suggestionsAvailable = false, people = [], sourcePoll, stayOptions = [], transportOptions = [], activityOptions = [], templateId, templateKey, prefillTitle, initialDraft, savedDrafts = [] }: {
+  /** The trip's plan template, so its own default polls are found. */
+  templateKey?: string | null;
+  /** A question from the template's "Also to settle" list, used as the poll title. */
+  prefillTitle?: string;
   /** Free stage: a link poll. Nobody joins the trip, and Commons sends nothing. */
   linkOnly?: boolean;
   /** Which big question this poll asks, when opened from Trip. */
@@ -31,10 +35,10 @@ export function PollStarter({ linkOnly = false, bigQuestion, slug, eventName, ti
   slug: string; eventName: string; timezone?: string; defaultCurrency?: string; startsOn?: string | null; canSuggest?: boolean; suggestionsAvailable?: boolean; people?: Array<{ id: string; name: string }>; sourcePoll?: { id: string; title: string }; stayOptions?: StayPollOption[]; transportOptions?: Array<{ id: string; name: string; description: string | null }>; activityOptions?: Array<{ id: string; name: string; description: string | null }>; templateId?: string; initialDraft?: PollWorkingDraft; savedDrafts?: PollWorkingDraft[] }) {
   const router = useRouter();
   const sourcePollId = initialDraft?.data.sourcePollId ?? sourcePoll?.id;
-  const stayPoll = !initialDraft && !sourcePoll && !getEarlyPollTemplate(templateId) && stayOptions.length >= 2;
-  const transportPoll = !initialDraft && !sourcePoll && !getEarlyPollTemplate(templateId) && !stayPoll && transportOptions.length >= 2;
-  const activityPoll = !initialDraft && !sourcePoll && !getEarlyPollTemplate(templateId) && !stayPoll && !transportPoll && activityOptions.length >= 2;
-  const defaultTitle = (templateId?.startsWith("decide-") ? getEarlyPollTemplate(templateId)?.title ?? eventName : sourcePoll ? `Follow-up: ${sourcePoll.title}` : stayPoll ? "Which place should we stay?" : transportPoll ? "How should we get around?" : activityPoll ? "Which activities should we do?" : `${eventName}: help shape the trip`).slice(0, 120);
+  const stayPoll = !initialDraft && !sourcePoll && !getEarlyPollTemplate(templateId, templateKey) && stayOptions.length >= 2;
+  const transportPoll = !initialDraft && !sourcePoll && !getEarlyPollTemplate(templateId, templateKey) && !stayPoll && transportOptions.length >= 2;
+  const activityPoll = !initialDraft && !sourcePoll && !getEarlyPollTemplate(templateId, templateKey) && !stayPoll && !transportPoll && activityOptions.length >= 2;
+  const defaultTitle = (prefillTitle ? prefillTitle : templateId && templateId !== "early-hotel" && getEarlyPollTemplate(templateId, templateKey) ? getEarlyPollTemplate(templateId, templateKey)!.title : sourcePoll ? `Follow-up: ${sourcePoll.title}` : stayPoll ? "Which place should we stay?" : transportPoll ? "How should we get around?" : activityPoll ? "Which activities should we do?" : `${eventName}: help shape the trip`).slice(0, 120);
   const [title, setTitle] = useState(initialDraft?.data.title ?? defaultTitle);
   const [intro, setIntro] = useState(initialDraft?.data.intro ?? (stayPoll ? stayPollIntro(stayOptions) : transportPoll ? "We’re deciding how to get around. Pick every option that could work for you, then your first choice if you have one. Nothing is booked yet." : activityPoll ? "We’re choosing what to do. Pick every activity you’d do. Choosing here doesn’t change the plan." : ""));
   const [framingRequest, setFramingRequest] = useState(initialDraft?.data.framingRequest ?? "");
@@ -45,7 +49,7 @@ export function PollStarter({ linkOnly = false, bigQuestion, slug, eventName, ti
   const [ballotMode, setBallotMode] = useState<CreatePollRequest["ballotMode"]>(initialDraft?.data.ballotMode ?? "transparent");
   const [questions, setQuestions] = useState<PollQuestion[]>(() => {
     if (initialDraft) return initialDraft.data.questions;
-    const template = getEarlyPollTemplate(templateId);
+    const template = getEarlyPollTemplate(templateId, templateKey);
     if (template) return structuredClone(template.questions);
     if (stayOptions.length >= 2) {
       return [{

@@ -31,3 +31,9 @@ export function defaultPollFor(id: string | null | undefined, template?: PlanTem
 export function welcomePollFor(template: PlanTemplate, question: "where" | "when" | "who") {
   return template.defaultPolls.find(poll => poll.forQuestion === question) ?? null;
 }
+
+/** The template a new plan starts from: the requested key if this copy has it, otherwise the trip template. */
+export function newPlanTemplate(key: unknown): { key: string; version: number } {
+  const template = planTemplateFor(knownPlanTemplateKey(key));
+  return { key: template.key, version: template.version };
+}

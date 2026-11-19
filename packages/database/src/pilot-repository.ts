@@ -701,6 +701,7 @@ async function readSnapshotRows(
       welcomeAuthorPersonId: commonsRecord.welcomeAuthorPersonId,
       letterSections: TripLetterSectionsSchema.nullable().catch(null).parse(commonsRecord.letterSections ?? null),
       newExperience: commonsRecord.newExperience,
+      templateKey: commonsRecord.templateKey ?? null,
       stage: commonsRecord.newExperience && !commonsRecord.goingAt ? "deciding" as const : "going" as const,
       expensesClosedAt: commonsRecord.expensesClosedAt ? iso(commonsRecord.expensesClosedAt) : null,
       expensesClosedByPersonId: commonsRecord.expensesClosedByPersonId,

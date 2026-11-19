@@ -41,3 +41,15 @@ test("the validator reports problems instead of accepting a broken template", ()
   assert.ok(paths.some(path => path.startsWith("defaultPolls.1.questions.0.id")));
   assert.ok(paths.includes("money.costRules.4.basis"));
 });
+
+test("a new plan starts from a known template and falls back to the trip template", async () => {
+  const { newPlanTemplate } = await import("./index");
+  const { CreateEventCreationDraftRequestSchema } = await import("@commons/contracts");
+  assert.deepEqual(newPlanTemplate("family-reunion"), { key: "family-reunion", version: 1 });
+  assert.deepEqual(newPlanTemplate("not-a-template"), { key: "travel-general", version: 1 });
+  assert.deepEqual(newPlanTemplate(undefined), { key: "travel-general", version: 1 });
+  assert.deepEqual(newPlanTemplate(42), { key: "travel-general", version: 1 });
+  const base = { sourceKind: "description", title: "Summer reunion", timezone: "America/Denver" };
+  assert.equal(CreateEventCreationDraftRequestSchema.parse({ ...base, templateKey: "family-reunion" }).sourceKind, "description");
+  assert.equal(CreateEventCreationDraftRequestSchema.safeParse(base).success, true);
+});

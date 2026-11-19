@@ -12,6 +12,7 @@ import { TripItemDetail } from "./trip-item-detail";
 import { PlanLocationLink } from "./plan-location-link";
 import { activityExpenseConversion } from "@/lib/activity-expense";
 
+import { planTemplateFor } from "@commons/domain";
 import { itineraryDurationMinutes, itineraryEndTime, formatDuration } from "@commons/contracts";
 import { FlightBookingFields, blankFlightConnection, type FlightLegReview } from "./flight-booking-fields";
 import type { ConfirmationDocumentInput } from "@commons/contracts";
@@ -1268,7 +1269,7 @@ export function PlanView({
   return (
     <div className={`product-view plan-view${section === "ideas" ? " plan-view--ideas" : ""}${selectedDayOption ? "" : " plan-view--undated"}`}>
       <div className="view-intro view-intro--with-action event-page-header">
-        <div><h2>Activities</h2><p>{scheduledItems.length} with a day{ideas.length ? ` · ${ideas.length} without a day` : ""}.</p></div>
+        <div><h2>{planTemplateFor(commons.templateKey).planSections.activities.label}</h2><p>{scheduledItems.length} with a day{ideas.length ? ` · ${ideas.length} without a day` : ""}.</p></div>
         <div className="plan-actions">{!seededPilot && askHref ? <Link className="view-secondary-action" href={askHref}><QuestionIcon /> Ask the group</Link> : null}<LogisticsAddMenu canAddStay={canSchedule} choose={addPlan} /></div>
       </div>
       {sectionNavigation}
@@ -1302,6 +1303,7 @@ export function PlanView({
         {items.length === 0 && !dayStays.length ? (
           <div className="empty-day"><RouteIcon /><h3>No plans yet.</h3></div>
         ) : null}
+        {state.itinerary.length === 0 && planTemplateFor(commons.templateKey).planSections.outline.length ? <div className="plan-outline"><p>A rough outline to start from</p><ul>{planTemplateFor(commons.templateKey).planSections.outline.map(line => <li key={line}>{line}</li>)}</ul></div> : null}
         {timeGroups.map((group) => group.length > 1 ? (
           <div className="parallel-block" key={group[0].startsAt} data-walkthrough-target={isChoiceDay ? "parallel-plans" : undefined}>
             <div className="timeline-time"><time>{group[0].startsAt ? formatTime(group[0].startsAt, commons.timezone) : "Time not set"}</time><i /></div>
@@ -1354,7 +1356,7 @@ export function PlanView({
           </article>
         ))}
         </div>
-      </div> : <div className="plan-day-content"><div className="empty-day"><CalendarIcon /><h3>No scheduled plans.</h3></div></div>}
+      </div> : <div className="plan-day-content"><div className="empty-day"><CalendarIcon /><h3>No scheduled plans.</h3></div>{state.itinerary.length === 0 && planTemplateFor(commons.templateKey).planSections.outline.length ? <div className="plan-outline"><p>A rough outline to start from</p><ul>{planTemplateFor(commons.templateKey).planSections.outline.map(line => <li key={line}>{line}</li>)}</ul></div> : null}</div>}
     </div>
   );
 }
@@ -3912,14 +3914,14 @@ export function CommonsApp({
     onClick={event => { if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); choosePlanSection(section); } }}>{label}</Link>;
   // Two sections; Map shows either one's places and is an action, not a third section.
   const contextNavigation = tab === "plan" || tab === "logistics" ? <div className="plan-sections-bar">
-    <nav className="plan-sections" aria-label="Plan sections">{sectionLink("schedule", "Activities")}{sectionLink("travel", "Travel & stays")}</nav>
+    <nav className="plan-sections" aria-label="Plan sections">{sectionLink("schedule", planTemplateFor(initialSnapshot.commons.templateKey).planSections.activities.label)}{sectionLink("travel", planTemplateFor(initialSnapshot.commons.templateKey).planSections.travel.label)}</nav>
     {tripMapEnabled ? sectionLink("map", <>{tripStage === "deciding" ? <LockIcon /> : <PinIcon />} Map</>, "cm-action plan-map-action") : null}
   </div>
     // Photos is contextual under Trip, with an obvious way back.
     : tab === "moments" && !tripStage ? <p className="context-return"><Link href={commonsViewPath(initialSnapshot.commons.id, "home")} onClick={event => { if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); setTab("home"); } }}><ChevronLeftIcon /> Back to Trip</Link></p>
     : null;
   const view = tab === "home" ? overviewView()
-    : tripStage === "deciding" && tab === "money" ? <div className="product-view"><TripBudgetPanel tripId={initialSnapshot.commons.id} destinationName={commonsSummary.locationName ?? undefined} startsOn={commonsSummary.startsOn} endsOn={commonsSummary.endsOn} travelerCount={participants.length} currency={commonsSummary.currency} canEdit={canManageTrip} persistent={dataMode === "database"} onSaved={setSavedWorksheet} goingSlot={canManageTrip ? <GoingAction slug={initialSnapshot.commons.id} lead="Ready to go? Track shared expenses, split costs and record repayments." /> : undefined} /></div>
+    : tripStage === "deciding" && tab === "money" ? <div className="product-view"><TripBudgetPanel tripId={initialSnapshot.commons.id} destinationName={commonsSummary.locationName ?? undefined} startsOn={commonsSummary.startsOn} endsOn={commonsSummary.endsOn} travelerCount={participants.length} currency={commonsSummary.currency} templateKey={commonsSummary.templateKey} canEdit={canManageTrip} persistent={dataMode === "database"} onSaved={setSavedWorksheet} goingSlot={canManageTrip ? <GoingAction slug={initialSnapshot.commons.id} lead="Ready to go? Track shared expenses, split costs and record repayments." /> : undefined} /></div>
     : tripStage === "deciding" && tab === "moments" ? <StageLockedPage slug={initialSnapshot.commons.id} kind="photos" />
     : tripStage === "deciding" && tab === "plan" && planSection === "map" ? <StageLockedPage slug={initialSnapshot.commons.id} kind="map" />
     : tab === "plan" && planSection === "map" && tripMapEnabled
@@ -3931,7 +3933,7 @@ export function CommonsApp({
           addMenu={<LogisticsAddMenu canAddStay={canManageStays} disabled={Boolean(sheet)} choose={chooseTripAdd} />} />
     : tab === "logistics" || (tab === "plan" && planSection === "stays")
       ? <div className="product-view trip-travel-stays-view">
-          <div className="view-intro event-logistics-intro event-page-header"><div><h2>Travel &amp; stays</h2><p>Where everyone stays and how they get around.</p></div>
+          <div className="view-intro event-logistics-intro event-page-header"><div><h2>{planTemplateFor(initialSnapshot.commons.templateKey).planSections.travel.label}</h2><p>Where everyone stays and how they get around.</p></div>
             <LogisticsAddMenu canAddStay={canManageStays} disabled={Boolean(sheet)} choose={chooseTripAdd} /></div>
           {contextNavigation}
           <TripStaysView commons={commonsSummary} participants={participants} stays={state.stays ?? []} itinerary={state.itinerary} canEditStays={canManageStays}
@@ -3946,7 +3948,7 @@ export function CommonsApp({
     : tab === "plan"
       ? <>{tripStage === "deciding" ? <PlanStageBanner slug={initialSnapshot.commons.id} /> : null}<PlanView sectionNavigation={contextNavigation} section={planSection === "map" || planSection === "stays" ? "schedule" : planSection} openItem={id => openItem("plan", id)} canSchedule={canManageTrip || previewBasics} state={{...state, moments: [...state.moments, ...localMoments]}} commons={commonsSummary} days={days} seededPilot={seededPilot} selectedDay={selectedDay} setSelectedDay={setSelectedDay} activityParticipation={activityParticipation} respondToActivity={respondToActivity} openMoments={() => setTab("moments")} travelPlans={travelPlans} openTravelPlans={(kind) => { setTravelKind(kind); setSheet("travel"); }} participantCount={participants.length} participants={participants} addPlan={chooseTripAdd} editPlan={(itemId) => { setPlanScheduleDate(null); setSelectedPlanId(itemId); setSheet("edit-plan"); }} scheduleIdea={(itemId, day) => { setPlanScheduleDate(day); setSelectedPlanId(itemId); setSheet("edit-plan"); }} canEditPlan openStay={stayId => openItem("stay", stayId)} openTripDetails={() => { trackProductEvent("trip_details_opened", { commonsSlug: initialSnapshot.commons.slug, properties: { source: "plan" } }); openLogistics(); }} askHref={tripStage === "deciding" || !canManageTrip ? undefined : `${commonsPath(initialSnapshot.commons.id)}/polls/new`} askGroupPath={dataMode === "database" && canManageTrip ? ids => `${commonsPath(initialSnapshot.commons.id)}/polls/new?activityIds=${ids.map(encodeURIComponent).join(",")}` : undefined} /></>
       : tab === "money"
-        ? <><MoneyView budgetEditor={targetControl => <TripBudgetPanel targetControl={targetControl} embedded tripId={initialSnapshot.commons.id} destinationName={commonsSummary.locationName ?? undefined} startsOn={commonsSummary.startsOn} endsOn={commonsSummary.endsOn} travelerCount={participants.length} currency={commonsSummary.currency} canEdit={canManageTrip} persistent={dataMode === "database"} onSaved={setSavedWorksheet} />} worksheet={savedWorksheet} openItem={openItem} state={state} commons={commonsSummary} participants={activeMoneyParticipants} tripStarted={tripStarted} postTrip={postTrip} currentActorId={initialSnapshot.currentActor.id} openExpense={(expenseId) => { setStartExpenseAsRecorded(false); setSelectedExpenseId(expenseId); setSheet("expense"); }} openPayment={(paymentId) => { setSelectedPaymentId(paymentId); setSheet("payment"); }} addExpense={(currency) => { setMoneyEntryCurrency(currency); setSelectedStayId(null); setSelectedTravelPlanId(null); setSheet("add-expense"); }} openMoneySettings={canManageTrip ? () => setSheet("money-settings") : undefined} recordPayment={(currency) => { setMoneyEntryCurrency(currency); setSheet("add-payment"); }} markExpensesComplete={markExpensesComplete} closeExpenses={() => setSheet("close-expenses")} reopenExpenses={() => setSheet("reopen-expenses")} expensesClosedAt={moneyStatus.expensesClosedAt} expensesClosedByName={moneyStatus.expensesClosedByName} saveTargetBudget={saveTargetBudget} />
+        ? <><MoneyView budgetEditor={targetControl => <TripBudgetPanel targetControl={targetControl} embedded tripId={initialSnapshot.commons.id} destinationName={commonsSummary.locationName ?? undefined} startsOn={commonsSummary.startsOn} endsOn={commonsSummary.endsOn} travelerCount={participants.length} currency={commonsSummary.currency} templateKey={commonsSummary.templateKey} canEdit={canManageTrip} persistent={dataMode === "database"} onSaved={setSavedWorksheet} />} worksheet={savedWorksheet} openItem={openItem} state={state} commons={commonsSummary} participants={activeMoneyParticipants} tripStarted={tripStarted} postTrip={postTrip} currentActorId={initialSnapshot.currentActor.id} openExpense={(expenseId) => { setStartExpenseAsRecorded(false); setSelectedExpenseId(expenseId); setSheet("expense"); }} openPayment={(paymentId) => { setSelectedPaymentId(paymentId); setSheet("payment"); }} addExpense={(currency) => { setMoneyEntryCurrency(currency); setSelectedStayId(null); setSelectedTravelPlanId(null); setSheet("add-expense"); }} openMoneySettings={canManageTrip ? () => setSheet("money-settings") : undefined} recordPayment={(currency) => { setMoneyEntryCurrency(currency); setSheet("add-payment"); }} markExpensesComplete={markExpensesComplete} closeExpenses={() => setSheet("close-expenses")} reopenExpenses={() => setSheet("reopen-expenses")} expensesClosedAt={moneyStatus.expensesClosedAt} expensesClosedByName={moneyStatus.expensesClosedByName} saveTargetBudget={saveTargetBudget} />
 
           {betaCompletion && dataMode === "database" && (betaCompletion.paymentReports || betaCompletion.closure || betaCompletion.recap || betaCompletion.successor)
             ? <BetaMoneyWrapUp slug={initialSnapshot.commons.slug} currentActorId={initialSnapshot.currentActor.id} isOrganizer={canManageTrip} participants={activeMoneyParticipants}

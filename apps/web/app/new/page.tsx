@@ -12,6 +12,7 @@ import {
   loadRecentEventsForCreation,
 } from "@/lib/server/event-creation";
 import { EventCreationFlow } from "./event-creation-flow";
+import { DEFAULT_PLAN_TEMPLATE_KEY, knownPlanTemplateKey } from "@commons/domain";
 import { parseTripEntryContext, tripEntryPath } from "@/lib/trip-entry/context";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +53,7 @@ export default async function NewEventPage({
           signedIn={access.signedIn}
           initialRecentEvents={recentEvents}
           initialDraft={initialDraft}
+          initialTemplateKey={knownPlanTemplateKey(query.template) ?? DEFAULT_PLAN_TEMPLATE_KEY}
           entry={{ entryContext, requestedDraftId: draftId, draftLoadFailed }}
         />
       </div>

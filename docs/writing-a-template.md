@@ -61,7 +61,7 @@ welcomeQuestions: [
 
 ### `defaultPolls`
 
-Ready-made polls the organizer can start from. A poll with `forQuestion` is the one **Ask your group** opens for that welcome question, so give each of where, when and who one poll. Others appear as starters when creating a poll.
+Ready-made polls the organizer can start from. A poll with `forQuestion` is the one **Ask your group** opens for that welcome question, so give each of where, when and who one poll. Other polls open from `/c/<trip>/polls/new?template=<poll id>`; there's no button for them yet.
 
 ```ts
 {

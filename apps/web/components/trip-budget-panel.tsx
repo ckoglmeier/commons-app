@@ -1,10 +1,13 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
+import { planTemplateFor } from "@commons/domain";
 import { TripBudgetInputsSchema, TripBudgetViewSchema, type TripBudgetView } from "@commons/contracts";
 import { GroupBudgetWorksheet } from "@/lib/marketing/budget/budget-worksheet";
 import { prefillTripBudget, tripBudgetLodgingReference } from "@/lib/trip-budget/prefill";
 import { type BudgetInputs } from "@/lib/marketing/budget/budget-calculations";
 import css from "./trip-budget-panel.module.css";
+
+const COST_BASIS = { shared: "Everyone shares", per_person: "Each person pays", optional: "Only people who opt in" } as const;
 
 export type TripBudgetPanelProps = {
   tripId: string;
@@ -13,6 +16,8 @@ export type TripBudgetPanelProps = {
   endsOn?: string | null;
   travelerCount?: number;
   currency?: string;
+  /** The trip's plan template. Its optional costs seed a new worksheet, and its cost rules are listed. */
+  templateKey?: string | null;
   canEdit: boolean;
   persistent: boolean;
   goingSlot?: ReactNode;
@@ -25,8 +30,9 @@ export type TripBudgetPanelProps = {
 export function TripBudgetPanel(props: TripBudgetPanelProps) {
   return <TripBudgetEditor key={props.tripId} {...props} />;
 }
-function TripBudgetEditor({ tripId, destinationName, startsOn, endsOn, travelerCount, currency, canEdit, persistent, goingSlot, onSaved, embedded = false, targetControl }: TripBudgetPanelProps) {
-  const [initial] = useState(() => prefillTripBudget({ destinationName, startsOn, endsOn, travelerCount, currency }));
+function TripBudgetEditor({ tripId, destinationName, startsOn, endsOn, travelerCount, currency, templateKey, canEdit, persistent, goingSlot, onSaved, embedded = false, targetControl }: TripBudgetPanelProps) {
+  const costRules = planTemplateFor(templateKey).money.costRules;
+  const [initial] = useState(() => prefillTripBudget({ destinationName, startsOn, endsOn, travelerCount, currency, optionalLabels: costRules.filter(rule => rule.basis === "optional").map(rule => rule.label) }));
   const [inputs, setInputs] = useState<BudgetInputs>(initial);
   const [saved, setSaved] = useState<TripBudgetView | null>(null);
   const [loading, setLoading] = useState(true);
@@ -92,6 +98,7 @@ function TripBudgetEditor({ tripId, destinationName, startsOn, endsOn, travelerC
     {!editable && <p className={css.note}>An organizer can update this budget.</p>}
     {error && <p role="alert">{error}</p>}
     {conflict && <div><p>Loading the latest budget will replace your unsaved edits.</p><button type="button" className="cm-action-secondary" onClick={() => { setLoading(true); setLoadAttempt(value => value + 1); }}>Load latest budget</button></div>}
+    {costRules.length ? <section className="cost-rules" aria-labelledby={`cost-rules-${tripId}`}><h3 id={`cost-rules-${tripId}`}>How costs usually split</h3><ul>{costRules.map(rule => <li key={rule.label}><span>{rule.label}</span><span>{COST_BASIS[rule.basis]}</span></li>)}</ul></section> : null}
     {goingSlot}
   </div>;
 }

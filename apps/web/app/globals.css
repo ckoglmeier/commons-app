@@ -1012,6 +1012,23 @@ section + section { margin-top: 2.4rem; }
 .event-entry-card > p { max-width: 35rem; margin: .85rem 0 0; color: var(--cm-color-mineral); font-size: var(--cm-text-body); line-height: 1.55; }
 .event-title-form { max-width: 35rem; margin-top: 1.65rem; }
 .event-title-form .form-submit { margin-top: .75rem; }
+.plan-kind { display: grid; gap: var(--cm-space-2); margin: var(--cm-space-4) 0 0; padding: 0; border: 0; }
+.plan-kind legend { padding: 0; margin-bottom: var(--cm-space-2); font-weight: 600; }
+.plan-kind__option { display: grid; grid-template-columns: auto 1fr; column-gap: var(--cm-space-3); align-items: start; min-height: 44px; padding: var(--cm-space-3); border: 1px solid var(--cm-color-line); border-radius: var(--cm-radius-compact); cursor: pointer; }
+.plan-kind__option:has(input:checked) { border-color: var(--cm-color-ink, currentColor); }
+.plan-kind__option:focus-within { outline: 2px solid currentColor; outline-offset: 2px; }
+.plan-kind__option input { margin-top: .2rem; }
+.plan-kind__label { font-weight: 600; }
+.plan-kind__option small { grid-column: 2; display: block; color: var(--cm-color-mineral); }
+.plan-outline, .open-questions { color: var(--cm-color-mineral); font-size: var(--cm-text-utility); }
+.open-questions { margin-top: var(--cm-space-4); }
+.open-questions h3 { margin: 0 0 var(--cm-space-2); font-size: inherit; }
+.open-questions ul, .plan-outline ul { margin: 0; padding: 0; list-style: none; }
+.open-questions li { display: flex; justify-content: space-between; align-items: center; gap: var(--cm-space-3); padding: var(--cm-space-2) 0; border-top: 1px solid var(--cm-color-line); }
+.cost-rules { margin-top: var(--cm-space-4); color: var(--cm-color-mineral); font-size: var(--cm-text-utility); }
+.cost-rules h3 { margin: 0 0 var(--cm-space-2); font-size: inherit; }
+.cost-rules ul { margin: 0; padding: 0; list-style: none; }
+.cost-rules li { display: flex; justify-content: space-between; gap: var(--cm-space-3); padding: var(--cm-space-1) 0; }
 .recent-event-picker { margin-top: 2.5rem; padding-top: 1.4rem; border-top: 1px solid var(--cm-color-line); }
 .event-section-heading { min-height: var(--cm-touch-target); display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .event-section-heading h2 { margin: 0; font-size: var(--cm-text-utility); }

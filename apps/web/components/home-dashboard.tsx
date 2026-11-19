@@ -1,4 +1,5 @@
 "use client";
+import { planTemplateFor } from "@commons/domain";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -90,7 +91,7 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
       const current = coordinatorNextSteps({commons:latest.commons,state:latest.state,participants:latest.participants,personId:currentActorId,now:Date.now(),travelState:"loaded",intakes:currentIntakes,intakeState:"loaded",uploadAvailable:travelUploadAvailable}).steps[0];
       addTravelPlans(current && descriptor && currentNextStep(descriptor, [travelNextStepDescriptor(current)]) ? current : undefined);
     } catch {
-      setStepError("Couldn’t reload your travel details. Open Travel & stays to check them.");
+      setStepError(`Couldn’t reload your travel details. Open ${planTemplateFor(commons.templateKey).planSections.travel.label} to check them.`);
     } finally { setCheckingStep(false); }
   }
   async function completeTodo(id:string) {
@@ -113,7 +114,7 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
   const next = now === null ? undefined : shortcuts.next;
   const stay = shortcuts.stay ?? shortcuts.legacyStay;
   const formatDate = (at: string) => new Intl.DateTimeFormat("en-US", { timeZone: commons.timezone, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(at));
-  if (decidingStage) return <div className="trip-letter"><header className="event-page-header trip-page-heading"><h2>Trip</h2><LogisticsAddMenu canAddStay={canAskGroup} choose={addPlan} addPhotos={addPhotos} addReceipt={addReceipt} /></header><div className="big-questions-page">{coverImage ? <Image className="trip-letter__cover" src={coverImage} alt="" width={1200} height={480} sizes="(max-width: 899px) 100vw, 65vw" /> : null}<TripBigQuestions slug={commons.slug} tripName={commons.name} /></div></div>;
+  if (decidingStage) return <div className="trip-letter"><header className="event-page-header trip-page-heading"><h2>Trip</h2><LogisticsAddMenu canAddStay={canAskGroup} choose={addPlan} addPhotos={addPhotos} addReceipt={addReceipt} /></header><div className="big-questions-page">{coverImage ? <Image className="trip-letter__cover" src={coverImage} alt="" width={1200} height={480} sizes="(max-width: 899px) 100vw, 65vw" /> : null}<TripBigQuestions slug={commons.slug} tripName={commons.name} templateKey={commons.templateKey ?? null} /></div></div>;
   if (tripLetter) {
     const dateline = tripLetterDateline(state, commons, participants, currentActorId);
     const facts = tripLetterFacts(state, commons, currentActorId, activityParticipation, now ?? 0);
