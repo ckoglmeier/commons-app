@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { and, eq, gt, isNull, or, sql } from "drizzle-orm";
 import { createDatabase } from "./client";
-import { commons, identities, instanceSettings, invitations, messagingWebNudges, people } from "./schema";
+import { commons, identities, instanceSettings, invitations, messagingWebNudges, people, travelerProfiles } from "./schema";
 import { messagingMessages } from "./messaging-schema";
 import { hashNormalizedEmail } from "./tokens";
 
@@ -166,5 +166,13 @@ export async function invitedEmailForPerson(personId: string, databaseUrl?: stri
       .where(and(or(eq(invitations.acceptedByPersonId, personId), eq(invitations.provisionalPersonId, personId)), sql`${invitations.recipientEmail} is not null`))
       .orderBy(sql`${invitations.acceptedAt} desc nulls last`).limit(1);
     return row?.email?.trim().toLowerCase() ?? null;
+  });
+}
+
+/** Whether this person wants email notices about new messages (their profile's email notices setting; on unless turned off). */
+export async function messageEmailsEnabled(personId: string, databaseUrl?: string) {
+  return withDb(databaseUrl, async db => {
+    const [row] = await db.select({ enabled: travelerProfiles.dailyDigestEnabled }).from(travelerProfiles).where(eq(travelerProfiles.personId, personId)).limit(1);
+    return row?.enabled ?? true;
   });
 }

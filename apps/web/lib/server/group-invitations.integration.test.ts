@@ -27,7 +27,7 @@ test("group routes enforce fresh verified identity, recipient auth, explicit sco
     fixture.setUser(user(trip.organizerId, "Casey", false));
     assert.equal((await management.POST(request("/manage", create), context)).status, 401);
     assert.deepEqual(await (await management.GET(new Request("http://localhost/manage"), context)).json(), { enabled: false });
-    fixture.setUser(user(trip.coOrganizerId));
+    fixture.setUser(user(trip.travelerId));
     assert.notEqual((await management.POST(request("/manage", create), context)).status, 200, "an account that does not organize the trip cannot manage its link");
     fixture.setUser(user(trip.organizerId));
     assert.equal((await management.POST(request("/manage", create, "https://other.example"), context)).status, 403);
@@ -48,7 +48,7 @@ test("group routes enforce fresh verified identity, recipient auth, explicit sco
     assert.equal((await result.json()).destination, `/c/${trip.eventId}/`);
     const [person] = await db.db.select().from(people).where(eq(people.authUserId, newId)); joinedIds.push(person.id);
     assert.equal((await db.db.select().from(memberships).where(and(eq(memberships.commonsId, trip.eventId), eq(memberships.personId, person.id))))[0].role, "member");
-    fixture.setUser(user(trip.coOrganizerId));
+    fixture.setUser(user(trip.travelerId));
     const revoke = { commandId: crypto.randomUUID(), action: "revoke", expectedVersion: link.version };
     assert.notEqual((await management.POST(request("/manage", revoke), context)).status, 200, "only an organizer can revoke");
     fixture.setUser(user(trip.organizerId));

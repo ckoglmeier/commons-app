@@ -1,11 +1,15 @@
 import type { NextConfig } from "next";
+import { applyEnvironmentAliases } from "@commons/database/environment-aliases";
+
+// Vercel Marketplace names (Supabase, Postgres) fill Commons's names before the browser bundle is built, so NEXT_PUBLIC_* values are inlined.
+applyEnvironmentAliases();
 
 const nextConfig: NextConfig = {
   // Separate local qualification builds can coexist with the running preview.
   distDir: process.env.COMMONS_NEXT_DIST_DIR ?? ".next",
   trailingSlash: true,
   // Both city lookups read their bundled catalogs from disk at runtime.
-  outputFileTracingIncludes: { "/marketing-share/*": ["./public/brand/templates/*", "./public/brand/destinations/*", "./public/brand/fonts/*"], "/api/v1/location-timezones": ["./lib/server/data/*"], "/api/v1/map-cities": ["./lib/server/data/*"] },
+  outputFileTracingIncludes: { "/api/v1/location-timezones": ["./lib/server/data/*"], "/api/v1/map-cities": ["./lib/server/data/*"] },
   images: { unoptimized: true },
   serverExternalPackages: ["xlsx"],
   async headers() {
@@ -29,10 +33,7 @@ const nextConfig: NextConfig = {
     }, {
       source: "/new",
       headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
-    }, ...["/launch/:path*", "/launch-media/:path*"].map(source => ({
-      source,
-      headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
-    }))];
+    }];
   },
   transpilePackages: [
     "@commons/contracts",

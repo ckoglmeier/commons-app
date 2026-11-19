@@ -17,9 +17,12 @@ test('search and AI referrals classify without transmitting URLs or search terms
     assert.ok(!JSON.stringify(result).includes('SECRET'));
   }
   assert.equal(acquisitionFromEntry('', 'https://google.com.evil.example/', '/').acquisition_channel, 'referral');
-  for (const ref of ['', 'invalid', 'https://www.commons.travel/sign-in/?token=SECRET', 'https://accounts.google.com/']) {
-    assert.equal(acquisitionFromEntry('', ref, '/').acquisition_channel, 'direct');
-  }
+  Object.assign(globalThis, { location: { hostname: 'trips.example.test' } });
+  try {
+    for (const ref of ['', 'invalid', 'https://trips.example.test/sign-in/?token=SECRET', 'https://accounts.google.com/']) {
+      assert.equal(acquisitionFromEntry('', ref, '/').acquisition_channel, 'direct');
+    }
+  } finally { delete (globalThis as { location?: unknown }).location; }
 });
 
 test('explicit campaigns override referrals, hidden AI referrals can be tagged, and private metadata is rejected', () => {

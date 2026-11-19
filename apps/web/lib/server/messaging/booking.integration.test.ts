@@ -176,7 +176,7 @@ test("a link is read through the injected reader; an unreadable link falls back 
   try {
     let pages: Record<string, string | null> = { "https://example.com/trip/ok": FLIGHT(), "https://example.com/trip/blocked": null };
     const core = await import("./core");
-    core.setMessagingDepsForTests({ provider: w.provider, now: () => w.clock.now, origin: "https://commons.test", linkReader: async url => pages[url] ?? null, mediaStore: { put: async () => undefined } });
+    core.setMessagingDepsForTests({ provider: w.provider, now: () => w.clock.now, origin: "https://commons.test", notifyWebRecipients: async () => undefined, linkReader: async url => pages[url] ?? null, mediaStore: { put: async () => undefined } });
     await w.text(routes, w.phones.maya, "https://example.com/trip/blocked");
     assert.ok(w.sent().some(body => /Got your link for Sonoma Weekend\. I'll read it/.test(body)), "receipt is its own message");
     assert.match(w.last(), /couldn't read that link/); assert.match(w.last(), /messages\/review\//);

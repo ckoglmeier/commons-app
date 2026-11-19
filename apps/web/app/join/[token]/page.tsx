@@ -4,7 +4,7 @@ import { CoverSketch } from "@/components/cover-sketch";
 import { ResilientCoverImage } from "@/components/resilient-cover-image";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentCommonsIdentity, loadInvitationPreview } from "@/lib/server/commons";
-import { isSupabaseAuthConfigured } from "@/lib/supabase/config";
+import { isSignInConfigured } from "@/lib/supabase/config";
 import { getInvitationEntryContext, invitationProofMatches, readInvitationEmailProof } from "@commons/database";
 import { commonsDatabaseUrl } from "@/lib/server/runtime-environment";
 import { getSupabaseAuthUserEmail } from "@/lib/supabase/admin";
@@ -127,8 +127,8 @@ export default async function JoinCommonsPage({
               {query.entry && !freshEntry ? <p>The sign-in link expired or was already used. Your invitation is still here.</p> : null}
             </div>
             {entryContext ? <InvitationEntryForm token={token} entry={freshEntry} poll={pollPublicId} emailLabel={emailLabel}
-              currentAccountId={identity?.authUserId} currentEmail={identity ? identity.email ?? identity.displayName ?? "your current account" : undefined} next={next} enabled={isSupabaseAuthConfigured()} />
-              : <SignInForm next={next} enabled={isSupabaseAuthConfigured()} intent="invited" />}
+              currentAccountId={identity?.authUserId} currentEmail={identity ? identity.email ?? identity.displayName ?? "your current account" : undefined} next={next} enabled={isSignInConfigured()} />
+              : <SignInForm next={next} enabled={isSignInConfigured()} intent="invited" />}
             {identity && preview.status === "pending" && !preview.managedTraveler ? <div className="invite-arrival__actions">
               <JoinAction token={token} signedIn demo={false} label={`Join as ${identity.email ?? identity.displayName ?? "your current account"}`} pollPublicId={pollPublicId} textMessagingOffered className="invite-arrival__secondary" />
             </div> : null}

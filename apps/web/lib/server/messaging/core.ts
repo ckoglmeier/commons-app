@@ -20,6 +20,8 @@ export type MessagingDeps = {
   linkReader: LinkReader;
   mediaStore: MediaStore;
   supportEmail: string;
+  /** After a batch delivers to threads in Commons: email the people who have something new to read (see notices.ts). */
+  notifyWebRecipients: () => Promise<unknown>;
 };
 
 /** Default link reader: the existing SSRF-guarded preview. It yields a page title and description, which is rarely a whole booking; unreadable links fall back to the secure page. */
@@ -47,6 +49,7 @@ export async function messagingDeps(options: { allowNoProvider?: boolean } = {})
     linkReader: defaultLinkReader,
     mediaStore: { put: storeCommonsConfirmationAsset },
     supportEmail: instanceSettings().contactEmail ?? "the trip organizer",
+    notifyWebRecipients: async () => (await import("./notices")).sendMessageNoticesQuietly(commonsSiteOrigin()),
     ...testOverrides,
   };
 }

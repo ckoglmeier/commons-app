@@ -1,5 +1,5 @@
 import {
-  consentedMembers, consentedNumber, enrolledTripsForNumber, enrollmentStatus, enrollPersonInTrip, getCommonsSnapshot, listCommonsMembershipsForPerson, membershipAttendance, MessagingEnrollmentError,
+  consentedMembers, consentedNumber, markMessagesRead, enrolledTripsForNumber, enrollmentStatus, enrollPersonInTrip, getCommonsSnapshot, listCommonsMembershipsForPerson, membershipAttendance, MessagingEnrollmentError,
   organizerSharesSince, personAuth, recordInbound, threadForPhone, touchPhone, webAddressFor, withdrawFromTrip,
 } from "@commons/database";
 import { ORGANIZER_SHARE_MAX_LENGTH, ORGANIZER_SHARES_PER_DAY, sanitizeInbound, WEB_MESSAGES_CONSENT_TEXT, WEB_MESSAGES_CONSENT_WORDING } from "@commons/domain";
@@ -42,6 +42,8 @@ export async function readWebThread() {
   catch (error) { console.warn("commons.messaging.catch_up_dispatch_failed", { error: error instanceof Error ? error.name : "unknown" }); }
   const memberships = await listCommonsMembershipsForPerson(options.actorPersonId, options.databaseUrl);
   // What Commons has said appears once it goes out, as it would on a phone: something held for quiet hours or pacing isn't shown early.
+  // Opening the thread counts as reading it: the next new message may bring one email notice again (notices.ts).
+  await markMessagesRead(options.actorPersonId, deps.now(), deps.databaseUrl).catch(() => undefined);
   const messages = (await threadForPhone(address, 200, dbOptions(deps))).filter(message => message.direction === "inbound" || ["sent", "delivered"].includes(message.status));
   return {
     optedOut: state.optedOut,

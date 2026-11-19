@@ -25,9 +25,8 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Commons — Group travel with less group work.",
     description: "Plans, decisions, expenses, and photos for a group trip.",
-    images: [{ url: "https://www.commons.travel/brand/commons-social.png", width: 1200, height: 630, alt: "Commons" }],
   },
-  twitter: { card: "summary_large_image", images: ["https://www.commons.travel/brand/commons-social.png"] },
+  twitter: { card: "summary" },
 };
 
 export const viewport: Viewport = {

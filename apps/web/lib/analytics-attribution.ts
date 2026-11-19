@@ -104,7 +104,7 @@ export function acquisitionFromEntry(search: string, referrer: string, landing: 
   let host = '';
   try {
     const url = new URL(referrer);
-    if (['https:', 'http:'].includes(url.protocol) && !['commons.travel', 'www.commons.travel'].includes(url.hostname)) host = url.hostname.toLowerCase();
+    if (['https:', 'http:'].includes(url.protocol) && url.hostname !== (typeof location === 'undefined' ? '' : location.hostname)) host = url.hostname.toLowerCase();
   } catch { /* Direct or hidden referrer. */ }
   // Login providers are return paths, not acquisition sources.
   if (['accounts.google.com', 'accounts.youtube.com', 'login.microsoftonline.com'].includes(host)) host = '';

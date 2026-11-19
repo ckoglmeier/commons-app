@@ -1,3 +1,4 @@
+import { applyEnvironmentAliases } from "@commons/database/environment-aliases";
 import { z } from "zod";
 
 const optionalUrl = z.string().url().optional();
@@ -7,6 +8,7 @@ const RuntimeEnvironmentSchema = z.object({
   VERCEL: z.string().optional(),
   VERCEL_ENV: z.enum(["development", "preview", "production"]).optional(),
   VERCEL_URL: z.string().min(1).optional(),
+  VERCEL_PROJECT_PRODUCTION_URL: z.string().min(1).optional(),
   DATABASE_URL: optionalUrl,
   NEXT_PUBLIC_SUPABASE_URL: optionalUrl,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1).optional(),
@@ -52,7 +54,6 @@ const RuntimeEnvironmentSchema = z.object({
       "DATABASE_URL",
       "NEXT_PUBLIC_SUPABASE_URL",
       "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-      "COMMONS_INVITATION_TOKEN_KEY",
       "CRON_SECRET",
     ] as const) {
       if (!environment[key]) {
@@ -60,7 +61,8 @@ const RuntimeEnvironmentSchema = z.object({
       }
     }
   }
-  if (production && !environment.NEXT_PUBLIC_SITE_URL) {
+  // On Vercel the production address stands in (commonsSiteOrigin); a custom domain should set NEXT_PUBLIC_SITE_URL.
+  if (production && !environment.NEXT_PUBLIC_SITE_URL && !environment.VERCEL_PROJECT_PRODUCTION_URL) {
     context.addIssue({
       code: "custom",
       message: "NEXT_PUBLIC_SITE_URL is required in production.",
@@ -81,6 +83,8 @@ export type CommonsRuntimeEnvironment = z.infer<typeof RuntimeEnvironmentSchema>
 export function readCommonsRuntimeEnvironment(
   environment: NodeJS.ProcessEnv = process.env,
 ): CommonsRuntimeEnvironment {
+  // Marketplace integration names (POSTGRES_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, ...) fill Commons's names when those are empty.
+  if (environment === process.env) applyEnvironmentAliases(process.env as Record<string, string | undefined>);
   const result = RuntimeEnvironmentSchema.safeParse(environment);
   if (result.success) return result.data;
   const details = result.error.issues.map((issue) => issue.message).join(" ");
@@ -108,7 +112,9 @@ export function commonsSiteOrigin(
 ) {
   const configured = readCommonsRuntimeEnvironment(environment).NEXT_PUBLIC_SITE_URL;
   if (configured) return new URL(configured).origin;
-  const vercelUrl = readCommonsRuntimeEnvironment(environment).VERCEL_URL;
+  const runtime = readCommonsRuntimeEnvironment(environment);
+  if (runtime.VERCEL_ENV === "production" && runtime.VERCEL_PROJECT_PRODUCTION_URL) return new URL(`https://${runtime.VERCEL_PROJECT_PRODUCTION_URL}`).origin;
+  const vercelUrl = runtime.VERCEL_URL;
   if (vercelUrl) return new URL(`https://${vercelUrl}`).origin;
   if (requestOrigin) return new URL(requestOrigin).origin;
   throw new Error("NEXT_PUBLIC_SITE_URL is required outside a request context.");

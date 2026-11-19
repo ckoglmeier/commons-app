@@ -1,4 +1,7 @@
-import { claimMessageNotices, releaseMessageNotice, unreadWebMessageRecipients, type UnreadWebRecipient } from "@commons/database";
+import { claimMessageNotices, invitedEmailForPerson, messageEmailsEnabled, releaseMessageNotice, unreadWebMessageRecipients, type UnreadWebRecipient } from "@commons/database";
+import { sendEmail } from "@/lib/email/resend";
+import { getSupabaseAuthUserEmail, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import { commonsDatabaseUrl } from "../runtime-environment";
 import { isQuietHours } from "@commons/domain";
 import { renderMessageNoticeEmail } from "@/lib/email/message-notice-email";
 import type { SendEmailInput } from "@/lib/email/resend";
@@ -53,4 +56,28 @@ export async function sendMessageNotices(deps: NoticeDeps): Promise<NoticeSummar
     }
   }
   return summary;
+}
+
+/** Notices as the app sends them: through the configured email mode, to the account's email (or, without Supabase admin access, the address the person was invited at). */
+export async function defaultNoticeDeps(origin: string): Promise<NoticeDeps | null> {
+  const databaseUrl = commonsDatabaseUrl();
+  if (!databaseUrl) return null;
+  return {
+    databaseUrl, origin, now: () => new Date(), send: sendEmail,
+    recipient: async ({ personId, authUserId }) => {
+      const email = authUserId && isSupabaseAdminConfigured() ? await getSupabaseAuthUserEmail(authUserId).catch(() => null) : await invitedEmailForPerson(personId, databaseUrl);
+      return email ? { email, emailsEnabled: await messageEmailsEnabled(personId, databaseUrl) } : null;
+    },
+  };
+}
+
+/** Sends any notices due, never failing the caller: a notice is a nicety on top of the thread. */
+export async function sendMessageNoticesQuietly(origin: string) {
+  try {
+    const deps = await defaultNoticeDeps(origin);
+    return deps ? await sendMessageNotices(deps) : null;
+  } catch (error) {
+    console.warn("commons.messaging.notices_failed", { error: error instanceof Error ? error.name : "unknown" });
+    return null;
+  }
 }

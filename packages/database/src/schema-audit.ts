@@ -5,6 +5,9 @@ import {
   schemaContractSummary,
 } from "./schema-contract";
 import { CANONICAL_SCHEMA_FINGERPRINT } from "./migration-state";
+import { applyEnvironmentAliases } from "./environment-aliases";
+
+applyEnvironmentAliases();
 
 const databaseUrl = process.env.DATABASE_DIRECT_URL ?? process.env.DATABASE_URL;
 // Database-free preview projects can compile the app without production access.

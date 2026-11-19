@@ -5,13 +5,14 @@ import { build } from 'esbuild';
 test('account setup records only a successful saved account, never failed validation or persistence', async () => {
   const stub = `export const state={events:[],fail:false,authenticated:true,metadata:{}};
     export const headers=async()=>new Headers();
+    export const cookies=async()=>({get(){},set(){},delete(){}});export const getDevSignInIdentity=async()=>null;export const isSupabaseAuthConfigured=()=>true;export const startDevSession=async()=>({});
     export const recordOutcome=input=>state.events.push(input);
     export const redirect=()=>{throw new Error('REDIRECT')};
     export const commonsDatabaseUrl=()=> 'synthetic';export const textMessagingAvailable=()=>false;
     export const safeAuthNext=value=>value||'/trips';export const hasCompletedAccountName=metadata=>!!metadata?.first_name;
     export const findOrClaimPersonForAuthIdentity=async()=>{if(state.fail)throw new Error('DB down');return 'person-1'};
     export const createSupabaseServerClient=async()=>({auth:{getUser:async()=>({data:{user:state.authenticated?{id:'account-1',user_metadata:state.metadata}:null}}),updateUser:async()=>({data:{user:{id:'account-1',email:'test@example.invalid'}}})}});`;
-  const imports = new Set(['@commons/database','next/headers','next/navigation','@/lib/server/outcome-telemetry','@/lib/server/runtime-environment','@/lib/supabase/server','@/lib/auth-flow','qa-state']);
+  const imports = new Set(['@commons/database','next/headers','next/navigation','@/lib/server/outcome-telemetry','@/lib/server/runtime-environment','@/lib/supabase/server','@/lib/supabase/config','@/lib/server/dev-session','@/lib/auth-flow','qa-state']);
   const bundle = await build({stdin:{contents:"export {completeAccount} from './app/account/create/actions';export {state} from 'qa-state';",resolveDir:process.cwd()},bundle:true,write:false,format:'esm',platform:'node',plugins:[{name:'fake-dependencies',setup(b){b.onResolve({filter:/.*/},args=>imports.has(args.path)?{path:'shared',namespace:'fake'}:undefined);b.onLoad({filter:/.*/,namespace:'fake'},()=>({contents:stub}));}}]});
   const client=await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString('base64')}`);
   const empty=new FormData();

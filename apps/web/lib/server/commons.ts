@@ -73,11 +73,11 @@ import type { PendingCommonsInvitationSummary } from "@commons/database";
 import { pilotSnapshot } from "@/lib/pilot-fixture";
 import {
   getLocalDevelopmentPilotActorId,
-  isSupabaseAuthConfigured,
+  isSignInConfigured,
 } from "@/lib/supabase/config";
 import {
   getCommonsAuthIdentity,
-  createSupabaseServerClient,
+  getVerifiedAuthUser,
   type CommonsAuthIdentity,
 } from "@/lib/supabase/server";
 import { renderCommonsInvitationEmail } from "@/lib/email/invitation-email";
@@ -107,7 +107,7 @@ function databaseUrl() {
 }
 
 async function authenticatedIdentity() {
-  if (!isSupabaseAuthConfigured()) {
+  if (!isSignInConfigured()) {
     throw new CommonsAuthenticationRequiredError();
   }
   const identity = await getCommonsAuthIdentity();
@@ -122,7 +122,7 @@ async function databaseOptions(identity?: CommonsAuthIdentity) {
   const principal = currentTurnPrincipal();
   if (principal && !identity) return { databaseUrl: url, actorPersonId: principal.actorPersonId };
 
-  if (isSupabaseAuthConfigured()) {
+  if (isSignInConfigured()) {
     const resolvedIdentity = identity ?? await authenticatedIdentity();
     const actorPersonId = await findOrClaimPersonForAuthIdentity(
       resolvedIdentity!,
@@ -164,7 +164,7 @@ export async function loadCurrentCommonsMemberships(): Promise<
   const url = databaseUrl();
   if (!url) return [];
 
-  if (isSupabaseAuthConfigured()) {
+  if (isSignInConfigured()) {
     const identity = await getCommonsAuthIdentity();
     if (!identity) return [];
     const personId = await findOrClaimPersonForAuthIdentity(identity!, url);
@@ -188,7 +188,7 @@ export async function loadCurrentCommonsMemberships(): Promise<
 
 export async function loadCurrentPendingInvitations(): Promise<PendingCommonsInvitationSummary[]> {
   const url = databaseUrl();
-  if (!url || !isSupabaseAuthConfigured()) return [];
+  if (!url || !isSignInConfigured()) return [];
   const identity = await getCommonsAuthIdentity();
   if (!identity?.email) return [];
   return listPendingCommonsInvitationsForIdentity(identity, url);
@@ -879,17 +879,16 @@ export async function claimAuthenticatedInvitation(token: string) {
   if (!url) throw new Error("Commons database persistence is not configured.");
   const identity = await authenticatedIdentity();
   if (!identity) throw new CommonsAuthenticationRequiredError();
-  const supabase = await createSupabaseServerClient();
-  const {data, error} = await supabase.auth.getUser();
-  if (error || !data.user || data.user.id !== identity.authUserId) throw new CommonsAuthenticationRequiredError();
+  const verified = await getVerifiedAuthUser();
+  if (!verified || verified.authUserId !== identity.authUserId) throw new CommonsAuthenticationRequiredError();
   return claimCommonsInvitation(token, {
     ...identity,
-    email: data.user.email_confirmed_at ? data.user.email : undefined,
+    email: verified.email ?? undefined,
   }, url);
 }
 
 export async function getCurrentCommonsIdentity() {
-  if (!isSupabaseAuthConfigured()) return null;
+  if (!isSignInConfigured()) return null;
   return getCommonsAuthIdentity();
 }
 

@@ -4,10 +4,13 @@ import { randomUUID } from "node:crypto";
 import { inArray } from "drizzle-orm";
 import { commons, createDatabase, markMessagesRead, messagingMessages, people } from "@commons/database";
 import { databaseTestsEnabled, testDatabaseUrl } from "../../test-support/database-harness";
-import { sendMessageNotices, type NoticeDeps } from "./notices";
+import { registerComponentImportStubs } from "../../test-support/hook-harness";
+import type { NoticeDeps } from "./notices";
 import type { SendEmailInput } from "@/lib/email/resend";
 
 test("new Messages with Commons send one email notice per person, held in quiet hours, and again only after they read", { skip: !databaseTestsEnabled }, async () => {
+  registerComponentImportStubs();
+  const { sendMessageNotices } = await import("./notices");
   const url = testDatabaseUrl(), db = createDatabase(url);
   const maya = randomUUID(), sam = randomUUID(), noEmail = randomUUID(), organizer = randomUUID(), trip = randomUUID(), night = randomUUID();
   const ids = [maya, sam, noEmail, organizer];

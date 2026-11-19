@@ -3,7 +3,7 @@ import { CommonsWordmark } from "@commons/ui";
 import { SignInForm } from "@/app/sign-in/sign-in-form";
 import { CommonsAuthenticationRequiredError } from "@/lib/server/commons-access-errors";
 import { readReview } from "@/lib/server/messaging/web";
-import { isSupabaseAuthConfigured } from "@/lib/supabase/config";
+import { isSignInConfigured } from "@/lib/supabase/config";
 import { ReviewActions } from "./review-actions";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +24,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ token: 
         {signedOut ? <>
           <div className="entry-copy"><span className="view-kicker">Booking review</span><h1 id="review-title">Sign in to check your booking</h1>
             <p>This page is private to the person who sent the booking. Sign in with the account you use for the trip.</p></div>
-          <SignInForm next={`/messages/review/${token}`} intent="sign-in" enabled={isSupabaseAuthConfigured()} />
+          <SignInForm next={`/messages/review/${token}`} intent="sign-in" enabled={isSignInConfigured()} />
         </> : !view ? <>
           <div className="entry-copy"><h1 id="review-title">This review isn’t available</h1>
             <p>The link may have expired, or it belongs to someone else’s account. Text Commons your booking again to get a new one.</p></div>

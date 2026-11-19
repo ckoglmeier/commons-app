@@ -1,46 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "git": {
-    "deploymentEnabled": {
-      "codex/coordinator-inference-tracing": false,
-      "codex/coordinator-plan-import": false,
-      "codex/itinerary-feedback-release": false,
-      "codex/itinerary-generation-timeout": false,
-      "codex/composer-attachments-release": false,
-      "codex/conversational-itinerary-document": false,
-      "claude/trip-map-v0": false,
-      "codex/oct23-conversation-durability": false,
-      "claude/free-beta": false,
-      "claude/beta-rework": false,
-      "claude/beta-account-access": false,
-      "claude/sms-overnight": false,
-      "claude/sms-live-test": false,
-      "claude/sms-funding": false,
-      "claude/web-messages": false,
-      "claude/web-messages-fixes": false,
-      "claude/ci-parallel-tests": false
-    }
-  },
   "framework": "nextjs",
   "installCommand": "cd ../.. && npm install",
   "buildCommand": "cd ../.. && npm run db:migrate -w @commons/database && COMMONS_SCHEMA_AUDIT_EXPECT_CANONICAL=true npm run db:schema:audit -w @commons/database && npm run build -w @commons/web",
   "outputDirectory": ".next",
   "crons": [
     {
-      "path": "/api/internal/invitation-deliveries/",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/internal/conversation-digests/",
+      "path": "/api/internal/daily/",
       "schedule": "0 16 * * *"
-    },
-    {
-      "path": "/api/internal/daily-analytics/",
-      "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/internal/messaging/",
-      "schedule": "0 17 * * *"
     }
   ]
 }

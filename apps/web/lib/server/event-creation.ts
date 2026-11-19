@@ -12,7 +12,7 @@ import {
 } from "@commons/database";
 import {
   getLocalDevelopmentPilotActorId,
-  isSupabaseAuthConfigured,
+  isSignInConfigured,
 } from "@/lib/supabase/config";
 import { getCommonsAuthIdentity } from "@/lib/supabase/server";
 import {
@@ -28,7 +28,7 @@ function databaseUrl() {
 async function creationOptions() {
   const url = databaseUrl();
   if (!url) throw new Error("Commons database persistence is not configured.");
-  if (!isSupabaseAuthConfigured()) {
+  if (!isSignInConfigured()) {
     const actorPersonId = getLocalDevelopmentPilotActorId();
     if (!actorPersonId) throw new CommonsAuthenticationRequiredError();
     return { databaseUrl: url, actorPersonId };
@@ -42,7 +42,7 @@ async function creationOptions() {
 
 /** Any signed-in account may create a trip. */
 export async function getEventCreationPageAccess() {
-  if (!isSupabaseAuthConfigured()) return { signedIn: Boolean(getLocalDevelopmentPilotActorId()) };
+  if (!isSignInConfigured()) return { signedIn: Boolean(getLocalDevelopmentPilotActorId()) };
   return { signedIn: Boolean(await getCommonsAuthIdentity()) };
 }
 

@@ -2,7 +2,7 @@ import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
 import { cookies, headers } from "next/headers";
-import { DEV_SIGN_IN_COOKIE, decodeDevIdentity, devSignInAllowedForHost } from "@/lib/dev-sign-in";
+import { DEV_SIGN_IN_COOKIE, decodeDevIdentity, devSignInAllowedForHost, type DevIdentity } from "@/lib/dev-sign-in";
 import { getSupabaseAuthConfig, isSupabaseAuthConfigured } from "./config";
 import { getCommonsAuthCookieOptions } from "./session";
 import { currentTurnPrincipal } from "@/lib/server/turn-principal";
@@ -39,7 +39,7 @@ export type CommonsAuthIdentity = {
 };
 
 /** The local test sign-in's identity for this request, or null. Never available in a production build or away from localhost. */
-export async function getDevSignInIdentity(): Promise<CommonsAuthIdentity | null> {
+export async function getDevSignInIdentity(): Promise<DevIdentity | null> {
   if (process.env.NODE_ENV !== "development") return null;
   const requestHeaders = await headers();
   if (!devSignInAllowedForHost(requestHeaders.get("host"))) return null;
@@ -68,4 +68,20 @@ export async function getCommonsAuthIdentity(): Promise<CommonsAuthIdentity | nu
         ? data.claims.user_metadata.first_name
         : undefined,
   };
+}
+
+/**
+ * The signed-in account with its email only when confirmed. For Supabase this asks the auth server (not just the cookie). For the local
+ * test sign-in the made-up email counts as confirmed, since that path only exists on a development machine.
+ */
+export async function getVerifiedAuthUser(): Promise<{ authUserId: string; email: string | null; displayName?: string } | null> {
+  if (!isSupabaseAuthConfigured()) {
+    const dev = await getDevSignInIdentity();
+    return dev ? { authUserId: dev.authUserId, email: dev.email, ...(dev.displayName ? { displayName: dev.displayName } : {}) } : null;
+  }
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) return null;
+  const firstName = data.user.user_metadata?.first_name;
+  return { authUserId: data.user.id, email: data.user.email_confirmed_at && data.user.email ? data.user.email : null, ...(typeof firstName === "string" && firstName.trim() ? { displayName: firstName.trim() } : {}) };
 }

@@ -14,10 +14,6 @@ export async function groupInvitationBody(request: Request) {
   const origin = request.headers.get("origin");
   const allowed = new Set<string>();
   if (process.env.NEXT_PUBLIC_SITE_URL) allowed.add(new URL(process.env.NEXT_PUBLIC_SITE_URL).origin);
-  // These are the two owned production aliases, not a *.commons.travel rule.
-  if (allowed.has("https://www.commons.travel") || allowed.has("https://commons.travel")) {
-    allowed.add("https://www.commons.travel"); allowed.add("https://commons.travel");
-  }
   // Trust only this deployment's server-provided hostname. Never accept a
   // client-forwarded host, arbitrary preview domain or vercel.app wildcard.
   if (process.env.VERCEL && ["preview", "production"].includes(process.env.VERCEL_ENV ?? "") && process.env.VERCEL_URL) {

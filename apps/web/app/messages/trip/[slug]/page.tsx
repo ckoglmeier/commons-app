@@ -6,7 +6,7 @@ import { CommonsAuthenticationRequiredError, CommonsMembershipRequiredError } fr
 import { readEnrollment } from "@/lib/server/messaging/web";
 import { readWebMessagesForTrip } from "@/lib/server/messaging/web-thread";
 import { textMessagingAvailable } from "@/lib/server/runtime-environment";
-import { isSupabaseAuthConfigured } from "@/lib/supabase/config";
+import { isSignInConfigured } from "@/lib/supabase/config";
 import { EnrollmentForm } from "./enrollment-form";
 import { WebMessagesForm } from "./web-messages-form";
 
@@ -31,7 +31,7 @@ export default async function TextWithCommonsPage({ params, searchParams }: { pa
         <Link className="entry-brand" href="/"><CommonsWordmark /></Link>
         {signedOut ? <>
           <div className="entry-copy"><h1 id="text-title">Sign in to turn on texts</h1><p>Texting is optional and you can use the trip on the web without it.</p></div>
-          <SignInForm next={`/messages/trip/${slug}`} intent="sign-in" enabled={isSupabaseAuthConfigured()} />
+          <SignInForm next={`/messages/trip/${slug}`} intent="sign-in" enabled={isSignInConfigured()} />
         </> : !status ? <>
           <div className="entry-copy"><h1 id="text-title">This trip isn’t available</h1><p>You need to be a member of the trip to turn on texts for it.</p></div>
           <Link className="sheet-secondary" href="/trips/">Open your trips</Link>

@@ -1,18 +1,16 @@
 import "server-only";
 import { getGroupInvitationPreview, joinGroupInvitation, GroupInvitationUnavailableError, findOrClaimPersonForAuthIdentity } from "@commons/database";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getVerifiedAuthUser } from "@/lib/supabase/server";
 import { CommonsAuthenticationRequiredError } from "./commons-access-errors";
 import { commonsDatabaseUrl } from "./runtime-environment";
-import { isSupabaseAuthConfigured } from "@/lib/supabase/config";
+import { isSignInConfigured, isSupabaseAuthConfigured } from "@/lib/supabase/config";
 import { authenticatedCommonsRepositoryOptions } from "./commons";
 import { getSupabaseVerifiedAuthUserEmail } from "@/lib/supabase/admin";
 
 export async function verifiedGroupInvitationIdentity() {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.getUser();
-  const user = data.user;
-  if (error || !user || !user.email_confirmed_at || !user.email) throw new CommonsAuthenticationRequiredError();
-  return { authUserId: user.id, email: user.email, displayName: typeof user.user_metadata?.first_name === "string" ? user.user_metadata.first_name.trim() : undefined };
+  const user = await getVerifiedAuthUser();
+  if (!user?.email) throw new CommonsAuthenticationRequiredError();
+  return { authUserId: user.authUserId, email: user.email, displayName: user.displayName };
 }
 /** A link keeps working only while its creator still has a provider-verified account. */
 async function creatorStillEligible(authUserId: string, _tripId: string) {
@@ -20,8 +18,8 @@ async function creatorStillEligible(authUserId: string, _tripId: string) {
 }
 export async function groupInvitationManagementOptions(slug: string, mode: "read" | "write" = "write") {
   const url = commonsDatabaseUrl(); if (!url) throw new Error("Commons persistence is not configured.");
-  // Existing explicit localhost fixture path; never runs on Vercel.
-  if (!isSupabaseAuthConfigured()) return authenticatedCommonsRepositoryOptions();
+  // The fixed local-development actor (tests); never runs on Vercel. The local test sign-in uses the verified path below.
+  if (!isSignInConfigured()) return authenticatedCommonsRepositoryOptions();
   let identity;
   try { identity = await verifiedGroupInvitationIdentity(); }
   catch (error) { if (mode === "read" && error instanceof CommonsAuthenticationRequiredError) return null; throw error; }

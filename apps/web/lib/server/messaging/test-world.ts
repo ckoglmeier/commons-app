@@ -41,6 +41,7 @@ export async function world(options: { trips?: Array<"sonoma" | "tahoe"> } = {})
   process.env.COMMONS_INVITATION_TOKEN_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   process.env.NEXT_PUBLIC_SITE_URL = "https://commons.test";
   process.env.CRON_SECRET = "synthetic-cron-secret-0001";
+  process.env.DATABASE_URL = testDatabaseUrl();
   for (const name of Object.keys(TWILIO_TEST_ENV)) delete process.env[name];
   const url = testDatabaseUrl();
   // A crashed earlier run must not leave synthetic messages for this run's dispatcher to pick up: the outbox is global by design.
@@ -52,8 +53,8 @@ export async function world(options: { trips?: Array<"sonoma" | "tahoe"> } = {})
   const provider = new FakeProvider();
   let nowMs = Date.parse("2026-11-04T19:00:00Z"); // 11:00 in Los Angeles, outside quiet hours
   const stored: Array<{ path: string; bytes: Uint8Array; mimeType: string }> = [];
-  const state = { extractor: undefined as import("./extraction").BookingExtractor | undefined, provider: provider as import("./provider").MessagingProvider };
-  const apply = () => setMessagingDepsForTests({ provider: state.provider, now: () => new Date(++nowMs), /* time moves forward between reads, as it does outside tests; two messages never share a timestamp */ origin: "https://commons.test", mediaStore: { put: async (path, bytes, mimeType) => { stored.push({ path, bytes, mimeType }); } }, ...(state.extractor ? { extractor: state.extractor } : {}) });
+  const state = { notices: 0, extractor: undefined as import("./extraction").BookingExtractor | undefined, provider: provider as import("./provider").MessagingProvider };
+  const apply = () => setMessagingDepsForTests({ provider: state.provider, now: () => new Date(++nowMs), /* time moves forward between reads, as it does outside tests; two messages never share a timestamp */ origin: "https://commons.test", notifyWebRecipients: async () => { state.notices++; }, mediaStore: { put: async (path, bytes, mimeType) => { stored.push({ path, bytes, mimeType }); } }, ...(state.extractor ? { extractor: state.extractor } : {}) });
   setMessagingProviderForTests(provider);
   apply();
 
@@ -80,6 +81,8 @@ export async function world(options: { trips?: Array<"sonoma" | "tahoe"> } = {})
   let counter = 0;
   const world = {
     url, provider, ids, phones, slugs, stored, q,
+    /** How many times a batch asked for email notices about new messages in Commons. */
+    get notices() { return state.notices; },
     setExtractor(extractor: import("./extraction").BookingExtractor | undefined) { state.extractor = extractor; apply(); },
     useProvider(next: import("./provider").MessagingProvider) { state.provider = next; setMessagingProviderForTests(next); apply(); },
     clock: { set(iso: string) { nowMs = Date.parse(iso); }, advance(ms: number) { nowMs += ms; }, get now() { return new Date(nowMs); } },

@@ -1,8 +1,8 @@
 import "server-only";
 
 import { createCommonsPoll, PollRepositoryError, reservePollFraming, getPollDeliveryReview, queuePollDeliveries, getEventAttendance, setEventAttendance, revokePollRecipient, approvePollDecision, listCommonsPollDrafts, saveCommonsPollDraft, deleteCommonsPollResponse, findOrClaimPersonForAuthIdentity, getCommonsPollDetail, getPublicPollByPublicId, getPublicPollByToken, getPendingPollInvitation, localDevelopmentPollViewer, submitPublicPollResponse, submitPublicPollResponseByPublicId, updateCommonsPollStatus } from "@commons/database";
-import { getLocalDevelopmentPilotActorId, isSupabaseAuthConfigured } from "@/lib/supabase/config";
-import { createSupabaseServerClient, getCommonsAuthIdentity } from "@/lib/supabase/server";
+import { getLocalDevelopmentPilotActorId, isSignInConfigured } from "@/lib/supabase/config";
+import { getCommonsAuthIdentity, getVerifiedAuthUser } from "@/lib/supabase/server";
 import { CommonsAuthenticationRequiredError, CommonsMembershipRequiredError } from "./commons";
 import { commonsDatabaseUrl } from "./runtime-environment";
 import { getSupabaseVerifiedAuthUserEmail } from "@/lib/supabase/admin";
@@ -22,9 +22,9 @@ async function pollOptions(slug?: string) {
   const principal = currentTurnPrincipal();
   if (principal) {
     if (slug && slug !== principal.tripId) throw new CommonsMembershipRequiredError();
-    return { databaseUrl: url, actorPersonId: principal.actorPersonId, sharedCoordinator: sharedWorkspaceForTrip(slug), ...(isSupabaseAuthConfigured() ? { resolveVerifiedEmail: getSupabaseVerifiedAuthUserEmail } : {}) };
+    return { databaseUrl: url, actorPersonId: principal.actorPersonId, sharedCoordinator: sharedWorkspaceForTrip(slug), ...(isSignInConfigured() ? { resolveVerifiedEmail: getSupabaseVerifiedAuthUserEmail } : {}) };
   }
-  if (isSupabaseAuthConfigured()) {
+  if (isSignInConfigured()) {
     const identity = await getCommonsAuthIdentity();
     if (!identity) throw new CommonsAuthenticationRequiredError();
     const actorPersonId = await findOrClaimPersonForAuthIdentity(identity, url);
@@ -78,8 +78,8 @@ export async function loadAuthenticatedPollDrafts(slug: string, draftId?: string
   return listCommonsPollDrafts(slug, await pollOptions(), draftId);
 }
 
-export async function saveAuthenticatedPollDraft(slug: string, input: unknown, threadId?: string) {
-  return saveCommonsPollDraft(slug, input, await pollOptions(slug), threadId ? { threadId } : undefined);
+export async function saveAuthenticatedPollDraft(slug: string, input: unknown) {
+  return saveCommonsPollDraft(slug, input, await pollOptions(slug));
 }
 
 export async function loadAuthenticatedPoll(slug: string, pollId: string) {
@@ -129,15 +129,14 @@ export async function savePublicPollResponseByPublicId(publicId: string, input: 
 }
 
 export async function authenticatedPollViewer() {
-  if (!isSupabaseAuthConfigured()) {
+  if (!isSignInConfigured()) {
     const localActor = getLocalDevelopmentPilotActorId();
     const url = databaseUrl();
     return localActor && url ? localDevelopmentPollViewer(localActor, url) : undefined;
   }
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) return undefined;
-  return { authUserId: data.user.id, email: data.user.email_confirmed_at ? data.user.email ?? null : null };
+  const verified = await getVerifiedAuthUser();
+  if (!verified) return undefined;
+  return { authUserId: verified.authUserId, email: verified.email };
 }
 
 export async function pendingPollInvitation(publicId: string) {

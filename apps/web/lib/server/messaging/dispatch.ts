@@ -13,7 +13,7 @@ const BACKOFF_MS = [60_000, 5 * 60_000, 20 * 60_000, 60 * 60_000];
 const baseKey = (key: string | null) => (key ?? "").replace(/:\d+$/, "");
 const warn = (name: string, detail: Record<string, unknown>) => console.warn(name, detail);
 
-export type DispatchSummary = { sent: number; deferred: number; suppressed: number; failed: number; retried: number; blocked: string | null };
+export type DispatchSummary = { sent: number; deferred: number; suppressed: number; failed: number; retried: number; blocked: string | null; webSent?: number };
 
 /**
  * Send what is due. Each message is rechecked immediately before it leaves: a number that changed, a membership that ended, a withdrawn consent, an
@@ -35,6 +35,8 @@ export async function dispatchOutbox(deps: MessagingDeps, limit = 25): Promise<D
       summary.retried++;
     }
   }
+  // One email notice per person for this batch's new messages in Commons (held during quiet hours; see notices.ts).
+  if (summary.webSent) await deps.notifyWebRecipients().catch(() => undefined);
   return summary;
 }
 
@@ -91,6 +93,7 @@ async function sendOne(deps: MessagingDeps, message: MessageRow, summary: Dispat
     const outcome = await carrier.send({ to: e164, body: message.body, idempotencyKey: message.idempotencyKey ?? message.id });
     await recordSendResult(message.id, { ok: true, providerMessageId: outcome.providerMessageId, status: "sent" }, options);
     summary.sent++;
+    if (carrier === webCarrier) summary.webSent = (summary.webSent ?? 0) + 1;
   } catch (error) {
     if (!(error instanceof ProviderSendError)) throw error;
     warn("commons.messaging.send_failed", { messageId: message.id, code: error.code, retryable: error.retryable, unknownOutcome: error.unknownOutcome, attempt: message.attempts });

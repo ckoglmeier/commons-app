@@ -7,7 +7,9 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { safeAuthNext, hasCompletedAccountName } from "@/lib/auth-flow";
 import { commonsDatabaseUrl, textMessagingAvailable } from "@/lib/server/runtime-environment";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, getDevSignInIdentity } from "@/lib/supabase/server";
+import { isSupabaseAuthConfigured } from "@/lib/supabase/config";
+import { startDevSession } from "@/lib/server/dev-session";
 
 export type CreateAccountState = { message?: string };
 
@@ -25,6 +27,19 @@ export async function completeAccount(
     next: formData.get("next") || undefined,
   });
   if (!parsed.success) return { message: "Enter your first name." };
+
+  if (!isSupabaseAuthConfigured()) {
+    // Local test sign-in: the name lives in this browser's test session.
+    const current = await getDevSignInIdentity();
+    if (!current) return { message: "Sign in again before creating your account." };
+    const identity = await startDevSession(current.email, parsed.data.firstName);
+    const databaseUrl = commonsDatabaseUrl();
+    if (databaseUrl) {
+      try { await findOrClaimPersonForAuthIdentity({ ...identity, displayName: parsed.data.firstName }, databaseUrl); }
+      catch { return { message: "Account not created. Try again." }; }
+    }
+    redirect(safeAuthNext(parsed.data.next));
+  }
 
   const supabase = await createSupabaseServerClient();
   const { data: current, error: sessionError } = await supabase.auth.getUser();

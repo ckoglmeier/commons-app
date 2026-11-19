@@ -84,6 +84,7 @@ test("the full conversation in Commons: welcome, attendance, a poll, the plan, m
     const welcomed = await read();
     assert.match(latest(welcomed), /^Hi Maya, this is Commons/); assert.match(latest(welcomed), /are you in/i);
     assert.doesNotMatch(latest(welcomed), /Save this number|Reply STOP/);
+    assert.ok(w.notices >= 1, "delivering the welcome to the thread asks for an email notice");
 
     assert.match(replyTo(await send("yes"), "yes"), /You're in for Sonoma Weekend/);
     assert.equal(await w.attendance("maya", "sonoma"), "attending");
