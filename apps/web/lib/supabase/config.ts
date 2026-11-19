@@ -1,4 +1,4 @@
-import { devSignInAllowed } from "@/lib/dev-sign-in";
+import { devSignInAllowed } from "@/lib/dev-sign-in-policy";
 
 export function isSupabaseAuthConfigured() {
   return Boolean(
