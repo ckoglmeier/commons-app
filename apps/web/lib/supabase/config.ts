@@ -1,8 +1,15 @@
+import { devSignInAllowed } from "@/lib/dev-sign-in";
+
 export function isSupabaseAuthConfigured() {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   );
+}
+
+/** Some way to sign in exists: Supabase, or the local test sign-in on a development machine (lib/dev-sign-in.ts). */
+export function isSignInConfigured() {
+  return isSupabaseAuthConfigured() || devSignInAllowed();
 }
 
 type PilotActorEnvironment = {

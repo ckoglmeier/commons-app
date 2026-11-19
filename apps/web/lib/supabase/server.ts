@@ -1,7 +1,8 @@
 import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { DEV_SIGN_IN_COOKIE, decodeDevIdentity, devSignInAllowedForHost } from "@/lib/dev-sign-in";
 import { getSupabaseAuthConfig, isSupabaseAuthConfigured } from "./config";
 import { getCommonsAuthCookieOptions } from "./session";
 import { currentTurnPrincipal } from "@/lib/server/turn-principal";
@@ -37,8 +38,16 @@ export type CommonsAuthIdentity = {
   displayName?: string;
 };
 
+/** The local test sign-in's identity for this request, or null. Never available in a production build or away from localhost. */
+export async function getDevSignInIdentity(): Promise<CommonsAuthIdentity | null> {
+  if (process.env.NODE_ENV !== "development") return null;
+  const requestHeaders = await headers();
+  if (!devSignInAllowedForHost(requestHeaders.get("host"))) return null;
+  return decodeDevIdentity((await cookies()).get(DEV_SIGN_IN_COOKIE)?.value);
+}
+
 export async function getCommonsAuthIdentity(): Promise<CommonsAuthIdentity | null> {
-  if (!isSupabaseAuthConfigured()) return null;
+  if (!isSupabaseAuthConfigured()) return getDevSignInIdentity();
   // Durable turn execution has no cookies: the identity verified at admission, with the email re-verified by the runner at claim (or none).
   const principal = currentTurnPrincipal();
   if (principal) return principal.authUserId ? { authUserId: principal.authUserId, ...(principal.verifiedEmail ? { email: principal.verifiedEmail } : {}) } : null;
