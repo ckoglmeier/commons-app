@@ -4,9 +4,9 @@ import { randomUUID } from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
 import { itineraryDecisionLabels } from "@commons/contracts";
 import { createDatabase } from "./client";
-import { commons,memberships,people,pollDeliveries } from "./schema";
+import { commons, memberships, people, pollDeliveries } from "./schema";
 import { saveCommonsPollDraft } from "./poll-draft-repository";
-import { createCommonsPoll,getCommonsPollDetail,getPublicPollByPublicId,submitPublicPollResponseByPublicId,normalizePollAnswers,pollAnswersForViewer } from "./poll-repository";
+import { createCommonsPoll, getCommonsPollDetail, getPublicPollByPublicId, submitPublicPollResponseByPublicId, normalizePollAnswers, pollAnswersForViewer } from "./poll-repository";
 import { getCommonsSnapshot } from "./pilot-repository";
 
 const itemId=randomUUID(),ideaId=randomUUID();
@@ -32,7 +32,7 @@ test("piece votes survive normalization without comments, interests or an overal
 test("saved itinerary publication, cross-viewer feedback, revision and approval boundaries",{skip:process.env.COMMONS_RUN_DATABASE_TESTS!=="1"},async()=>{
   const url=process.env.TEST_DATABASE_URL!;assert.ok(["127.0.0.1","localhost","[::1]"].includes(new URL(url).hostname));
   const db=createDatabase(url),event=randomUUID(),org=randomUUID(),member=randomUUID(),outsider=randomUUID();
-  const options={databaseUrl:url,actorPersonId:org,sharedCoordinator:true};
+  const options={databaseUrl:url,actorPersonId:org};
   try {
     await db.db.insert(people).values([org,member,outsider].map(id=>({id,displayName:"Synthetic itinerary QA",authUserId:id})));
     await db.db.insert(commons).values({id:event,slug:`qa-itinerary-${event}`,name:"Synthetic itinerary QA",createdByPersonId:org,timezone:"America/Denver"});

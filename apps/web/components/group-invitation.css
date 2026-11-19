@@ -1,0 +1,8 @@
+/* The "Invite your group" panel (group-invitation-panel.tsx). */
+.group-invite-section { margin-top: var(--cm-space-8); padding-top: var(--cm-space-6); border-top: 1px solid var(--cm-color-line); }
+.group-invite-section > h2 { font: 500 var(--cm-text-section)/1.15 var(--cm-font-interface); margin-bottom: var(--cm-space-3); }
+.group-invite-section h3 { font: 500 var(--cm-text-heading)/1.3 var(--cm-font-interface); margin: var(--cm-space-5) 0 var(--cm-space-2); }
+.group-invite-section textarea, .group-invite-section input[type="text"] { width: 100%; min-height: var(--cm-touch-target); padding: var(--cm-space-2) var(--cm-space-3); border: 1px solid var(--cm-color-control-border); border-radius: var(--cm-radius-compact); background: var(--cm-color-paper); font: inherit; font-size: 1rem; color: var(--cm-color-ink); }
+.group-invite-section .poll-share-controls { align-items: flex-end; }
+.group-invite-section .poll-share-controls input { width: 100%; min-height: var(--cm-touch-target); }
+.group-invite-section select { width: 100%; min-height: var(--cm-touch-target); padding: var(--cm-space-2) var(--cm-space-3); border: 1px solid var(--cm-color-control-border); border-radius: var(--cm-radius-compact); background: var(--cm-color-paper); font: inherit; font-size: 1rem; color: var(--cm-color-ink); }

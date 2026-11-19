@@ -1,6 +1,6 @@
 import type { CommonsParticipant, CommonsState, CommonsSummary } from "@commons/contracts";
 
-export type CoordinatorNextStep = {
+export type NextStep = {
   id: string;
   commonsId: string;
   personId: string;
@@ -14,16 +14,16 @@ export type CoordinatorNextStep = {
   target: { kind: "travel"; planId: string | null; canEdit: boolean };
 };
 
-export type CoordinatorNextSteps = {
+export type NextSteps = {
   travelThere: "unavailable" | "not_applicable" | "missing" | "incomplete" | "saved";
-  steps: CoordinatorNextStep[];
+  steps: NextStep[];
 };
 
 /** Channel-neutral recommendations, never commands or permission grants.
  * Call only with the current person's server-filtered, event-scoped snapshot.
  * Upload drafts aren't durable snapshot state yet and must not be inferred.
  */
-export function coordinatorNextSteps({ commons, state, participants, personId, now, travelState, intakes = [], intakeState = "loaded", uploadAvailable = false }: {
+export function nextSteps({ commons, state, participants, personId, now, travelState, intakes = [], intakeState = "loaded", uploadAvailable = false }: {
   commons: CommonsSummary;
   state: CommonsState;
   participants: readonly CommonsParticipant[];
@@ -33,8 +33,8 @@ export function coordinatorNextSteps({ commons, state, participants, personId, n
   intakeState?: "loaded" | "unavailable";
   uploadAvailable?: boolean;
   intakes?: Array<{ id: string; commonsId: string; ownerPersonId: string; kind: string; revision: number; status: string; draft?: { travelSegments?: Array<{ kind: string }> } | null }>;
-}): CoordinatorNextSteps {
-  const result = (travelThere: CoordinatorNextSteps["travelThere"], steps: CoordinatorNextStep[] = []): CoordinatorNextSteps => ({ travelThere, steps });
+}): NextSteps {
+  const result = (travelThere: NextSteps["travelThere"], steps: NextStep[] = []): NextSteps => ({ travelThere, steps });
   if (travelState !== "loaded" || state.commonsId !== commons.id || !Number.isFinite(now) ||
     !participants.some(person => person.id === personId && person.membershipStatus === "active")) return result("unavailable");
   let today: string;
@@ -71,7 +71,7 @@ export function coordinatorNextSteps({ commons, state, participants, personId, n
   }]);
 }
 
-export function travelNextStepDescriptor(step: CoordinatorNextStep): import("@commons/contracts").NextStepDescriptor {
+export function travelNextStepDescriptor(step: NextStep): import("@commons/contracts").NextStepDescriptor {
   return { id:step.id,scope:{tripId:step.commonsId,personId:step.personId,audience:"person"},reason:step.reason,evidence:step.evidence,eligibility:step.eligibility,target:{kind:"travel",id:step.intakeId ?? step.target.planId},capability:{action:step.reason === "arrival_processing" ? "await_processing" : step.reason === "arrival_review" ? "resume_review" : "enter_arrival",available:step.eligibility !== "unavailable",reason:step.target.canEdit ? null : "Only the owner can edit the shared arrival."},completion:step.completion };
 }
 

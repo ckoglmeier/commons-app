@@ -7,7 +7,7 @@ import { commons, people } from "./schema";
 /*
  * Traveler messaging (Beta Rework BR-04/BR-05). Additive only: nothing here is read or written unless COMMONS_BETA_REWORK_ENABLED is on, so
  * the tables sit empty and harmless in a live database with the flag off. Every table is server-mediated (RLS enabled, no client policies).
- * Message bodies and booking source text are private to the person they belong to; no organizer or operator projection reads them.
+ * Message bodies and booking source text are private to the person they belong to; no organizer projection or maintenance view reads them.
  */
 
 const createdAt = timestamp("created_at", { withTimezone: true }).notNull().defaultNow();

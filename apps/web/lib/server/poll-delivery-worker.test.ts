@@ -25,7 +25,7 @@ test("revoked access never sends, and a lost lease never claims a saved result",
   assert.deepEqual(await runPollDelivery(origin, { ...deps, complete: async () => false }), { id: job.id, status: "lease_changed" });
 });
 
-test("provider rejection is operator-visible without leaking provider response content", async () => {
+test("provider rejection is visible to maintainers without leaking provider response content", async () => {
   let code;
   const result = await runPollDelivery(origin, { lease: async () => job, revalidate: async () => true,
     send: async () => { throw new EmailDeliveryError("provider_rejected", "private provider response"); },

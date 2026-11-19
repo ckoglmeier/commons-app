@@ -1,84 +1,81 @@
 import "server-only";
-import { currentTurnPrincipal } from "./turn-principal";
 import { autoSendTravelerInvitation } from "./traveler-invitation-delivery";
 
 import {
-  addCommonsMoment,
-  addCommonsPerson,
-  inviteManagedTraveler,
-  addCommonsExpense,
-  addCommonsReimbursement,
-  addCommonsStay,
-  setCommonsPlacePin,
-  addCommonsItineraryItem,
-  approveCommonsProposal,
-  claimCommonsInvitation,
-  commitCommonsSetupImport,
-  completeCommonsSetupWithoutSharing,
-  completeInvitationDeliveryAttempt,
-  cacheInvitationAuthenticationEntry,
-  getInvitationEntryContext,
-  sealInvitationEmailProof,
-  confirmCommonsExpensesComplete,
-  CommonsRepositoryError,
-  deleteCommonsExpense,
-  deleteCommonsReimbursement,
-  deleteCommonsItineraryItem,
-  deleteCommonsMoment,
-  deleteCommonsStay,
-  deleteCommonsTravelPlan,
-  findOrClaimPersonForAuthIdentity,
-  findPersonProfileForAuthUser,
-  getCommonsMomentAsset,
-  getCommonsCoverAsset,
-  getCommonsConfirmationAsset,
-  findCommonsConfirmationImport,
-  getCommonsPeople,
-  getCommonsInvitationLink,
-  getCommonsInvitationPreview,
-  getCommonsSetup,
-  getCommonsSnapshot,
-  listCommonsMembershipsForPerson,
-  listPendingCommonsInvitationsForIdentity,
-  leaseInvitationDeliveryAttempt,
-  revalidateInvitationDeliveryAttempt,
-  queueCommonsInvitationDeliveries,
-  reopenCommonsExpenses,
-  reviseCommonsProposal,
-  revokeCommonsInvitation,
-  rotateCommonsInvitationLink,
-  updateCommonsCover,
-  updateCommonsArchived,
-  updateCommonsTitle,
-  updateTripLetter,
-  updateCommonsDetails,
-  updateCommonsExpense,
-  updateCommonsReimbursement,
-  updateCommonsItineraryItem,
-  updateCommonsMoment,
-  updateCommonsStay,
-  updateCommonsMemberRole,
-  updateCommonsPendingInvitation,
-  updateCommonsParticipation,
-  updateCommonsTargetBudget,
-  updateCommonsMoneySettings,
-  upsertCommonsTravelPlan,
-  upsertCommonsFlightBooking,
-  updateCommonsTravelPlanSharing,
-  saveCommonsSetupTravelers,
-  blockCommonsMemberRemoval,
+    addCommonsMoment,
+    addCommonsPerson,
+    inviteManagedTraveler,
+    addCommonsExpense,
+    addCommonsReimbursement,
+    addCommonsStay,
+    setCommonsPlacePin,
+    addCommonsItineraryItem,
+    claimCommonsInvitation,
+    commitCommonsSetupImport,
+    completeCommonsSetupWithoutSharing,
+    completeInvitationDeliveryAttempt,
+    cacheInvitationAuthenticationEntry,
+    getInvitationEntryContext,
+    sealInvitationEmailProof,
+    confirmCommonsExpensesComplete,
+    CommonsRepositoryError,
+    deleteCommonsExpense,
+    deleteCommonsReimbursement,
+    deleteCommonsItineraryItem,
+    deleteCommonsMoment,
+    deleteCommonsStay,
+    deleteCommonsTravelPlan,
+    findOrClaimPersonForAuthIdentity,
+    findPersonProfileForAuthUser,
+    getCommonsMomentAsset,
+    getCommonsCoverAsset,
+    getCommonsConfirmationAsset,
+    findCommonsConfirmationImport,
+    getCommonsPeople,
+    getCommonsInvitationLink,
+    getCommonsInvitationPreview,
+    getCommonsSetup,
+    getCommonsSnapshot,
+    listCommonsMembershipsForPerson,
+    listPendingCommonsInvitationsForIdentity,
+    leaseInvitationDeliveryAttempt,
+    revalidateInvitationDeliveryAttempt,
+    queueCommonsInvitationDeliveries,
+    reopenCommonsExpenses,
+    revokeCommonsInvitation,
+    rotateCommonsInvitationLink,
+    updateCommonsCover,
+    updateCommonsArchived,
+    updateCommonsTitle,
+    updateTripLetter,
+    updateCommonsDetails,
+    updateCommonsExpense,
+    updateCommonsReimbursement,
+    updateCommonsItineraryItem,
+    updateCommonsMoment,
+    updateCommonsStay,
+    updateCommonsMemberRole,
+    updateCommonsPendingInvitation,
+    updateCommonsParticipation,
+    updateCommonsTargetBudget,
+    updateCommonsMoneySettings,
+    upsertCommonsTravelPlan,
+    upsertCommonsFlightBooking,
+    updateCommonsTravelPlanSharing,
+    saveCommonsSetupTravelers,
+    blockCommonsMemberRemoval,
 } from "@commons/database";
 import { CommonsPeopleSchema, InvitationDeliveryActionSchema, InvitationLinkSchema, SendSetupInvitationsResultSchema, type CommonsMembershipSummary, type CommonsSnapshot } from "@commons/contracts";
 import type { PendingCommonsInvitationSummary } from "@commons/database";
 import { pilotSnapshot } from "@/lib/pilot-fixture";
 import {
-  getLocalDevelopmentPilotActorId,
-  isSignInConfigured,
+    getLocalDevelopmentPilotActorId,
+    isSignInConfigured,
 } from "@/lib/supabase/config";
 import {
-  getCommonsAuthIdentity,
-  getVerifiedAuthUser,
-  type CommonsAuthIdentity,
+    getCommonsAuthIdentity,
+    getVerifiedAuthUser,
+    type CommonsAuthIdentity,
 } from "@/lib/supabase/server";
 import { renderCommonsInvitationEmail } from "@/lib/email/invitation-email";
 import { renderCommonsAuthenticationEmail } from "@/lib/email/authentication-email";
@@ -87,8 +84,8 @@ import { invitationReturnPath } from "@/lib/invitation-entry-flow";
 import { EmailDeliveryError, sendEmail } from "@/lib/email/resend";
 import { createPublicDemoSnapshotLookup } from "./public-demo";
 import {
-  CommonsAuthenticationRequiredError,
-  CommonsMembershipRequiredError,
+    CommonsAuthenticationRequiredError,
+    CommonsMembershipRequiredError,
 } from "./commons-access-errors";
 import { commonsDatabaseUrl, commonsSiteOrigin } from "./runtime-environment";
 
@@ -118,10 +115,6 @@ async function authenticatedIdentity() {
 async function databaseOptions(identity?: CommonsAuthIdentity) {
   const url = databaseUrl();
   if (!url) return null;
-  // A durable Coordinator turn in the runner (conversation durability A2): the claimed turn's stored owner, as in `pollOptions`.
-  const principal = currentTurnPrincipal();
-  if (principal && !identity) return { databaseUrl: url, actorPersonId: principal.actorPersonId };
-
   if (isSignInConfigured()) {
     const resolvedIdentity = identity ?? await authenticatedIdentity();
     const actorPersonId = await findOrClaimPersonForAuthIdentity(
@@ -575,36 +568,6 @@ export async function loadCommonsConfirmationAsset(
   const options = await databaseOptions(identity);
   if (!options) return null;
   return getCommonsConfirmationAsset(slug, resourceType, resourceId, options);
-}
-
-export async function persistProposalApproval(
-  slug: string,
-  proposalId: string,
-  input: unknown,
-) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo decisions stay on this device.");
-  }
-  const options = await databaseOptions();
-  if (!options) {
-    throw new Error("Commons database persistence is not configured.");
-  }
-  return approveCommonsProposal(slug, proposalId, input, options);
-}
-
-export async function persistProposalRevision(
-  slug: string,
-  proposalId: string,
-  input: unknown,
-) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo decisions stay on this device.");
-  }
-  const options = await databaseOptions();
-  if (!options) {
-    throw new Error("Commons database persistence is not configured.");
-  }
-  return reviseCommonsProposal(slug, proposalId, input, options);
 }
 
 export async function loadAuthenticatedCommonsSetup(slug: string) {

@@ -4,7 +4,7 @@ const publicRoutes = new Set([...marketingRoutes, '/support', '/legal/privacy', 
 /** Only route shapes and explicitly approved scalar properties leave Commons. */
 export function analyticsRoute(path: string): string | null {
   const pathname = path.split(/[?#]/)[0];
-  if (/^\/(auth|join|invite|sign-in|account|admin|api|prototype)(\/|$)/.test(pathname)) return null;
+  if (/^\/(auth|join|invite|sign-in|account|admin|api)(\/|$)/.test(pathname)) return null;
   if (publicRoutes.has(pathname.replace(/\/$/, ''))) return pathname.replace(/\/$/, '');
   if (pathname === '/' || /^\/(new|trips)\/?$/.test(pathname)) return pathname.replace(/\/$/, '') || '/';
   if (/^\/c\/[^/]+\/(plan|money|photos)\/?$/.test(pathname)) return pathname.replace(/^\/c\/[^/]+/, '/c/[trip]').replace(/\/$/, '');

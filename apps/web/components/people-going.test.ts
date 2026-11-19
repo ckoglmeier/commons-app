@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { pilotSnapshot } from "../lib/pilot-fixture";
 import { createHookRenderer, registerComponentImportStubs, textOf } from "../lib/test-support/hook-harness";
-import { installFakeLiveEnvironment, settle } from "../lib/test-support/fake-live-transport";
+import { installFakeBrowserEnvironment, settle } from "../lib/test-support/fake-browser-environment";
 registerComponentImportStubs();
 
 const people = { commons: pilotSnapshot.commons, currentPersonId: pilotSnapshot.currentActor.id, organizerName: "Synthetic organizer", people: [{
@@ -13,7 +13,7 @@ const people = { commons: pilotSnapshot.commons, currentPersonId: pilotSnapshot.
 
 test("while a trip is still deciding, People keeps the roster and archive but offers only the organizer's going action", async () => {
   const mutations: string[] = [];
-  const live = installFakeLiveEnvironment({ liveFetch: async (url, init) => {
+  const live = installFakeBrowserEnvironment({ fetch: async (url, init) => {
     if (init?.method === "POST") mutations.push(url);
     return Response.json({ people });
   } });
@@ -36,7 +36,7 @@ test("while a trip is still deciding, People keeps the roster and archive but of
 });
 
 test("once a trip is going, People offers adding travelers with no fee or gate", async () => {
-  const live = installFakeLiveEnvironment({ liveFetch: async () => Response.json({ people }) });
+  const live = installFakeBrowserEnvironment({ fetch: async () => Response.json({ people }) });
   const { PeopleSheet } = await import("./people-sheet");
   const renderer = createHookRenderer({ expand: [PeopleSheet] });
   try {
@@ -49,7 +49,7 @@ test("once a trip is going, People offers adding travelers with no fee or gate",
 });
 
 test("the going action is free: it says the trip is going and nothing else", async () => {
-  const live = installFakeLiveEnvironment({ liveFetch: async () => Response.json({}) });
+  const live = installFakeBrowserEnvironment({ fetch: async () => Response.json({}) });
   const { GoingAction } = await import("./trip-stage-gate");
   const renderer = createHookRenderer({ expand: [GoingAction] });
   try {

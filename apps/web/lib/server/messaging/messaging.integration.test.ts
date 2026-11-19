@@ -217,7 +217,7 @@ test("opt-out suppresses everything across trips, web access stays, and START re
   } finally { await w.cleanup(); }
 });
 
-test("delivery failure: retryable errors back off and retry; unknown outcomes are not retried blindly; an operator retry goes back through every check", { skip }, async () => {
+test("delivery failure: retryable errors back off and retry; unknown outcomes are not retried blindly; a manual retry goes back through every check", { skip }, async () => {
   const w = await world();
   try {
     const routes = await loadRoutes();
@@ -241,7 +241,7 @@ test("delivery failure: retryable errors back off and retry; unknown outcomes ar
     row = (await w.messageRows(w.phones.maya)).find(item => item.purpose === "proactive:change")!;
     assert.equal(row.status, "sent");
 
-    // An unknown outcome (the request may have reached the provider) is held for an operator, never resent automatically.
+    // An unknown outcome (the request may have reached the provider) is held for a person to check, never resent automatically.
     w.clock.advance(25 * 3_600_000);
     w.provider.failNext(new ProviderSendError("timeout", "unknown_outcome", false, true));
     await planner.queueTripChange(deps, w.ids.sonoma, { kind: "dates", summary: "the dates moved.", evidence: "b" });
@@ -253,7 +253,7 @@ test("delivery failure: retryable errors back off and retry; unknown outcomes ar
     await dispatch.dispatchOutbox(deps);
     assert.equal(w.provider.outbox.length, sentSoFar, "no blind retry");
 
-    // The operator view shows the failure without any message text, number or person, and a retry is a new, checked attempt.
+    // The health view shows the failure without any message text, number or person, and a retry is a new, checked attempt.
     const health = await messagingHealth({ databaseUrl: w.url });
     assert.equal(health.failures.some(item => item.id === unknown.id), true);
     assert.doesNotMatch(JSON.stringify(health), /dates moved|\+1415|Maya/);

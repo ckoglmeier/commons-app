@@ -3,14 +3,14 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { pilotSnapshot } from "../lib/pilot-fixture";
 import { createHookRenderer, registerComponentImportStubs, textOf } from "../lib/test-support/hook-harness";
-import { installFakeLiveEnvironment, settle } from "../lib/test-support/fake-live-transport";
+import { installFakeBrowserEnvironment, settle } from "../lib/test-support/fake-browser-environment";
 registerComponentImportStubs();
 
 for (const state of ["sent", "queued", "failed", "not_sent"] as const) {
   test(`traveler add reports the saved ${state} result without a separate send request`, async () => {
     const requests: string[] = [];
     const base = { commons: pilotSnapshot.commons, currentPersonId: pilotSnapshot.currentActor.id, organizerName: "Synthetic organizer", people: [] as unknown[] };
-    const live = installFakeLiveEnvironment({ liveFetch: async (url, init) => {
+    const live = installFakeBrowserEnvironment({ fetch: async (url, init) => {
       if (init?.method !== "POST") return Response.json({ people: base });
       requests.push(url);
       const input = JSON.parse(String(init.body));
@@ -43,7 +43,7 @@ for (const state of ["sent", "queued", "failed", "not_sent"] as const) {
 
 test("organizer entry explains the separate send and does not claim queued delivery", async () => {
   const base = { commons: pilotSnapshot.commons, currentPersonId: pilotSnapshot.currentActor.id, organizerName: "Synthetic organizer", people: [] as unknown[] };
-  const live = installFakeLiveEnvironment({ liveFetch: async (_url, init) => {
+  const live = installFakeBrowserEnvironment({ fetch: async (_url, init) => {
     if (init?.method !== "POST") return Response.json({ people: base });
     const input = JSON.parse(String(init.body));
     return Response.json({ people: { ...base, people: [{ membershipId: "membership-new", personId: "new-organizer", displayName: input.displayName, email: input.email, role: "organizer", membershipStatus: "invited", joinedAt: null, accessMode: "account", managedByPersonIds: null, canClaimAccess: false, removal: { blocked: false, moneyItems: 0, responsibilityItems: 0 }, invitation: { id: "new-invitation", status: "pending", deliveryState: "not_sent", deliveryErrorCode: null, message: null, sentAt: null, lastAttemptAt: null, expiresAt: null } }] } });

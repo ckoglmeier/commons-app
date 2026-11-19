@@ -72,44 +72,7 @@ export const ProposalSchema = proposalZ.object({
   approvedAt: proposalZ.string().datetime().optional(),
 });
 
-export const ApproveProposalCommandSchema = proposalZ.object({
-  commandId: proposalZ.string().min(1),
-  proposalId: proposalZ.string().min(1),
-  expectedVersion: proposalZ.number().int().positive(),
-  actor: ActorSchema,
-  occurredAt: proposalZ.string().datetime(),
-});
-
-export const ApproveProposalRequestSchema = proposalZ.object({
-  commandId: proposalZ.string().min(1),
-  expectedVersion: proposalZ.number().int().positive(),
-  occurredAt: proposalZ.string().datetime(),
-});
-
-export const ReviseProposalCommandSchema = proposalZ.object({
-  commandId: proposalZ.string().min(1),
-  proposalId: proposalZ.string().min(1),
-  expectedVersion: proposalZ.number().int().positive(),
-  actor: ActorSchema,
-  occurredAt: proposalZ.string().datetime(),
-  title: proposalZ.string().trim().min(1).max(160),
-  startsAt: proposalZ.string().datetime(),
-  endsAt: proposalZ.string().datetime().optional(),
-  location: proposalZ.string().trim().min(1).max(160).optional(),
-  participantScope: proposalZ.enum(["everyone", "subgroup", "optional"]),
-  note: proposalZ.string().trim().min(1).max(500),
-});
-
-export const ReviseProposalRequestSchema = ReviseProposalCommandSchema.omit({
-  proposalId: true,
-  actor: true,
-});
-
 export type Actor = proposalZ.infer<typeof ActorSchema>;
 export type EvidenceReference = proposalZ.infer<typeof EvidenceReferenceSchema>;
 export type Proposal = proposalZ.infer<typeof ProposalSchema>;
 export type ProposalPayload = proposalZ.infer<typeof ProposalPayloadSchema>;
-export type ApproveProposalCommand = proposalZ.infer<typeof ApproveProposalCommandSchema>;
-export type ApproveProposalRequest = proposalZ.infer<typeof ApproveProposalRequestSchema>;
-export type ReviseProposalCommand = proposalZ.infer<typeof ReviseProposalCommandSchema>;
-export type ReviseProposalRequest = proposalZ.infer<typeof ReviseProposalRequestSchema>;

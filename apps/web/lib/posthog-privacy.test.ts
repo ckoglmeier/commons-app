@@ -6,7 +6,7 @@ test('PostHog routes omit trip identity, draft/thread queries, and invitation cr
   assert.equal(analyticsRoute('/new?draft=SECRET#token'), '/new');
   assert.equal(analyticsRoute('/c/private-trip/plan/?thread=PRIVATE'), '/c/[trip]/plan');
   assert.equal(analyticsRoute('/poll/private-id?token=SECRET'), '/poll/[poll]');
-  for (const path of ['/auth/callback', '/join/SECRET', '/invite/SECRET', '/sign-in', '/account/create', '/admin', '/prototype/coordinator', '/api/v1/private', '/unknown-sensitive']) assert.equal(analyticsRoute(path), null, path);
+  for (const path of ['/auth/callback', '/join/SECRET', '/invite/SECRET', '/sign-in', '/account/create', '/admin', '/api/v1/private', '/unknown-sensitive']) assert.equal(analyticsRoute(path), null, path);
 });
 
 test('PostHog custom events retain only explicitly allowed metadata', () => {

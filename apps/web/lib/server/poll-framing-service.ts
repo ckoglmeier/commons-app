@@ -17,7 +17,7 @@ async function defaultDependencies(): Promise<PollFramingDependencies> {
   const [{ reserveAuthenticatedPollInference, authenticatedPollOptions }, database] = await Promise.all([import("./polls"), import("@commons/database")]);
   return {
     reserve: reserveAuthenticatedPollInference,
-    complete: async (slug, commandId, outcome) => database.completePollFraming(slug, { commandId }, outcome, await authenticatedPollOptions(slug)),
+    complete: async (slug, commandId, outcome) => database.completePollFraming(slug, { commandId }, outcome, await authenticatedPollOptions()),
     suggest: suggestPollFraming,
   };
 }

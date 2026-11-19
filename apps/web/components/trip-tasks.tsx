@@ -4,7 +4,7 @@ import { z } from "zod";
 import { TripTaskSchema, type TripTask, type CommonsParticipant, type CommonsState, type CommonsSummary } from "@commons/contracts";
 import { ModalLayer } from "./modal-layer";
 import { CloseIcon } from "./icons";
-import { thingsToDo, coordinatorNextSteps, type ThingToDo } from "@commons/domain";
+import { thingsToDo, nextSteps, type ThingToDo } from "@commons/domain";
 import { useTripTaskIntakes } from "./use-trip-task-intakes";
 import { commonsViewPath, itemDetailPath } from "@/lib/commons-route";
 export type TripTaskContext = {
@@ -72,7 +72,7 @@ export function TripTasks({ slug, actorId, context, onOpenPollResults, onTasksLo
         ...(context.state.stays ?? []).map(item => ({ key: `stay:${item.id}`, title: item.name })),
         ...(context.state.travelPlans ?? []).filter(item => item.visibility !== "private").map(item => ({ key: `travel:${item.id}`, title: item.route })),
     ] : [];
-    const suggestions = context && actorId && now !== null && tasksLoaded && !error ? thingsToDo({tripId:context.commons.id,personId:actorId,organizer:context.organizer,state:context.state,tripTasks:tasks,today:new Intl.DateTimeFormat("en-CA",{timeZone:context.commons.timezone,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(now)),travel:coordinatorNextSteps({commons:context.commons,state:context.state,participants:context.people,personId:actorId,now,travelState:"loaded",intakes,intakeState}).steps[0]}).filter(item=>item.target.kind !== "todo") : [];
+    const suggestions = context && actorId && now !== null && tasksLoaded && !error ? thingsToDo({tripId:context.commons.id,personId:actorId,organizer:context.organizer,state:context.state,tripTasks:tasks,today:new Intl.DateTimeFormat("en-CA",{timeZone:context.commons.timezone,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(now)),travel:nextSteps({commons:context.commons,state:context.state,participants:context.people,personId:actorId,now,travelState:"loaded",intakes,intakeState}).steps[0]}).filter(item=>item.target.kind !== "todo") : [];
     const suggestionKey = (suggestions ?? []).map(suggestion => suggestion.id).join("|");
     // Report only when the set of suggestions changes, not on every render that recomputes the same list.
     // eslint-disable-next-line react-hooks/exhaustive-deps

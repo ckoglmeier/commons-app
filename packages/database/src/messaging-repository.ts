@@ -311,7 +311,7 @@ export async function lastOutboundQuestionId(phoneHash: string, options: Options
   return run(options, async tx => (await tx.select({ questionId: messagingMessages.questionId }).from(messagingMessages).where(and(eq(messagingMessages.phoneHash, phoneHash), eq(messagingMessages.direction, "outbound"), inArray(messagingMessages.status, ["sent", "delivered", "queued", "sending"]))).orderBy(desc(messagingMessages.createdAt)).limit(1))[0]?.questionId ?? null);
 }
 
-/** Operator view: statuses and counts only. No body, no person, no phone: failures are observable without exposing traveler content. */
+/** Maintainer health view: statuses and counts only. No body, no person, no phone: failures are observable without exposing traveler content. */
 export async function messagingHealth(options: Options = {}) {
   return run(options, async tx => {
     const now = clock(options);
@@ -326,7 +326,7 @@ export async function messagingHealth(options: Options = {}) {
 /** A send whose outcome is unknown may have reached the person. Check the provider first; a blind retry could text them twice. */
 export const UNKNOWN_SEND_OUTCOME = "unknown_outcome_reconcile_before_retry";
 
-/** An explicit operator retry of a failed message. Only a failed or undelivered row can be requeued, and only once per call. */
+/** An explicit manual retry of a failed message (its `operator_retry` status detail is a stored value). Only a failed or undelivered row can be requeued, and only once per call. */
 export async function requeueFailedOutbound(id: string, options: Options = {}, confirm: { checkedProvider?: boolean } = {}) {
   return run(options, async tx => { const rows = await tx.update(messagingMessages).set({ status: "queued", nextAttemptAt: clock(options), failedAt: null, statusDetail: "operator_retry", updatedAt: clock(options) }).where(and(eq(messagingMessages.id, id), eq(messagingMessages.direction, "outbound"), inArray(messagingMessages.status, ["failed", "undelivered"]), confirm.checkedProvider ? undefined : or(isNull(messagingMessages.statusDetail), ne(messagingMessages.statusDetail, UNKNOWN_SEND_OUTCOME)))).returning({ id: messagingMessages.id }); return rows.length === 1; });
 }

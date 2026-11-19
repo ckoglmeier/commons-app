@@ -16,6 +16,6 @@ export async function runCommonsMaintenance(limit = 20) {
     }
   }
   const outstanding = await getPhotoDeletionCounts();
-  if (outstanding.some(row => row.status === "failed")) console.error("Commons photo deletion requires operator retry.", { outstanding });
+  if (outstanding.some(row => row.status === "failed")) console.error("Commons photo deletion requires a manual retry.", { outstanding });
   return { expiredSources, deleted, outstanding };
 }

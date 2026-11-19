@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { CommonsParticipant, CommonsState, CommonsSummary, TripLetterSections } from "@commons/contracts";
 import { CommonsSnapshotSchema, TripTaskSchema, type TripTask } from "@commons/contracts";
-import { thingsToDo, coordinatorNextSteps, currentNextStep, travelNextStepDescriptor } from "@commons/domain";
+import { thingsToDo, nextSteps, currentNextStep, travelNextStepDescriptor } from "@commons/domain";
 import { commonsPath } from "@/lib/commons-route";
 import { useTripTaskIntakes } from "./use-trip-task-intakes";
 import { homeShortcuts, homeUpdates } from "@/lib/home-dashboard";
@@ -32,7 +32,7 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
   travelUploadAvailable?: boolean;
   confirmationIntakeEnabled?: boolean;
   state: CommonsState; commons: CommonsSummary; participants: CommonsParticipant[]; currentActorId: string; activityParticipation: CommonsState["participation"];
-  addPlan: (kind?: LogisticsAddKind) => void; addTravelPlans: (step?: import("@commons/domain").CoordinatorNextStep) => void; addReceipt: () => void;
+  addPlan: (kind?: LogisticsAddKind) => void; addTravelPlans: (step?: import("@commons/domain").NextStep) => void; addReceipt: () => void;
   goToPlan: (date?: string) => void; goToMoney: () => void; openTripDetails: () => void;
 }) {
   const [now, setNow] = useState<number | null>(null);
@@ -66,7 +66,7 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
   useEffect(() => { const first = window.setTimeout(() => setNow(Date.now()), 0); const timer = window.setInterval(() => setNow(Date.now()), 60_000); return () => { window.clearTimeout(first); window.clearInterval(timer); }; }, []);
   const shortcuts = homeShortcuts(state, commons, currentActorId, activityParticipation, now ?? 0);
   const askHref = canAskGroup ? `${commonsPath(commons.id)}/polls/new` : undefined;
-  const nextStep = now === null ? undefined : coordinatorNextSteps({ commons, state, participants, personId: currentActorId, now, travelState: "loaded", intakes, intakeState, uploadAvailable:travelUploadAvailable }).steps[0];
+  const nextStep = now === null ? undefined : nextSteps({ commons, state, participants, personId: currentActorId, now, travelState: "loaded", intakes, intakeState, uploadAvailable:travelUploadAvailable }).steps[0];
   const descriptor = nextStep ? travelNextStepDescriptor(nextStep) : null;
   async function openNextStep() {
     if (!nextStep || checkingStep) return;
@@ -88,7 +88,7 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
       // Reuse the canonical selector immediately before opening an editor or private review.
       // Revalidation runs only after a click and awaited network reads, never during render.
       // eslint-disable-next-line react-hooks/purity
-      const current = coordinatorNextSteps({commons:latest.commons,state:latest.state,participants:latest.participants,personId:currentActorId,now:Date.now(),travelState:"loaded",intakes:currentIntakes,intakeState:"loaded",uploadAvailable:travelUploadAvailable}).steps[0];
+      const current = nextSteps({commons:latest.commons,state:latest.state,participants:latest.participants,personId:currentActorId,now:Date.now(),travelState:"loaded",intakes:currentIntakes,intakeState:"loaded",uploadAvailable:travelUploadAvailable}).steps[0];
       addTravelPlans(current && descriptor && currentNextStep(descriptor, [travelNextStepDescriptor(current)]) ? current : undefined);
     } catch {
       setStepError(`Couldn’t reload your travel details. Open ${planTemplateFor(commons.templateKey).planSections.travel.label} to check them.`);

@@ -2,14 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createElement } from "react";
 import { createHookRenderer, registerComponentImportStubs, textOf } from "@/lib/test-support/hook-harness";
-import { installFakeLiveEnvironment, settle } from "@/lib/test-support/fake-live-transport";
+import { installFakeBrowserEnvironment, settle } from "@/lib/test-support/fake-browser-environment";
 registerComponentImportStubs();
 
 const invitation = () => ({ id: crypto.randomUUID(), tripId: crypto.randomUUID(), version: 1, state: "active", expiresAt: "2027-01-01T00:00:00Z", createdByName: "Casey", token: `g_${"a".repeat(32)}` });
 
 test("clicking the inline invite link creates only on request, retries once and offers a truthful copy fallback", async () => {
   const requests: Array<Record<string, unknown>> = [], saved = invitation();
-  const live = installFakeLiveEnvironment({ liveFetch: async (_url, init) => {
+  const live = installFakeBrowserEnvironment({ fetch: async (_url, init) => {
     if (init?.method !== "POST") return Response.json({ enabled: true, invitation: null });
     requests.push(JSON.parse(String(init.body)));
     if (requests.length === 1) throw new Error("Synthetic lost response");
@@ -44,7 +44,7 @@ test("clicking the inline invite link creates only on request, retries once and 
 
 test("Share an invite link hides the URL while copying the real credential without creating or rotating it", async () => {
   const saved = invitation(), copied: string[] = [], requests: string[] = [];
-  const live = installFakeLiveEnvironment({ liveFetch: async (_url, init) => { requests.push(init?.method ?? "GET"); return Response.json({ enabled: true, invitation: saved }); } });
+  const live = installFakeBrowserEnvironment({ fetch: async (_url, init) => { requests.push(init?.method ?? "GET"); return Response.json({ enabled: true, invitation: saved }); } });
   Object.assign(window.location, { origin: "http://localhost" });
   Object.assign(navigator, { clipboard: { writeText: async (url: string) => { copied.push(url); } } });
   const { GroupInvitationPanel } = await import("./group-invitation-panel"), renderer = createHookRenderer({ expand: [GroupInvitationPanel] });
@@ -67,7 +67,7 @@ test("Share an invite link hides the URL while copying the real credential witho
 test("ineligible and unknown initial loads do not show invitation controls or misleading errors", async () => {
   const { GroupInvitationPanel } = await import("./group-invitation-panel");
   for (const response of [Response.json({ enabled: false }), Response.json({ error: "Unconfirmed account" }, { status: 401 }), Response.json({ error: "Not an organizer" }, { status: 403 }), Response.json({ error: "Unavailable" }, { status: 500 })]) {
-    const live = installFakeLiveEnvironment({ liveFetch: async () => response.clone() }), renderer = createHookRenderer({ expand: [GroupInvitationPanel] });
+    const live = installFakeBrowserEnvironment({ fetch: async () => response.clone() }), renderer = createHookRenderer({ expand: [GroupInvitationPanel] });
     try {
       renderer.render(createElement(GroupInvitationPanel, { slug: "outside-pilot" })); await settle(5); renderer.flush();
       assert.equal(renderer.findAll(node => node.type === "button" || node.props.role === "alert").length, 0);
@@ -80,7 +80,7 @@ test("renewal is explained and version-bound for expired or disabled links", asy
   const { GroupInvitationPanel } = await import("./group-invitation-panel");
   for (const state of ["expired", "revoked"]) {
     const old = { ...invitation(), version: 4, state, token: null }, requests: Array<Record<string, unknown>> = [];
-    const live = installFakeLiveEnvironment({ liveFetch: async (_url, init) => {
+    const live = installFakeBrowserEnvironment({ fetch: async (_url, init) => {
       if (init?.method !== "POST") return Response.json({ enabled: true, invitation: old });
       requests.push(JSON.parse(String(init.body))); return Response.json({ enabled: true, invitation: { ...invitation(), id: old.id, tripId: old.tripId, version: 5 } });
     } });

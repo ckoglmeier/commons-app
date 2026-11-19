@@ -55,7 +55,7 @@ export async function saveCommonsPollDraftInTransaction(tx: CommandTransaction, 
   }
   if (input.expectedVersion !== 0) throw new CommandConflictError();
   const [saved] = await tx.insert(pollDrafts).values({ id: input.id, commonsId, ownerPersonId: options.actorPersonId,
-    organizerShared: Boolean(options.sharedCoordinator && input.data.communication && actor.role === "organizer"),
+    organizerShared: Boolean(input.data.communication && actor.role === "organizer"),
     data: { ...input.data, lifecycle: undefined }, lastCommandId: input.commandId, lastCommandFingerprint: fingerprint }).returning();
   return snapshotOf(saved);
 }

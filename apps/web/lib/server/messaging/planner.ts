@@ -1,15 +1,15 @@
 import { eventAttendanceDates } from "@commons/contracts";
 import {
-  closeQuestion, consentedMembers, consentedNumber, consentedPairs, getPublicPollByPublicId, hasQueuedProactive, membershipAttendance, messageKeyExists, openIntakes, openQuestion, openQuestionsForPerson, personAuth,
-  isWebAddress, recentQuestions, tripInfo, type EnrolledTrip, type QuestionRow,
+    closeQuestion, consentedMembers, consentedNumber, consentedPairs, getPublicPollByPublicId, hasQueuedProactive, membershipAttendance, messageKeyExists, openIntakes, openQuestion, openQuestionsForPerson, personAuth,
+    isWebAddress, recentQuestions, tripInfo, type EnrolledTrip, type QuestionRow,
 } from "@commons/database";
-
-/** One welcome per trip per place: moving a trip from a phone to the web thread (or back) says hello again there. */
-const welcomeKey = (tripId: string, personId: string, address: string) => `welcome:${tripId}:${personId}${isWebAddress(address) ? ":web" : ""}`;
-import { coordinatorNextSteps, QUESTION_TTL_MS, thingsToDo, type MessagingCopy } from "@commons/domain";
+import { nextSteps, QUESTION_TTL_MS, thingsToDo, type MessagingCopy } from "@commons/domain";
 import { buildMoneySummary, moneySummaryViewerBalances } from "@/lib/money-summary";
 import { publicPollPath } from "@/lib/poll-route";
 import { copyFor, dbOptions, firstName, queue, snapshotOf, stable, tripUrl, type MessagingDeps, type Person } from "./core";
+
+/** One welcome per trip per place: moving a trip from a phone to the web thread (or back) says hello again there. */
+const welcomeKey = (tripId: string, personId: string, address: string) => `welcome:${tripId}:${personId}${isWebAddress(address) ? ":web" : ""}`;
 
 /*
  * What Commons asks next, and whether a question is still worth asking. The selection reuses the channel-neutral next-step and things-to-do
@@ -65,7 +65,7 @@ export async function planNextQuestion(deps: MessagingDeps, person: Person, trip
   const snapshot = await snapshotFor(deps, trip.slug, person.id);
   const intakes = (await openIntakes(person.id, trip.id, dbOptions(deps))).map(row => ({ id: row.id, commonsId: row.commonsId, ownerPersonId: row.personId, kind: row.draft?.kind ?? "flight", revision: row.version, draft: row.draft ?? null,
     status: ["received", "extracting"].includes(row.status) ? "processing" : ["needs_info", "awaiting_review"].includes(row.status) ? "awaiting_review" : "failed" }));
-  const travel = coordinatorNextSteps({ commons: snapshot.commons, state: snapshot.state, participants: snapshot.participants, personId: person.id, now: now.getTime(), travelState: "loaded", intakes, intakeState: "loaded" }).steps[0];
+  const travel = nextSteps({ commons: snapshot.commons, state: snapshot.state, participants: snapshot.participants, personId: person.id, now: now.getTime(), travelState: "loaded", intakes, intakeState: "loaded" }).steps[0];
   const items = thingsToDo({ tripId: snapshot.commons.id, personId: person.id, organizer: false, state: snapshot.state, goals: [], tripTasks: [], today: ymd(now, trip.timezone), travel });
 
   const viewer = await viewerFor(deps, person.id);
@@ -114,7 +114,7 @@ export async function questionState(deps: MessagingDeps, question: QuestionRow, 
   }
   if (question.kind === "arrival") {
     const snapshot = await snapshotFor(deps, trip.slug, person.id);
-    const steps = coordinatorNextSteps({ commons: snapshot.commons, state: snapshot.state, participants: snapshot.participants, personId: person.id, now: deps.now().getTime(), travelState: "loaded", intakes: [], intakeState: "loaded" });
+    const steps = nextSteps({ commons: snapshot.commons, state: snapshot.state, participants: snapshot.participants, personId: person.id, now: deps.now().getTime(), travelState: "loaded", intakes: [], intakeState: "loaded" });
     return steps.travelThere === "saved" ? "resolved" : "open";
   }
   return "open";

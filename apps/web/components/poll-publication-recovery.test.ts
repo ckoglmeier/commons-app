@@ -4,13 +4,13 @@ import React, { createElement } from "react";
 import { randomUUID } from "node:crypto";
 import { PollWorkingDraftSchema } from "@commons/contracts";
 import { createHookRenderer, registerComponentImportStubs, textOf } from "../lib/test-support/hook-harness";
-import { installFakeLiveEnvironment, settle } from "../lib/test-support/fake-live-transport";
+import { installFakeBrowserEnvironment, settle } from "../lib/test-support/fake-browser-environment";
 registerComponentImportStubs(); Object.assign(globalThis, { React });
 for (const firstFails of [false, true]) test(`publication recovery with stalled navigation; initial failure=${firstFails}`, async () => {
   const pollId = randomUUID(), personId = randomUUID();
   const bodies: Array<{commandId: string}> = [], paths: string[] = [];
   let refreshes = 0;
-  const live = installFakeLiveEnvironment({ liveFetch: async (_url, init) => {
+  const live = installFakeBrowserEnvironment({ fetch: async (_url, init) => {
     bodies.push(JSON.parse(String(init?.body)));
     return firstFails && bodies.length === 1 ? Response.json({error:"Try again"}, {status:503}) : Response.json({poll:{id:pollId}}, {status:201});
   }});

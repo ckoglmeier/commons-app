@@ -30,8 +30,6 @@ import {
 export type PollRepositoryOptions = {
   databaseUrl?: string;
   actorPersonId: string;
-  /** Server rollout setting, never accepted from request JSON. */
-  sharedCoordinator?: boolean;
   /** Trusted server-side identity lookup, never accepted from request JSON. */
   resolveVerifiedEmail?: (authUserId: string) => Promise<string | null>;
   /**

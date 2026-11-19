@@ -5,7 +5,6 @@ import { cookies, headers } from "next/headers";
 import { DEV_SIGN_IN_COOKIE, decodeDevIdentity, devSignInAllowedForHost, type DevIdentity } from "@/lib/dev-sign-in";
 import { getSupabaseAuthConfig, isSupabaseAuthConfigured } from "./config";
 import { getCommonsAuthCookieOptions } from "./session";
-import { currentTurnPrincipal } from "@/lib/server/turn-principal";
 
 export async function createSupabaseServerClient() {
   const { url, publishableKey } = getSupabaseAuthConfig();
@@ -48,9 +47,6 @@ export async function getDevSignInIdentity(): Promise<DevIdentity | null> {
 
 export async function getCommonsAuthIdentity(): Promise<CommonsAuthIdentity | null> {
   if (!isSupabaseAuthConfigured()) return getDevSignInIdentity();
-  // Durable turn execution has no cookies: the identity verified at admission, with the email re-verified by the runner at claim (or none).
-  const principal = currentTurnPrincipal();
-  if (principal) return principal.authUserId ? { authUserId: principal.authUserId, ...(principal.verifiedEmail ? { email: principal.verifiedEmail } : {}) } : null;
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data?.claims?.sub) return null;

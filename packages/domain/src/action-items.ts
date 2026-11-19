@@ -1,5 +1,5 @@
 import type { CommonsState, NextStepDescriptor, TripTask } from "@commons/contracts";
-import { travelNextStepDescriptor, type CoordinatorNextStep } from "./coordinator-next-steps";
+import { travelNextStepDescriptor, type NextStep } from "./next-steps";
 
 export type ActionItem = {
   id: string; title: string; detail: string; action: string;
@@ -12,7 +12,7 @@ export type ActionItem = {
  */
 export function actionItems({ tripId, personId, organizer, state, travel, tripTasks = [], today }: {
   tripId: string; personId: string; organizer: boolean; state: CommonsState;
-  travel?: CoordinatorNextStep; tripTasks?: readonly TripTask[]; today?: string;
+  travel?: NextStep; tripTasks?: readonly TripTask[]; today?: string;
 }): ActionItem[] {
   if (state.commonsId !== tripId) return [];
   const items: ActionItem[] = [];

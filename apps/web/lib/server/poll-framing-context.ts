@@ -7,7 +7,7 @@ import { isFramingEditableQuestion } from "../poll-suggestions";
  * already reduced to participant-safe fields. This builder reduces them further and bounds the packet.
  *
  * Never included: participant names, emails or profiles; private plan notes; confirmation codes; private travel; other drafts;
- * Coordinator conversations; poll responses; the organizer setup brief. Travelers appear only as a count.
+ * chat or message threads; poll responses; the organizer setup brief. Travelers appear only as a count.
  */
 export const POLL_FRAMING_PACKET_LIMIT = 6_000;
 

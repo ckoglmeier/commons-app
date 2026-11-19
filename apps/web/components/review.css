@@ -1,0 +1,3 @@
+/* Shared quiet captions and notes in review surfaces. */
+.cm-note { margin: 4px 0; padding: 8px 12px; border-left: 3px solid var(--cm-panel-line); background: var(--cm-panel-surface); border-radius: 0 var(--cm-panel-radius) var(--cm-panel-radius) 0; color: var(--cm-color-ink); font-size: 14px; line-height: 1.5; }
+.review-caption { color: var(--cm-color-mineral); font-size: 14px; line-height: 1.5; }

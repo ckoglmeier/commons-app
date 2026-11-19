@@ -54,7 +54,7 @@ export function GroupInvitationPanel({ slug }: { slug: string }) {
   // An unconfirmed/ineligible account or an unknown initial load is not an
   // enabled invitation surface. Never carry a prior trip's control into it.
   if (!enabled || loadedSlug !== slug) return null;
-  return <section className="recipe-section" aria-label="Invite your group" data-analytics-exclude="true">
+  return <section className="group-invite-section" aria-label="Invite your group" data-analytics-exclude="true">
     <h3>Invite your group</h3>
     <p>Anyone with this link can sign in and join as a traveler.</p>
     {link?.state === "expired" || link?.state === "revoked" ? <p>{link.state === "expired" ? "The previous link expired." : "The previous link is disabled."} Share an invite link to create a new 14-day one.</p> : null}

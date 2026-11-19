@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { TripTaskSchema, type TripTask } from "@commons/contracts";
 import { createHookRenderer, registerComponentImportStubs } from "../lib/test-support/hook-harness";
-import { installFakeLiveEnvironment, settle } from "../lib/test-support/fake-live-transport";
+import { installFakeBrowserEnvironment, settle } from "../lib/test-support/fake-browser-environment";
 registerComponentImportStubs();
 
 test("Task snapshots reuse authorized loads and ignore late data after switching trips", async () => {
@@ -11,7 +11,7 @@ test("Task snapshots reuse authorized loads and ignore late data after switching
   let releaseOld: (response: Response) => void = () => {};
   let holdOld = false;
   const requests: string[] = [], snapshots: Array<{ trip: string; tasks: TripTask[] }> = [];
-  const live = installFakeLiveEnvironment({ liveFetch: async url => {
+  const live = installFakeBrowserEnvironment({ fetch: async url => {
     requests.push(url);
     if (url.includes("old-trip") && holdOld) return new Promise<Response>(resolve => { releaseOld = resolve; });
     return Response.json({ tasks: url.includes("old-trip") ? [task] : [] });
@@ -35,7 +35,7 @@ test("completed to-dos disappear from the active list but remain in loaded histo
   const task = TripTaskSchema.parse({ id: crypto.randomUUID(), title: "Check the house", ownerPersonId: crypto.randomUUID(), dueOn: null, completed: false, version: 1, itemKind: null, itemId: null, itemTitle: null });
   let completed = false;
   const snapshots: TripTask[][] = [];
-  const live = installFakeLiveEnvironment({ liveFetch: async () => Response.json({ tasks: [{ ...task, completed }] }) });
+  const live = installFakeBrowserEnvironment({ fetch: async () => Response.json({ tasks: [{ ...task, completed }] }) });
   const { TripTasks } = await import("./trip-tasks");
   const renderer = createHookRenderer({ expand: [TripTasks] });
   try {

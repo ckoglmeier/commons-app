@@ -976,7 +976,7 @@ export function HomeView(props: {
   state: CommonsState; commons: CommonsSummary; participants: CommonsParticipant[]; currentActorId: string; activityParticipation: Record<string, ParticipationChoice>;
   travelUploadAvailable?: boolean;
   confirmationIntakeEnabled?: boolean;
-  addPlan: (kind?: LogisticsAddKind) => void; addTravelPlans: (step?: import("@commons/domain").CoordinatorNextStep) => void;
+  addPlan: (kind?: LogisticsAddKind) => void; addTravelPlans: (step?: import("@commons/domain").NextStep) => void;
   goToPlan: (date?: string) => void; goToMoney: () => void; goToChoiceDay: () => void; copyAddress: (address: string, label?: string) => void;
   openTripDetails: () => void; openStay: (id: string) => void; addReceipt?: () => void;
   openTodo?: (id: string) => void; tasksPanel?: React.ReactNode; tripLetter?: boolean; textMessaging?: TextMessagingChannel;

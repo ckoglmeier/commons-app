@@ -3,7 +3,7 @@ import test from "node:test";
 import { createElement } from "react";
 import { PublicPollSchema, type PollAnswer, type PublicPoll } from "@commons/contracts";
 import { createHookRenderer, registerComponentImportStubs, textOf } from "@/lib/test-support/hook-harness";
-import { installFakeLiveEnvironment, settle } from "@/lib/test-support/fake-live-transport";
+import { installFakeBrowserEnvironment, settle } from "@/lib/test-support/fake-browser-environment";
 
 registerComponentImportStubs();
 test("typed participant answers require explicit ranking, review/save/reload/edit all payloads and abstention", async () => {
@@ -12,7 +12,7 @@ test("typed participant answers require explicit ranking, review/save/reload/edi
   const initial = PublicPollSchema.parse({ id: crypto.randomUUID(), publicId: "123456abcdef", event: { slug: "qa", name: "QA" }, title: "Typed preferences", intro: null, status: "open", ballotMode: "transparent", questions, createdByName: "Organizer", createdAt: "2026-10-11T00:00:00Z", responseCount: 0, aggregates: [], resultsVisible: true, identityBound: true, authenticatedName: "Taylor QA" });
   const requests: Array<{ answers: PollAnswer[]; expectedResponseUpdatedAt?: string }> = [];
   let persisted: PublicPoll = initial;
-  const live = installFakeLiveEnvironment({ liveFetch: async (_url, init) => {
+  const live = installFakeBrowserEnvironment({ fetch: async (_url, init) => {
     const body = JSON.parse(String(init?.body)); requests.push(body);
     persisted = { ...initial, responseCount: 1, ownResponse: { respondentName: "Taylor QA", answers: body.answers, updatedAt: `2026-10-11T0${requests.length}:00:00Z` } };
     return Response.json({ poll: persisted, receiptToken: crypto.randomUUID() + crypto.randomUUID() });

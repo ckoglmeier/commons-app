@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 type Intake = {id:string;commonsId:string;ownerPersonId:string;kind:string;revision:number;status:string;draft?:{travelSegments?:Array<{kind:string}>}|null};
-/** Overview and Coordinator read the same private intake state before suggesting arrival work. */
+/** Overview and the trip tasks read the same private intake state before suggesting arrival work. */
 export function useTripTaskIntakes(slug:string, enabled:boolean) {
   const [intakes,setIntakes]=useState<Intake[]>([]);
   const [intakeState,setIntakeState]=useState<"loaded"|"unavailable">(enabled ? "unavailable" : "loaded");

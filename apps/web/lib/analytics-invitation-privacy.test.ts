@@ -4,7 +4,7 @@ import { redactInvitationPath, sensitiveAnalyticsPath } from "./analytics-invita
 import { accountCreationPath, safeAuthNext } from "./auth-flow";
 import { groupInvitationPath } from "./group-invitation";
 import { trackProductEvent } from "./product-analytics";
-import { installFakeLiveEnvironment } from "./test-support/fake-live-transport";
+import { installFakeBrowserEnvironment } from "./test-support/fake-browser-environment";
 
 test("group invitation survives sign-in/account setup without leaking its bearer into telemetry", () => {
   const token = `g_${"a".repeat(32)}`, next = groupInvitationPath(token);
@@ -17,7 +17,7 @@ test("group invitation survives sign-in/account setup without leaking its bearer
 });
 
 test("the lower-level tracker sends nothing from auth/account/group invite paths", () => {
-  const calls: string[] = [], live = installFakeLiveEnvironment({ pathname: "/account/create/", liveFetch: async url => { calls.push(url); return Response.json({}); } });
+  const calls: string[] = [], live = installFakeBrowserEnvironment({ pathname: "/account/create/", fetch: async url => { calls.push(url); return Response.json({}); } });
   try {
     for (const path of ["/account/create/", "/sign-in/", "/group-join/g_private/", "/auth/confirm/"]) { window.location.pathname = path; trackProductEvent("page_view"); }
     assert.deepEqual(calls, []);

@@ -39,7 +39,7 @@ export function params(slug: string) {
   return { params: Promise.resolve({ slug }) };
 }
 
-/** Records `console.warn` structured events such as `commons.coordinator.turn_failed`. */
+/** Records `console.warn` structured events with a name and detail. */
 export function captureWarnings() {
   const original = console.warn;
   const events: Array<{ name: unknown; detail: unknown }> = [];
