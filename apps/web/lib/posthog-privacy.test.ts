@@ -4,23 +4,15 @@ import { analyticsRoute, replayAttribute, safeProductEvent } from './posthog-pri
 
 test('PostHog routes omit trip identity, draft/thread queries, and invitation credentials', () => {
   assert.equal(analyticsRoute('/new?draft=SECRET#token'), '/new');
-  assert.equal(analyticsRoute('/c/private-trip/coordinator/?thread=PRIVATE'), '/c/[trip]/coordinator');
+  assert.equal(analyticsRoute('/c/private-trip/plan/?thread=PRIVATE'), '/c/[trip]/plan');
   assert.equal(analyticsRoute('/poll/private-id?token=SECRET'), '/poll/[poll]');
   for (const path of ['/auth/callback', '/join/SECRET', '/invite/SECRET', '/sign-in', '/account/create', '/admin', '/prototype/coordinator', '/api/v1/private', '/unknown-sensitive']) assert.equal(analyticsRoute(path), null, path);
 });
 
 test('PostHog custom events retain only explicitly allowed metadata', () => {
-  assert.deepEqual(safeProductEvent('coordinator_reply_received', { surface: 'setup', personality: 'joan', prompt: 'PRIVATE', email: 'private@example.com', commonsSlug: 'SECRET', hasDraft: false }), { name: 'coordinator_reply_received', properties: { hasDraft: false, personality: 'joan', surface: 'setup' } });
+  assert.deepEqual(safeProductEvent('poll_draft_started', { surface: 'setup', prompt: 'PRIVATE', email: 'private@example.com', commonsSlug: 'SECRET', hasDraft: false }), { name: 'poll_draft_started', properties: { hasDraft: false, surface: 'setup' } });
   assert.equal(safeProductEvent('unknown_private_event', { prompt: 'PRIVATE' }), null);
-  assert.deepEqual(safeProductEvent('event_creation_committed', { participantCount: Infinity, surface: 'PRIVATE', personality: 'PRIVATE', hasDates: 'PRIVATE' })?.properties, {});
-});
-
-test('PostHog coordinator and voice events keep closed vocabularies and numbers, and never ids, text or free-form codes', () => {
-  const event = safeProductEvent('coordinator_voice_delegated', { inputMode: 'voice', capability: 'research', errorCode: 'auth_expired', outcome: 'completed', delegationLatencyMs: 1234.6, latencyMs: 80, queued: false,
-    sessionId: 'live_SECRET', delegationId: 'item_SECRET', commandId: 'SECRET', threadId: 'SECRET', turnId: 'SECRET', transcript: 'PRIVATE words', errorMessage: 'PRIVATE' });
-  assert.deepEqual(event?.properties, { inputMode: 'voice', capability: 'research', errorCode: 'auth_expired', outcome: 'completed', delegationLatencyMs: 1235, latencyMs: 80, queued: false });
-  assert.deepEqual(safeProductEvent('coordinator_voice_failed', { errorCode: 'microphone_denied' })?.properties, { errorCode: 'microphone_denied' });
-  assert.deepEqual(safeProductEvent('coordinator_reply_failed', { inputMode: 'PRIVATE', capability: 'PRIVATE', errorCode: 'PRIVATE', outcome: 'PRIVATE', latencyMs: -1, delegationLatencyMs: Infinity, queued: 'PRIVATE' })?.properties, {});
+  assert.deepEqual(safeProductEvent('event_creation_committed', { participantCount: Infinity, surface: 'PRIVATE', hasDates: 'PRIVATE' })?.properties, {});
 });
 
 test('Replay retains readable labels and CSS but strips credentials and form values', () => {

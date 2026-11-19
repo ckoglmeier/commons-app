@@ -47,7 +47,6 @@ export default async function NewPollPage({ params, searchParams }: { params: Pr
   const draft = drafts.find(item => item.id === draftId);
   if (draftId && !draft) notFound();
   if (draft?.publishedPollId) redirect(`/c/${slug}/polls/${draft.publishedPollId}`);
-  if (draft?.runId) redirect(`/c/${slug}/recipes/${draft.runId}`);
   if (draft?.data.communication) redirect(`/c/${slug}/reviews/${draft.id}`);
   let sourcePoll;
   if (followUp && !draft) {

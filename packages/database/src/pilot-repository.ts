@@ -3759,64 +3759,6 @@ export async function updateCommonsItineraryItem(
   }
 }
 
-/**
- * Reviewed field-level update to an itinerary record a Commons document saved or
- * linked. Identity is the saved id; the reviewed row version must still be current.
- * Only the named fields change; notes, costs, bookings, arranger, participation and
- * private meal details are preserved. Replays of the same command are no-ops.
- */
-export async function reviseItineraryItemFieldsInTransaction(transaction: CommandTransaction, commonsRecord: { id: string; timezone: string }, input: {
-  commandId: string; itemId: string; expectedVersion: string; occurredAt: string;
-  fields: Partial<{ title: string; date: string | null; time: string | null; durationMinutes: number | null; location: string | null; sourceUrl: string | null }>;
-}, options: PilotRepositoryOptions) {
-  const [alreadyProcessed] = await transaction.select({ commandId: processedCommands.commandId }).from(processedCommands)
-    .where(and(eq(processedCommands.commonsId, commonsRecord.id), eq(processedCommands.commandId, input.commandId))).limit(1);
-  if (alreadyProcessed) return { replayed: true as const };
-  const [actorRow] = await transaction.select({ personId: people.id, displayName: people.displayName, status: memberships.status, role: memberships.role })
-    .from(memberships).innerJoin(people, eq(memberships.personId, people.id))
-    .where(and(eq(memberships.commonsId, commonsRecord.id), eq(memberships.personId, options.actorPersonId))).limit(1);
-  if (!actorRow || actorRow.status !== "active" || actorRow.role !== "organizer") throw new CommonsRepositoryError("actor_not_authorized", "Only an active organizer can approve this update.");
-  const [item] = await transaction.select().from(itineraryItems)
-    .where(and(eq(itineraryItems.commonsId, commonsRecord.id), eq(itineraryItems.id, input.itemId))).for("update").limit(1);
-  if (!item) throw new CommonsRepositoryError("itinerary_not_found", "Plan not found.");
-  if (item.status === "cancelled") throw new CommonsRepositoryError("itinerary_conflict", "This activity was cancelled. Review it in Plan.");
-  if (iso(item.updatedAt) !== input.expectedVersion) throw new CommonsRepositoryError("itinerary_conflict", "This activity changed since you reviewed it. Review the current version.");
-  const fields = input.fields;
-  const date = fields.date !== undefined ? fields.date : item.scheduledDate;
-  const currentTime = item.startsAt ? new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: item.timezone }).format(item.startsAt) : null;
-  const time = fields.time !== undefined ? fields.time : currentTime;
-  if (time && !date) throw new CommonsRepositoryError("itinerary_conflict", "A time needs a day.");
-  const startsAt = date && time ? localDateTimeToDate(date, time, item.timezone) : null;
-  const durationMinutes = fields.durationMinutes !== undefined ? fields.durationMinutes : item.durationMinutes;
-  const now = new Date();
-  await transaction.update(itineraryItems).set({
-    title: fields.title ?? item.title,
-    scheduledDate: date, startsAt,
-    durationMinutes,
-    endsAt: startsAt && durationMinutes ? new Date(startsAt.valueOf() + durationMinutes * 60_000) : null,
-    locationName: fields.location !== undefined ? fields.location : item.locationName,
-    sourceUrl: fields.sourceUrl !== undefined ? fields.sourceUrl : item.sourceUrl,
-    // An idea that gains a day becomes planned; status never becomes confirmed here.
-    status: item.status === "idea" && date ? "planned" : item.status,
-    provenanceLabel: `${item.provenanceLabel.replace(/ · Updated by .+$/, "")} · Updated by ${actorRow.displayName}`,
-    updatedAt: now,
-  }).where(eq(itineraryItems.id, item.id));
-  await transaction.insert(processedCommands).values({ commonsId: commonsRecord.id, commandId: input.commandId, result: { itineraryItemId: item.id, version: now.toISOString() } });
-  await transaction.insert(auditEvents).values({ commonsId: commonsRecord.id, commandId: input.commandId, actorId: actorRow.personId, actorType: "human",
-    action: "itinerary.updated", resourceType: "itinerary_item", resourceId: item.id,
-    summary: `${actorRow.displayName} approved an update to ${fields.title ?? item.title} (${Object.keys(fields).join(", ")}).`, occurredAt: new Date(input.occurredAt) });
-  return { replayed: false as const, version: now.toISOString() };
-}
-
-/** Read one saved activity's reviewable fields by identity, for linking into a document. */
-export async function readItineraryItemForReviewInTransaction(transaction: CommandTransaction, commonsId: string, itemId: string) {
-  const [item] = await transaction.select().from(itineraryItems).where(and(eq(itineraryItems.commonsId, commonsId), eq(itineraryItems.id, itemId))).for("update").limit(1);
-  if (!item) return null;
-  const time = item.startsAt ? new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: item.timezone }).format(item.startsAt) : null;
-  return { id: item.id, title: item.title, date: item.scheduledDate, time, durationMinutes: item.durationMinutes, location: item.locationName, sourceUrl: item.sourceUrl,
-    status: item.status, audience: item.audience, mealType: item.mealType, version: iso(item.updatedAt) };
-}
-
 export async function deleteCommonsItineraryItem(
   slug: string,
   itineraryItemId: string,

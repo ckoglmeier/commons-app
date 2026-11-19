@@ -1,5 +1,4 @@
 /** Metadata-only instrumentation; prompts, completions, URLs and provider errors never leave Commons. */
-import { TurnCapabilitySchema } from '@commons/contracts';
 
 export type AiGeneration = {
   provider: 'openrouter' | 'openai' | 'typesafe' | 'perplexity'; model: string;
@@ -69,7 +68,7 @@ export type AiEventLabels = { capability?: string; inputMode?: 'text' | 'voice' 
 
 export function aiEventProperties(generation: AiGeneration, traceId: string, sessionId: string | null, feature: string, labels: AiEventLabels = {}) {
   return {
-    ...(TurnCapabilitySchema.safeParse(labels.capability).success ? { capability: labels.capability } : {}), ...(labels.inputMode === 'text' || labels.inputMode === 'voice' ? { input_mode: labels.inputMode } : {}),
+    ...(typeof labels.capability === 'string' && /^[a-z_]{1,40}$/.test(labels.capability) ? { capability: labels.capability } : {}), ...(labels.inputMode === 'text' || labels.inputMode === 'voice' ? { input_mode: labels.inputMode } : {}),
     $ai_trace_id: traceId, $ai_session_id: sessionId, $ai_span_name: feature,
     $ai_model: generation.returnedModel ?? generation.model, $ai_provider: generation.provider,
     requested_model: generation.model, returned_model: generation.returnedModel,

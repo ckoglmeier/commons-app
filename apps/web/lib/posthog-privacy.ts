@@ -1,8 +1,7 @@
-import { CoordinatorErrorCodeSchema, TurnCapabilitySchema } from '@commons/contracts';
 export { analyticsRoute } from './analytics-route';
 import { safeAcquisitionProperties } from './analytics-attribution';
 
-const events = new Set(['$pageview', 'event_creation_access_requested', 'account_identified', 'event_creation_viewed', 'event_description_submitted', 'event_setup_reviewed', 'event_creation_committed', 'trip_created', 'trip_tab_viewed', 'coordinator_setup_opened', 'coordinator_reply_received', 'coordinator_reply_failed', 'coordinator_voice_started', 'coordinator_voice_delegated', 'coordinator_voice_ended', 'coordinator_voice_failed', 'coordinator_selected', 'coordinator_topic_selected', 'workspace_opened', 'poll_published',
+const events = new Set(['$pageview', 'event_creation_access_requested', 'account_identified', 'event_creation_viewed', 'event_description_submitted', 'event_setup_reviewed', 'event_creation_committed', 'trip_created', 'trip_tab_viewed', 'poll_published',
   // Free beta: poll drafting help, participant-to-organizer entry and held-back links (counts and codes only).
   'poll_draft_started', 'poll_assist_requested', 'poll_assist_applied', 'poll_assist_failed', 'participant_trip_start_clicked', 'held_feature_link_opened']);
 export function safeProductEvent(name: string, properties: Record<string, unknown> = {}) {
@@ -13,13 +12,8 @@ export function safeProductEvent(name: string, properties: Record<string, unknow
     if (typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 10000) safe[key] = value;
   }
   for (const key of ['hasDates', 'hasLocation', 'sendInvitations', 'hasDraft']) if (typeof properties[key] === 'boolean') safe[key] = properties[key];
-  if (['commons', 'joan', 'becky', 'miles'].includes(String(properties.personality))) safe.personality = String(properties.personality);
   if (['setup', 'workspace'].includes(String(properties.surface))) safe.surface = String(properties.surface);
   if (['home', 'plan', 'money', 'moments', 'photos'].includes(String(properties.tab))) safe.tab = String(properties.tab);
-  // Coordinator turn and voice telemetry: closed vocabularies and bounded numbers only. Ids, text and audio never qualify.
-  if (['text', 'voice'].includes(String(properties.inputMode))) safe.inputMode = String(properties.inputMode);
-  if ((TurnCapabilitySchema.options as readonly string[]).includes(String(properties.capability))) safe.capability = String(properties.capability);
-  if ((CoordinatorErrorCodeSchema.options as readonly string[]).includes(String(properties.errorCode)) || ['microphone_denied', 'microphone_missing'].includes(String(properties.errorCode))) safe.errorCode = String(properties.errorCode);
   if (['completed', 'failed', 'pending', 'rejected', 'not_saved', 'unconfirmed', 'not_run', 'queue_full'].includes(String(properties.outcome))) safe.outcome = String(properties.outcome);
   for (const key of ['latencyMs', 'delegationLatencyMs']) {
     const value = properties[key];

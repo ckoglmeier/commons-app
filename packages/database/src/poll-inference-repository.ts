@@ -1,4 +1,3 @@
-import { COORDINATOR_HOURLY_LIMIT } from "./coordinator-turn-repository";
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { createDatabase } from "./client";
@@ -6,6 +5,8 @@ import { CommandAccessError, CommandConflictError, commandFingerprint } from "./
 import { isCommonsId } from "./commons-identifier";
 import { commons, itineraryItems, memberships, pollDrafts, processedCommands, stays } from "./schema";
 import type { PollRepositoryOptions } from "./poll-repository";
+
+const POLL_INFERENCE_HOURLY_LIMIT = 100;
 
 export class PollInferenceLimitError extends Error {
   constructor(message = "This event has used its 100 AI-backed turns for this hour. Keep editing manually or try later.") { super(message); }
@@ -30,7 +31,7 @@ export async function reservePollInference(identifier: string, raw: unknown, opt
       const goal = purpose === "questions" ? z.string().trim().min(5).max(500).parse(draft.data.intro) : "";
       if (purpose === "review" && !draft.data.communication) throw new CommandAccessError();
       const [usage] = await tx.select({ count: sql<number>`count(*)::int` }).from(processedCommands).where(and(eq(processedCommands.commonsId, event.id), gte(processedCommands.processedAt, new Date(Date.now() - 3600_000)), sql`${processedCommands.result}->>'kind' = 'poll_inference'`));
-      if (usage.count >= COORDINATOR_HOURLY_LIMIT) throw new PollInferenceLimitError();
+      if (usage.count >= POLL_INFERENCE_HOURLY_LIMIT) throw new PollInferenceLimitError();
       await tx.insert(processedCommands).values({ commonsId: event.id, commandId: crypto.randomUUID(), result: { kind: "poll_inference", actorPersonId: options.actorPersonId } });
       return { goal, settledFacts: draft.data.settledFacts ?? "" };
     });
@@ -81,7 +82,7 @@ export async function reservePollFraming(identifier: string, raw: unknown, optio
       const since = new Date(Date.now() - 3600_000);
       const [usage] = await tx.select({ count: sql<number>`count(*)::int` }).from(processedCommands).where(and(eq(processedCommands.commonsId, event.id), gte(processedCommands.processedAt, since), sql`${processedCommands.result}->>'kind' = 'poll_inference'`));
       if (policy.hourlyCap !== undefined && usage.count >= policy.hourlyCap) throw new PollInferenceLimitError(`This trip has used its ${policy.hourlyCap} writing-help requests for this hour. Keep editing, or ask again later.`);
-      if (usage.count >= COORDINATOR_HOURLY_LIMIT) throw new PollInferenceLimitError();
+      if (usage.count >= POLL_INFERENCE_HOURLY_LIMIT) throw new PollInferenceLimitError();
       await tx.insert(processedCommands).values({ commonsId: event.id, commandId: receiptId(input.commandId), result: { kind: "poll_inference", actorPersonId: options.actorPersonId, phase: "reserved", request } });
       const optionIds = [...new Set(draft.data.questions.flatMap(question => question.kind === "choice" ? question.options.flatMap(option => [option.id, ...(option.resource?.type === "stay" ? [option.resource.id] : [])]) : []))];
       const [travelers] = await tx.select({ count: sql<number>`count(*)::int` }).from(memberships).where(and(eq(memberships.commonsId, event.id), eq(memberships.status, "active"), sql`${memberships.attendanceState} <> 'declined'`));

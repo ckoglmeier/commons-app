@@ -1,6 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import {
-    SetupCoordinatorStateSchema, SetupCoordinatorRequestSchema,
     CommitEventCreationDraftRequestSchema,
     CommitEventCreationDraftResultSchema,
     CreateEventCreationDraftRequestSchema,
@@ -17,7 +16,6 @@ import { interpretEventDescription, interpretEventTitle } from "@commons/domain"
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { createDatabase } from "./client";
 import {
-    coordinatorThreads, coordinatorTurns, coordinatorPreferences,
     auditEvents,
     commons,
     consentEvents,
@@ -106,7 +104,6 @@ async function readDraft(transaction: Transaction, draftId: string, actorPersonI
     templateKey: draft.templateKey,
     templateVersion: draft.templateVersion,
     supported: draft.supported,
-    coordinator: SetupCoordinatorStateSchema.parse(draft.coordinator),
     brief: EventBriefSchema.parse(draft.brief),
     interpretationStatus: draft.interpretationStatus,
     interpretationErrorCode: draft.interpretationErrorCode,
@@ -472,7 +469,6 @@ export async function commitEventCreationDraft(
         return CommitEventCreationDraftResultSchema.parse({
           eventId: draft.committedEventId,
           slug: draft.committedEventSlug,
-          coordinatorThreadId: (await transaction.select({id:coordinatorThreads.id}).from(coordinatorThreads).where(and(eq(coordinatorThreads.commonsId,draft.committedEventId),eq(coordinatorThreads.createdByPersonId,options.actorPersonId),eq(coordinatorThreads.id,draft.id))).limit(1))[0]?.id ?? null,
           unsentInvitationCount: unsentInvitations.length,
           peopleNeedingContact: peopleNeedingContact.map((person) => person.name),
         });
@@ -485,8 +481,6 @@ export async function commitEventCreationDraft(
         .where(eq(people.id, options.actorPersonId)).limit(1);
       if (!organizer) throw new EventCreationRepositoryError("identity_conflict", "Your Commons profile is unavailable.");
 
-      const setupCoordinator = SetupCoordinatorStateSchema.parse(draft.coordinator);
-      if (setupCoordinator.turns.some(turn => turn.reply === null && Date.now()-Date.parse(turn.at)<60_000)) throw new EventCreationRepositoryError("draft_conflict", "Wait for the coordinator reply before creating the event.");
       const slug = `${slugBase(draft.proposedName)}-${randomBytes(3).toString("hex")}`;
       const [createdEvent] = await transaction.insert(commons).values({
         slug,
@@ -505,7 +499,6 @@ export async function commitEventCreationDraft(
         creationSourceKind: draft.sourceKind,
         sourceEventId: draft.sourceEventId,
         newExperience: options.newExperience === true,
-        coordinatorSettings: {version:1,personality:SetupCoordinatorStateSchema.parse(draft.coordinator).personality},
         eventBrief: EventBriefSchema.parse(draft.brief),
       }).returning({ id: commons.id });
       await transaction.insert(memberships).values({
@@ -515,16 +508,6 @@ export async function commitEventCreationDraft(
         status: "active",
         joinedAt: new Date(),
       });
-      let coordinatorThreadId: string | null = null;
-      // This approval creates only the selected topic. Unselected setup conversation
-      // remains in the owner-only creation draft, never silently shared.
-      if (setupCoordinator.startingPoint) {
-        coordinatorThreadId = draft.id;
-        await transaction.insert(coordinatorThreads).values({id:coordinatorThreadId,commonsId:createdEvent.id,createdByPersonId:options.actorPersonId,title:setupCoordinator.startingPoint,lastCommandId:request.commandId,lastCommandFingerprint:`setup:${draft.id}`});
-        const completed = setupCoordinator.turns.filter(turn => turn.reply !== null);
-        for (const [index, turn] of completed.entries()) await transaction.insert(coordinatorTurns).values({commonsId:createdEvent.id,threadId:coordinatorThreadId,ownerPersonId:options.actorPersonId,organizerShared:true,sequence:index+1,commandId:turn.commandId,fingerprint:`setup:${draft.id}:${turn.commandId}`,userText:turn.prompt,assistantText:turn.reply!,workspace:{personality:turn.personality.id}});
-      }
-      if (setupCoordinator.turns.length || setupCoordinator.startingPoint) await transaction.insert(coordinatorPreferences).values({commonsId:createdEvent.id,personId:options.actorPersonId,dismissed:true});
       await transaction.insert(consentEvents).values({
         commonsId: createdEvent.id,
         personId: options.actorPersonId,
@@ -630,7 +613,6 @@ export async function commitEventCreationDraft(
       return CommitEventCreationDraftResultSchema.parse({
         eventId: createdEvent.id,
         slug,
-        coordinatorThreadId,
         unsentInvitationCount,
         peopleNeedingContact,
       });
@@ -638,64 +620,4 @@ export async function commitEventCreationDraft(
   } finally {
     await database.close();
   }
-}
-
-/** Reserve a bounded private turn before inference; retries never repeat paid work. */
-export async function changeSetupCoordinator(draftId: string, raw: unknown, options: EventCreationRepositoryOptions) {
-    const input = SetupCoordinatorRequestSchema.parse(raw), database = createDatabase(options.databaseUrl);
-    try {
-        return await database.db.transaction(async (tx) => {
-            const [row] = await tx.select().from(eventCreationDrafts).where(and(eq(eventCreationDrafts.id, draftId), eq(eventCreationDrafts.createdByPersonId, options.actorPersonId))).for('update');
-            if (!row)
-                throw new EventCreationRepositoryError('draft_not_found', 'Private draft unavailable.');
-            const state = SetupCoordinatorStateSchema.parse(row.coordinator);
-            if (input.action === 'message') {
-                const prior = state.turns.find(turn => turn.commandId === input.commandId);
-                if (prior) {
-                    if (prior.prompt !== input.prompt)
-                        throw new EventCreationRepositoryError('draft_conflict', 'Command changed.');
-                    return { draft: await readDraft(tx, draftId, options.actorPersonId), replayed: true };
-                }
-            }
-            if (row.status !== 'reviewing' || row.version !== input.expectedVersion)
-                throw new EventCreationRepositoryError('draft_conflict', 'Setup changed. Reload before continuing.');
-            if (input.action === 'message') {
-                if (state.turns.length >= 30 || state.turns.filter(turn => Date.now() - Date.parse(turn.at) < 3600000).length >= 12)
-                    throw new EventCreationRepositoryError('draft_conflict', 'Conversation limit reached. You can continue setup directly.');
-                if (state.turns.some(turn => turn.reply === null && Date.now() - Date.parse(turn.at) < 60000))
-                    throw new EventCreationRepositoryError('draft_conflict', 'A reply is still being prepared.');
-                state.turns.push({ commandId: input.commandId, prompt: input.prompt, reply: null, personality: state.personality, at: new Date().toISOString() });
-            }
-            else {
-                state.personality = input.personality;
-                state.startingPoint = input.startingPoint;
-            }
-            await tx.update(eventCreationDrafts).set({ coordinator: state, version: row.version + 1, updatedAt: new Date() }).where(eq(eventCreationDrafts.id, draftId));
-            return { draft: await readDraft(tx, draftId, options.actorPersonId), replayed: false };
-        });
-    }
-    finally {
-        await database.close();
-    }
-}
-export async function finishSetupCoordinator(draftId: string, commandId: string, expectedVersion: number, reply: string, options: EventCreationRepositoryOptions) {
-    const database = createDatabase(options.databaseUrl);
-    try {
-        return await database.db.transaction(async (tx) => {
-            const [row] = await tx.select().from(eventCreationDrafts).where(and(eq(eventCreationDrafts.id, draftId), eq(eventCreationDrafts.createdByPersonId, options.actorPersonId))).for('update');
-            if (!row || row.status !== 'reviewing' || row.version !== expectedVersion)
-                throw new EventCreationRepositoryError('draft_conflict', 'Setup changed while preparing the reply. Reload for the latest details.');
-            const state = SetupCoordinatorStateSchema.parse(row.coordinator), turn = state.turns.find(item => item.commandId === commandId);
-            if (!turn)
-                throw new EventCreationRepositoryError('draft_conflict', 'Reply reservation missing.');
-            if (turn.reply !== null)
-                return readDraft(tx, draftId, options.actorPersonId);
-            turn.reply = reply;
-            await tx.update(eventCreationDrafts).set({ coordinator: SetupCoordinatorStateSchema.parse(state), version: row.version + 1, updatedAt: new Date() }).where(eq(eventCreationDrafts.id, draftId));
-            return readDraft(tx, draftId, options.actorPersonId);
-        });
-    }
-    finally {
-        await database.close();
-    }
 }

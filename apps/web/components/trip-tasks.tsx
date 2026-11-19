@@ -141,7 +141,7 @@ export function SuggestionAction({ suggestion, slug, context, onOpenPollResults,
     suggestion: ThingToDo; slug: string; context?: TripTaskContext; onOpenPollResults?: (id: string) => void; className?: string; label?: string;
 }) {
     const poll = (suggestion.target.kind === "poll" || suggestion.target.kind === "poll_results") ? context?.state.pollRequests?.find(poll => poll.id === suggestion.target.id) : undefined;
-    const href = suggestion.target.kind === "poll_results" ? `/c/${slug}/polls/${encodeURIComponent(suggestion.target.id)}` : poll ? poll.canManage ? `/c/${slug}/polls/${poll.id}` : `/c/poll/${poll.publicId}` : suggestion.target.kind === "proposal" ? commonsViewPath(slug,"plan") : `${commonsViewPath(slug,"logistics")}${suggestion.target.kind === "travel_item" ? `&travelId=${encodeURIComponent(suggestion.target.id)}` : ""}`;
+    const href = suggestion.target.kind === "poll_results" ? `/c/${slug}/polls/${encodeURIComponent(suggestion.target.id)}` : poll ? poll.canManage ? `/c/${slug}/polls/${poll.id}` : `/c/poll/${poll.publicId}` : `${commonsViewPath(slug,"logistics")}${suggestion.target.kind === "travel_item" ? `&travelId=${encodeURIComponent(suggestion.target.id)}` : ""}`;
     if (suggestion.target.kind === "poll_results" && onOpenPollResults) return <button className={className} type="button" onClick={() => onOpenPollResults(suggestion.target.id)}>{label}</button>;
     return <a className={className} href={href}>{label}</a>;
 }

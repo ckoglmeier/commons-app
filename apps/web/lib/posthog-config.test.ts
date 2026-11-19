@@ -7,9 +7,8 @@ test('SDK payload filter strips implicit identity, referrer, URL queries, and un
   const filter = config.before_send;
   assert.equal(typeof filter, 'function');
   if (typeof filter !== 'function') throw new Error('Missing filter');
-  const result = filter({ uuid: 'event-id', event: 'coordinator_selected', $set: { email: 'PRIVATE' }, properties: { token: 'phc_public_project', distinct_id: 'anonymous', personality: 'joan', $current_url: 'PRIVATE', $referrer: 'PRIVATE', email: 'PRIVATE', prompt: 'PRIVATE' } });
+  const result = filter({ uuid: 'event-id', event: 'poll_draft_started', $set: { email: 'PRIVATE' }, properties: { token: 'phc_public_project', distinct_id: 'anonymous', $current_url: 'PRIVATE', $referrer: 'PRIVATE', email: 'PRIVATE', prompt: 'PRIVATE' } });
   assert.ok(result);
-  assert.equal(result.properties.personality, 'joan');
   assert.equal(result.properties.token, 'phc_public_project');
   assert.equal(result.properties.$current_url, 'https://commons.invalid/new');
   assert.ok(!JSON.stringify(result).includes('PRIVATE'));
@@ -26,11 +25,11 @@ test('excluded routes and opt-outs discard even replay payloads', () => {
 });
 
 test('network capture removes requests and normalizes replay navigation', () => {
-  const config = posthogConfig('https://us.i.posthog.com', () => true, () => '/c/PRIVATE/coordinator/?thread=PRIVATE');
+  const config = posthogConfig('https://us.i.posthog.com', () => true, () => '/c/PRIVATE/plan/?thread=PRIVATE');
   const mask = config.session_recording?.maskCapturedNetworkRequestFn;
   assert.ok(mask);
   assert.equal(mask({ name: 'https://private.example', method: 'POST', duration: 0, entryType: 'resource', startTime: 0 }), null);
-  assert.equal(mask({ name: 'https://commons.invalid/c/PRIVATE', isInitial: true, duration: 0, entryType: 'navigation', startTime: 0 })?.name, 'https://commons.invalid/c/[trip]/coordinator');
+  assert.equal(mask({ name: 'https://commons.invalid/c/PRIVATE', isInitial: true, duration: 0, entryType: 'navigation', startTime: 0 })?.name, 'https://commons.invalid/c/[trip]/plan');
   assert.equal(config.enable_recording_console_log, false);
   assert.equal(config.disable_session_recording, true);
   assert.equal(config.session_recording?.inlineStylesheet, false);

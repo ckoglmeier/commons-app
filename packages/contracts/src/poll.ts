@@ -1,12 +1,8 @@
 import { z } from "zod";
-import { DatesLocationConfigurationSchema } from "./recipe-convergence";
 import { MAX_POLL_QUESTIONS, MAX_CONVERGENCE_OPTIONS } from "./poll-limits";
-import { TripDatesLocationSchema } from "./recipe";
-import { RecipeContextSchema } from "./recipe-context";
 import { AttendanceStateSchema, PartySizeSchema, PollPropertySchema, SleepingNeedSchema, attendanceLabels, partySizeLabel, sleepingLabels } from "./poll-recipe-fields";
 import { PollAvailabilitySchema, PollScheduleSchema, PollAlternativeSchema, formatPollSchedule, formatAlternativeLabel } from "./poll-availability";
 import { PollCommunicationSchema } from "./poll-communication";
-import { WorkflowReferenceSchema } from "./workflows";
 import { ItineraryPollSnapshotSchema, ItineraryPollFeedbackSchema, itineraryDecisionLabels } from "./itinerary-poll";
 export * from "./poll-communication";
 export * from "./poll-ballot";
@@ -232,12 +228,7 @@ export const CreatePollRequestSchema = z.object({
 
 // Working drafts may be incomplete. Publishing still uses the stricter schema above.
 export const PollWorkingDataSchema = z.object({
-  recipeConfiguration: DatesLocationConfigurationSchema.optional(),
-  /** Private recipe context pinned when the questions are written; never part of the public poll projection. */
-  recipeTrip: TripDatesLocationSchema.optional(),
-  recipeContext: RecipeContextSchema.optional(),
   privateItineraryDocument: z.object({ id: z.string().uuid(), version: z.number().int().positive() }).strict().optional(),
-  workflow: WorkflowReferenceSchema.optional(),
   /** Organizer-only source retained for correcting extraction; never projected into publication. */
   itinerarySource: z.string().max(30000).optional(),
   presentationVersion: z.literal(2).optional(),
@@ -263,38 +254,12 @@ export const PollWorkingDataSchema = z.object({
       questions: z.array(PollQuestionSchema).max(MAX_POLL_QUESTIONS) }).nullable(),
     lastChange: z.string().max(1000),
   }).optional(),
-}).superRefine((data, context) => {
-  if (!data.recipeConfiguration) return;
-  const issue = () => context.addIssue({ code: "custom", path: ["recipeConfiguration"], message: "The configured questions changed. Edit this draft through its recipe so the questions and configuration stay together." });
-  if (data.recipeConfiguration.blocks.length !== data.questions.length) { issue(); return; }
-  for (const block of data.recipeConfiguration.blocks) {
-    const question = data.questions.find(item => item.id === block.id);
-    const kind = block.type === "text" ? "text" : block.type === "choice" || block.type === "combination" ? "choice" : block.type === "ranking" || block.type === "allocation" ? block.type : "option_response";
-    if (!question || question.kind !== kind || question.prompt !== block.prompt || question.required !== block.required) { issue(); continue; }
-    if (question.kind === "text") continue;
-    const dimension = block.type === "ranking" || block.type === "allocation" ? block.dimension : block.type;
-    const scale = block.type === "dates" ? "yes_maybe_no" : block.scale ?? "interest";
-    if (question.kind === "option_response" && question.scale !== scale || question.kind === "choice" && question.selectionMode !== (block.type === "combination" ? "multiple" : block.selectionMode)) issue();
-    const options = question.options.filter(option => !option.exclusive);
-    if (options.length !== block.options.length) { issue(); continue; }
-    for (const configured of block.options) {
-      const option = options.find(item => item.id === configured.id);
-      if (!option) { issue(); continue; }
-      const same = dimension === "location" ? option.place?.name === configured.place
-        : dimension === "dates" ? option.schedule?.startsOn === configured.startsOn && option.schedule?.endsOn === configured.endsOn
-          : dimension === "combination" ? option.alternative?.startsOn === configured.startsOn && option.alternative?.endsOn === configured.endsOn && option.alternative?.place === configured.place
-            : option.label === configured.label;
-      if (!same) issue();
-    }
-  }
 });
 export const SavePollDraftRequestSchema = z.object({
   id: z.string().uuid(), commandId: z.string().uuid(),
   expectedVersion: z.number().int().nonnegative(), data: PollWorkingDataSchema,
 });
 export const PollWorkingDraftSchema = z.object({
-  /** The recipe run this draft belongs to, if it was started from a recipe. Set only by the run's own commands. */
-  runId: z.string().uuid().nullable().optional(),
   id: z.string().uuid(), version: z.number().int().positive(), data: PollWorkingDataSchema,
   publishedPollId: z.string().uuid().nullable(), archivedAt: z.string().datetime().nullable().optional(), updatedAt: z.string().datetime(),
 });

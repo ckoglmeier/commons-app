@@ -1,5 +1,5 @@
 // Itinerary revisions carry a complete, schema-bounded draft, not just an ID.
-export const COORDINATOR_WORKSPACE_BODY_LIMIT = 1024 * 1024;
+export const LARGE_BODY_LIMIT = 1024 * 1024;
 
 /** Command envelopes must be bounded even without a Content-Length header. */
 export async function readBoundedJson(request: Request, limit = 4096): Promise<unknown> {

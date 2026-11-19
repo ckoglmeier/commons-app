@@ -6,10 +6,9 @@ import { readPollEvidence } from "./poll-evidence";
 import { PollRepositoryError, getCommonsPollDetail, type PollRepositoryOptions } from "./poll-repository";
 import { commons, itineraryItems, pollDecisions, polls } from "./schema";
 import { publishedPollReplacement } from "./poll-delivery-repository";
-import type { ConnectedRecipeDecisionEvidence } from "./recipe-advice";
 
-/** The decision rules shared by the poll workspace and recipe outcomes. Runs inside the caller's event command. */
-export async function recordPollDecisionInTransaction(tx: CommandTransaction, context: { id: string; displayName: string }, actorPersonId: string, pollId: string, input: ApprovePollDecision, options: { allowNoSelection?: boolean; connectedRecipe?: ConnectedRecipeDecisionEvidence } = {}) {
+/** The decision rules for the poll workspace. Runs inside the caller's event command. */
+export async function recordPollDecisionInTransaction(tx: CommandTransaction, context: { id: string; displayName: string }, actorPersonId: string, pollId: string, input: ApprovePollDecision, options: { allowNoSelection?: boolean } = {}) {
         const [poll] = await tx.select().from(polls).where(eq(polls.id, pollId)).for("update").limit(1);
         if (poll.status !== "closed") throw new PollRepositoryError("invalid_response", "Close voting before reviewing a decision.");
         if (await publishedPollReplacement(tx, pollId)) throw new PollRepositoryError("invalid_response", "This version was superseded. Review the replacement poll instead of approving historical responses.");
@@ -17,7 +16,7 @@ export async function recordPollDecisionInTransaction(tx: CommandTransaction, co
         if (existing) throw new PollRepositoryError("invalid_response", "This round already has an approved decision. Start a follow-up round to reconsider it.");
         const { evidence, fingerprint } = await readPollEvidence(tx, poll);
         if (fingerprint !== input.evidenceFingerprint) throw new PollRepositoryError("invalid_response", "Responses, audience, or event details changed. Reload and review the evidence again.");
-        if (!options.allowNoSelection && poll.questions.some(question => question.kind !== "choice" && question.kind !== "text")) throw new PollRepositoryError("invalid_response", "This decision form does not support grouped responses, rankings or points. Review the recipe instead.");
+        if (!options.allowNoSelection && poll.questions.some(question => question.kind !== "choice" && question.kind !== "text")) throw new PollRepositoryError("invalid_response", "This decision form does not support grouped responses, rankings or points.");
         if (!input.selected.length && !options.allowNoSelection && poll.questions.some(question => question.kind === "choice")) throw new PollRepositoryError("invalid_response", "Choose an option before approving a decision for this poll.");
         if (new Set(input.selected.map(item => item.questionId)).size !== input.selected.length) throw new PollRepositoryError("invalid_response", "Choose at most one option for each decision.");
         for (const selection of input.selected) {
@@ -37,7 +36,7 @@ export async function recordPollDecisionInTransaction(tx: CommandTransaction, co
           planId = plan.id;
         }
         const [decision] = await tx.insert(pollDecisions).values({ pollId, approvedByPersonId: actorPersonId, approvedByName: context.displayName,
-          evidenceFingerprint: fingerprint, evidence: options.connectedRecipe ? { ...evidence, recipeConnected: options.connectedRecipe } : evidence, approval: input, summary: input.summary, target: input.target, planId }).returning({ id: pollDecisions.id });
+          evidenceFingerprint: fingerprint, evidence, approval: input, summary: input.summary, target: input.target, planId }).returning({ id: pollDecisions.id });
         return decision.id;
 }
 

@@ -1,4 +1,3 @@
-import { SetupCoordinatorStateSchema } from './coordinator-onboarding';
 import { z } from "zod";
 
 export const EventCreationSourceKindSchema = z.enum(["description", "prior_event"]);
@@ -79,7 +78,6 @@ export const EventCreationDraftSchema = z.object({
   templateVersion: z.number().int().positive(),
   supported: z.boolean(),
   brief: EventBriefSchema,
-  coordinator: SetupCoordinatorStateSchema,
   interpretationStatus: EventCreationInterpretationStatusSchema,
   interpretationErrorCode: z.string().nullable(),
   people: z.array(EventCreationDraftPersonSchema).max(24),
@@ -139,7 +137,6 @@ export const CommitEventCreationDraftRequestSchema = z.object({
 export const CommitEventCreationDraftResultSchema = z.object({
   eventId: z.string().uuid(),
   slug: z.string().min(1),
-  coordinatorThreadId: z.string().uuid().nullable().optional(),
   unsentInvitationCount: z.number().int().nonnegative(),
   peopleNeedingContact: z.array(z.string().min(1)),
 });

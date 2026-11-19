@@ -1,5 +1,0 @@
-.coordinator-dynamic-work { min-width: 0; }
-.coordinator-dynamic-work .workspace-work-section { margin-block: 20px; padding-block: 16px; border-top: 1px solid var(--cm-color-line); }
-.coordinator-dynamic-work h3 { font-size: var(--cm-text-document-section, 17px); font-weight: 500; }
-.coordinator-dynamic-work .dynamic-work-stays > h3 { margin-block: 20px 8px; }
-.coordinator-dynamic-work .cm-action { white-space: normal; overflow-wrap: anywhere; }

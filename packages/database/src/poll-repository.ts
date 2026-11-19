@@ -1,4 +1,3 @@
-import { projectGoalEventInTransaction, resumeFoodCollectionGoal } from "./coordinator-goal-repository";
 import {
     CreatePollRequestSchema,
     PollDetailSchema,
@@ -6,7 +5,7 @@ import {
     PublicPollSchema,
     SubmitPollResponseRequestSchema,
     UpdatePollStatusRequestSchema,
-    validatePollAnswers, aggregatePollAnswers, participantRecipeSummary,
+    validatePollAnswers, aggregatePollAnswers,
     type PollAnswer,
     type PollQuestion,
     type PublicPoll,
@@ -16,13 +15,11 @@ import { z } from "zod";
 import { commandFingerprint, runEventCommand } from "./event-command";
 import { createDatabase } from "./client";
 import { isCommonsId } from "./commons-identifier";
-import { auditEvents, commons, invitations, memberships, people, pollDecisions, pollDeliveries, pollDrafts, pollResponses, polls, recipeRuns, recipeOutcomes, stays } from "./schema";
+import { auditEvents, commons, invitations, memberships, people, pollDecisions, pollDeliveries, pollDrafts, pollResponses, polls, stays } from "./schema";
 import { publishedPollCommunication, publishedPollCommunicationMode, publishedPollReplacement, resolvePollRecipients } from "./poll-delivery-repository";
 import { readPollEvidence } from "./poll-evidence";
 import { pollViewerAccess, type PollViewer } from "./poll-access";
-import { coordinatorDraftAccess } from "./coordinator-draft-access";
-import { assertRecipePublicationContext } from "./recipe-context";
-import { assertFoodGoalQuestions } from "./food-goal-guard";
+import { pollDraftAccess } from "./poll-draft-access";
 import {
     generateOpaqueToken,
     hashOpaqueToken,
@@ -141,9 +138,8 @@ export async function createCommonsPoll(identifier: string, rawInput: unknown, o
       if ((input.communication || input.deliveryApproval || input.shareApproval) && context.role !== "organizer") throw new PollRepositoryError("actor_not_authorized", "Only an organizer can approve a group message.");
       if (!input.draftId) return;
       const [draft] = await tx.select().from(pollDrafts).where(and(eq(pollDrafts.id, input.draftId),
-        eq(pollDrafts.commonsId, context.id), coordinatorDraftAccess(options.actorPersonId, context.role))).for("update").limit(1);
+        eq(pollDrafts.commonsId, context.id), pollDraftAccess(options.actorPersonId, context.role))).for("update").limit(1);
       if (!draft || draft.archivedAt || draft.version !== input.draftVersion) throw new PollRepositoryError("invalid_response", "The saved draft changed or was deleted. Reload it and review before sharing.");
-      await assertFoodGoalQuestions(tx, context.id, draft.runId, draft.data.questions, context.role);
       // A follow-up relationship does not alter the reviewed questions. Preserve any
       // draft-pinned source; otherwise validate the requested parent below in this transaction.
       const normalized = CreatePollRequestSchema.parse({ ...draft.data, sourcePollId: draft.data.sourcePollId ?? input.sourcePollId, commandId: input.commandId, draftId: input.draftId, draftVersion: input.draftVersion,
@@ -156,7 +152,6 @@ export async function createCommonsPoll(identifier: string, rawInput: unknown, o
       if (input.draftId) {
         const [draft] = await tx.select({ publishedPollId: pollDrafts.publishedPollId, threadId: pollDrafts.threadId, runId: pollDrafts.runId, data: pollDrafts.data }).from(pollDrafts).where(eq(pollDrafts.id, input.draftId));
         if (draft.publishedPollId) throw new PollRepositoryError("invalid_response", "This draft already has a share link. Open the saved poll.");
-        await assertRecipePublicationContext(tx, context.id, draft.runId, draft.data.recipeContext);
         threadId = draft.threadId;
       }
       const shareToken = generateOpaqueToken();
@@ -248,11 +243,11 @@ async function getPublicPoll(lookup: PublicPollLookup, databaseUrl?: string, vie
     // private notes, and need resolutions never cross this boundary.
     const [decision] = await database.db.select({ id: pollDecisions.id, summary: pollDecisions.summary,
       approvedByName: pollDecisions.approvedByName, approvedAt: pollDecisions.createdAt,
-      target: pollDecisions.target, planId: pollDecisions.planId, recipeOutcomeId: recipeOutcomes.id, recipeResult: recipeOutcomes.result }).from(pollDecisions)
-      .leftJoin(recipeOutcomes, eq(recipeOutcomes.decisionId, pollDecisions.id)).where(eq(pollDecisions.pollId, row.id));
+      target: pollDecisions.target, planId: pollDecisions.planId }).from(pollDecisions)
+      .where(eq(pollDecisions.pollId, row.id));
     // Exclude the private result object itself, not just its exception text.
     const participantDecision = decision ? { id: decision.id,
-      summary: decision.recipeOutcomeId ? participantRecipeSummary(decision.recipeResult) : decision.summary,
+      summary: decision.summary,
       approvedByName: decision.approvedByName, approvedAt: iso(decision.approvedAt), target: decision.target, planId: decision.planId } : null;
     const tripBrief = row.tripNewExperience && !row.tripGoingAt ? { welcome: row.tripWelcome, organizerName: row.createdByName, decideBy: row.tripBrief?.decideBy ?? null, roughCost: row.tripBrief?.roughCost ?? null } : null;
     return { ...publicPoll(row, responses), tripBrief, identityBound: Boolean(viewer), authenticatedName: viewer ? access.respondentName ?? null : null,
@@ -371,7 +366,6 @@ async function submitPollResponse(
       return { receiptToken, revised: false, responseUpdatedAt: updatedAt.toISOString() };
       })();
       const [currentPoll] = await transaction.select().from(polls).where(publicPollCondition(lookup)).limit(1);
-      if(currentPoll)await projectGoalEventInTransaction(transaction,currentPoll.commonsId,currentPoll.id);
       // Server-only outcome telemetry identity; the response route strips these before replying.
       return { ...reply, telemetryTripId: currentPoll?.commonsId ?? null, telemetryPollId: currentPoll?.id ?? null };
     });
@@ -434,8 +428,8 @@ export async function getCommonsPollDetail(identifier: string, pollId: string, o
     const [fullPoll] = canManage ? await tx.select().from(polls).where(eq(polls.id, pollId)) : [];
     const evidenceFingerprint = fullPoll ? (await readPollEvidence(tx, fullPoll)).fingerprint : undefined;
     const [decision] = await tx.select({ id: pollDecisions.id, summary: pollDecisions.summary, approvedByName: pollDecisions.approvedByName,
-      approvedAt: pollDecisions.createdAt, target: pollDecisions.target, planId: pollDecisions.planId, approval: pollDecisions.approval, recipeOutcomeId: recipeOutcomes.id, recipeResult: recipeOutcomes.result }).from(pollDecisions)
-      .leftJoin(recipeOutcomes, eq(recipeOutcomes.decisionId, pollDecisions.id)).where(eq(pollDecisions.pollId, pollId));
+      approvedAt: pollDecisions.createdAt, target: pollDecisions.target, planId: pollDecisions.planId, approval: pollDecisions.approval }).from(pollDecisions)
+      .where(eq(pollDecisions.pollId, pollId));
     // The approved choices that are trip stays, so organizers can make one the stay.
     const selectedStayIds = canManage && decision ? [...new Set((decision.approval?.selected ?? []).flatMap(choice => {
       const question = publicResult.questions.find(item => item.id === choice.questionId);
@@ -443,7 +437,7 @@ export async function getCommonsPollDetail(identifier: string, pollId: string, o
       return option?.resource?.type === "stay" ? [option.resource.id] : [];
     }))] : undefined;
     const visibleDecision = decision ? { id: decision.id,
-      summary: !canManage && decision.recipeOutcomeId ? participantRecipeSummary(decision.recipeResult) : decision.summary,
+      summary: decision.summary,
       approvedByName: decision.approvedByName, approvedAt: iso(decision.approvedAt), target: decision.target, planId: decision.planId,
       ...(selectedStayIds?.length ? { selectedStayIds } : {}) } : null;
     return PollDetailSchema.parse({
@@ -492,7 +486,6 @@ export async function revokePollRecipient(identifier: string, pollId: string, ra
         if (!poll.audience || commandFingerprint("", "audience", poll.audience) !== input.fingerprint) throw new PollRepositoryError("invalid_response", "The audience changed. Reload and review it before removing access.");
         const audience = { personIds: poll.audience.personIds.filter(id => input.kind !== "person" || id !== input.recipient), guestEmails: poll.audience.guestEmails.filter(email => input.kind !== "email" || email !== input.recipient) };
         await tx.update(polls).set({ audience, updatedAt: context.now, ...(!audience.personIds.length && !audience.guestEmails.length ? { status: "revoked" as const } : {}) }).where(eq(polls.id, pollId));
-        await projectGoalEventInTransaction(tx, context.id, pollId, context.now);
         return { result: { pollId }, resourceType: "poll", resourceId: pollId, summary: "Removed a recipient’s poll access. Historical responses were preserved." };
       }));
     return getCommonsPollDetail(identifier, pollId, options);
@@ -529,7 +522,6 @@ export async function deleteCommonsPollResponse(
       }
       await transaction.delete(pollResponses).where(and(eq(pollResponses.id, responseId), eq(pollResponses.pollId, pollId)));
       await transaction.update(polls).set({updatedAt:new Date()}).where(eq(polls.id,pollId));
-      await projectGoalEventInTransaction(transaction,context.commonsId,pollId);
       await transaction.insert(auditEvents).values({
         commonsId: context.commonsId,
         commandId: `poll-response-delete:${responseId}`,
@@ -565,27 +557,14 @@ export async function updateCommonsPollStatus(
       if (!poll || (context.role !== "organizer" && poll.createdBy !== options.actorPersonId)) {
         throw new PollRepositoryError("actor_not_authorized", "Only the poll creator or an organizer can change voting.");
       }
-      const [recipeDraft] = await tx.select({ runId: pollDrafts.runId }).from(pollDrafts)
-        .where(and(eq(pollDrafts.commonsId, context.id), eq(pollDrafts.publishedPollId, pollId))).limit(1);
-      if (recipeDraft?.runId && context.role !== "organizer") {
-        throw new PollRepositoryError("actor_not_authorized", "Only an active organizer can change voting on a recipe poll.");
-      }
     }, async (context) => {
       const [decision] = await tx.select({ id: pollDecisions.id }).from(pollDecisions).where(eq(pollDecisions.pollId, pollId));
-      const [artifact] = await tx.select({ data: pollDrafts.data, runId: pollDrafts.runId }).from(pollDrafts).where(and(eq(pollDrafts.commonsId, context.id), eq(pollDrafts.publishedPollId, pollId)));
+      const [artifact] = await tx.select({ data: pollDrafts.data }).from(pollDrafts).where(and(eq(pollDrafts.commonsId, context.id), eq(pollDrafts.publishedPollId, pollId)));
       if (artifact?.data.lifecycle?.replacementDraftId && input.status === "open") throw new PollRepositoryError("invalid_response", "This version was superseded. Publish its replacement draft instead.");
       if (decision && input.status === "open") throw new PollRepositoryError("invalid_response", "This poll has an approved decision. Start a follow-up round instead of reopening its evidence.");
       await tx.update(polls).set({ status: input.status,
         closedAt: input.status === "closed" ? context.now : null, updatedAt: context.now,
       }).where(eq(polls.id, pollId));
-      await projectGoalEventInTransaction(tx,context.id,pollId,context.now);
-      if (artifact?.runId) {
-        const [run] = await tx.select().from(recipeRuns).where(and(eq(recipeRuns.id, artifact.runId), eq(recipeRuns.commonsId, context.id)));
-        if (run?.recipe === "food_preferences" && run.status === "active") {
-          if (input.status === "open") await resumeFoodCollectionGoal(tx, context.id, run.id, context.now);
-          await projectGoalEventInTransaction(tx, context.id, run.id, context.now);
-        }
-      }
       return { result: { pollId, status: input.status }, resourceType: "poll", resourceId: pollId,
         summary: input.status === "closed" ? "Closed poll voting." : "Reopened poll voting." };
     }));

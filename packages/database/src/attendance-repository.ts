@@ -1,10 +1,9 @@
-import { EventAttendanceSchema, SetEventAttendanceSchema, eventAttendanceDates, latestOwnAttendanceReport } from "@commons/contracts";
-import { and, desc, eq, inArray, ne, or } from "drizzle-orm";
+import { EventAttendanceSchema, SetEventAttendanceSchema, eventAttendanceDates } from "@commons/contracts";
+import { and, eq, inArray, ne, or } from "drizzle-orm";
 import { createDatabase } from "./client";
 import { isCommonsId } from "./commons-identifier";
 import { CommandAccessError, CommandConflictError, commandFingerprint, runEventCommand } from "./event-command";
-import { turnIsCompletedSql } from "./coordinator-turn-lifecycle";
-import { commons, coordinatorTurns, invitationDeliveryAttempts, invitations, memberships, people, processedCommands } from "./schema";
+import { commons, invitationDeliveryAttempts, invitations, memberships, people, processedCommands } from "./schema";
 import { revokedOpaqueTokenHash } from "./tokens";
 
 type Options = { databaseUrl?: string; actorPersonId: string };
@@ -24,17 +23,10 @@ export async function getEventAttendance(identifier: string, options: Options) {
       const [actor] = await tx.select().from(memberships).where(and(eq(memberships.commonsId, event.id), eq(memberships.personId, options.actorPersonId)));
       if (actor?.status !== "active") throw new CommandAccessError();
       const dates = eventAttendanceDates(event.startsOn, event.endsOn);
-      // Only the current person's own words can offer their personal RSVP shortcut.
-      // This never exposes another organizer's private conversation or changes a response.
-      const reports = actor.attendanceState === "helping" ? await tx.select({ id: coordinatorTurns.id,
-        userText: coordinatorTurns.userText, createdAt: coordinatorTurns.createdAt }).from(coordinatorTurns)
-        .where(and(eq(coordinatorTurns.commonsId, event.id), eq(coordinatorTurns.ownerPersonId, options.actorPersonId), eq(coordinatorTurns.organizerShared, true), turnIsCompletedSql))
-        .orderBy(desc(coordinatorTurns.createdAt), desc(coordinatorTurns.id)).limit(50) : [];
       const rows = await tx.select({ personId: people.id, displayName: people.displayName, state: memberships.attendanceState,
         reviewedDates: memberships.attendanceDates, status: memberships.status }).from(memberships)
         .innerJoin(people, eq(people.id, memberships.personId)).where(eq(memberships.commonsId, event.id));
       return EventAttendanceSchema.parse({ ...event, dates, currentPersonId: options.actorPersonId,
-        reportedAttendance: latestOwnAttendanceReport(reports, actor.updatedAt),
         people: rows.filter(row => row.status === "active" || row.state === "declined").map(row => ({ ...row,
           state: row.state === "attending" && row.reviewedDates !== dates ? "needs_confirmation" : row.state,
         })),

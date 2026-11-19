@@ -5,9 +5,8 @@ import { eq, inArray } from "drizzle-orm";
 import { itineraryDecisionLabels } from "@commons/contracts";
 import { createDatabase } from "./client";
 import { commons,memberships,people,pollDeliveries } from "./schema";
-import { saveCommonsPollDraft,reopenCoordinatorDraft } from "./poll-draft-repository";
+import { saveCommonsPollDraft } from "./poll-draft-repository";
 import { createCommonsPoll,getCommonsPollDetail,getPublicPollByPublicId,submitPublicPollResponseByPublicId,normalizePollAnswers,pollAnswersForViewer } from "./poll-repository";
-import { getCoordinatorThread } from "./coordinator-repository";
 import { getCommonsSnapshot } from "./pilot-repository";
 
 const itemId=randomUUID(),ideaId=randomUUID();
@@ -56,26 +55,9 @@ test("saved itinerary publication, cross-viewer feedback, revision and approval 
     assert.equal(repeatedReceipt.responseUpdatedAt,updatedReceipt.responseUpdatedAt);
     await assert.rejects(submitPublicPollResponseByPublicId(poll.publicId,{...updated,answers:[{...ballot.answers[0],itineraryFeedback:{comments:[],interests:[]}}]},url),/another tab/);
     const detail=await getCommonsPollDetail(event,poll.id,options);assert.equal(detail?.responseCount,1);assert.equal(detail?.responses[0].answers?.[0].itineraryFeedback?.comments[0].text,comment.text);
-    const publishedThread=await getCoordinatorThread(event,options);
-    assert.equal(publishedThread.polls.find(item=>item.id===poll.id)?.itinerary,true);
-    assert.equal(publishedThread.polls.find(item=>item.id===poll.id)?.superseded,false);
     assert.deepEqual(detail?.responses[0].answers?.[0].optionIds,[question.options[0].id]);
     const memberDetail=await getCommonsPollDetail(event,poll.id,{...options,actorPersonId:member});assert.equal(memberDetail?.responses[0].answers?.[0].itineraryFeedback,undefined);
     await assert.rejects(getCommonsPollDetail(event,poll.id,{...options,actorPersonId:outsider}));
-    const revised=await reopenCoordinatorDraft(event,draft.id,draft.version,options);assert.equal(revised.publishedPollId,null);
-    const nextData={...revised.data,questions:[{...question,itinerary:{...question.itinerary,title:"Revised weekend"}}]};
-    const saved=await saveCommonsPollDraft(event,{id:revised.id,commandId:randomUUID(),expectedVersion:revised.version,data:nextData},options);
-    const next=await createCommonsPoll(event,{...publish,questions:nextData.questions,commandId:randomUUID(),draftId:saved.id,draftVersion:saved.version},options);
-    assert.equal(next.responseCount,0);assert.equal((await getCommonsPollDetail(event,poll.id,options))?.questions[0].kind,"choice");
-    const revisedThread=await getCoordinatorThread(event,options);
-    assert.equal(revisedThread.polls.find(item=>item.id===poll.id)?.superseded,true);
-    assert.equal(revisedThread.polls.find(item=>item.id===next.id)?.superseded,false);
-    assert.equal(revisedThread.polls.find(item=>item.id===next.id)?.itinerary,true);
-    const snapshot = await getCommonsSnapshot(event, options);
-    assert.equal(snapshot?.state.pollRequests?.find(item=>item.id===poll.id)?.superseded,true);
-    assert.equal(snapshot?.state.pollRequests?.find(item=>item.id===next.id)?.superseded,false);
-    assert.equal((await getPublicPollByPublicId(poll.publicId,url))?.superseded?.replacementPublicId,next.publicId);
-    await assert.rejects(submitPublicPollResponseByPublicId(poll.publicId,updated,url));
     // Invited access rejects anonymous visitors and unrelated identities.
     const restrictedDraft=await saveCommonsPollDraft(event,{id:randomUUID(),commandId:randomUUID(),expectedVersion:0,data},options);
     const restricted=await createCommonsPoll(event,{...publish,commandId:randomUUID(),draftId:restrictedDraft.id,draftVersion:restrictedDraft.version,publicationApproval:{approved:true,access:"invitees"}},options);
@@ -85,6 +67,5 @@ test("saved itinerary publication, cross-viewer feedback, revision and approval 
     await submitPublicPollResponseByPublicId(restricted.publicId,{...ballot,newReceiptToken:randomUUID()+randomUUID()},url,{authUserId:member,email:"member@example.test"});
     const memberSnapshot = await getCommonsSnapshot(event,{...options,actorPersonId:member});
     assert.equal(memberSnapshot?.state.pollRequests?.find(item=>item.id===restricted.id)?.responded,true);
-    assert.equal(memberSnapshot?.state.pollRequests?.find(item=>item.id===next.id)?.responded,false);
   } finally {await db.db.delete(commons).where(eq(commons.id,event));await db.db.delete(people).where(inArray(people.id,[org,member,outsider]));await db.close();}
 });

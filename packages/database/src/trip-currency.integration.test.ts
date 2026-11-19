@@ -40,26 +40,3 @@ test("trip currency changes are organizer-only, conflict checked and preserve sa
     await database.close();
   }
 });
-
-test("saved activity websites reach authorized Coordinator context without private activity notes", { skip: !run }, async () => {
-  const { loadCoordinatorTripContext } = await import("./coordinator-context-repository");
-  const { itineraryItems } = await import("./schema");
-  const databaseUrl = process.env.TEST_DATABASE_URL;
-  assert.ok(databaseUrl);
-  const database = createDatabase(databaseUrl), tripId = randomUUID(), owner = randomUUID(), member = randomUUID();
-  const slug = `website-${tripId}`;
-  try {
-    await database.db.insert(people).values([{ id: owner, displayName: "Website Owner" }, { id: member, displayName: "Website Traveler" }]);
-    await database.db.insert(commons).values({ id: tripId, slug, name: "Website Test", timezone: "America/Denver", createdByPersonId: owner });
-    await database.db.insert(memberships).values([{ commonsId: tripId, personId: owner, role: "organizer", status: "active" }, { commonsId: tripId, personId: member, role: "member", status: "active" }]);
-    await database.db.insert(itineraryItems).values({ commonsId: tripId, title: "Randall Davey Audubon Center", timezone: "America/Denver", audience: "everyone", provenanceLabel: "Synthetic activity", sourceUrl: "https://audubon.example.org/visit", note: "PRIVATE_ACTIVITY_NOTE" });
-    const context = await loadCoordinatorTripContext(slug, { databaseUrl, actorPersonId: owner });
-    assert.equal(context.plans[0].value.sourceUrl, "https://audubon.example.org/visit");
-    assert.doesNotMatch(JSON.stringify(context), /PRIVATE_ACTIVITY_NOTE/);
-    await assert.rejects(loadCoordinatorTripContext(slug, { databaseUrl, actorPersonId: member }));
-  } finally {
-    await database.db.delete(commons).where(eq(commons.id, tripId));
-    await database.db.delete(people).where(inArray(people.id, [owner, member]));
-    await database.close();
-  }
-});

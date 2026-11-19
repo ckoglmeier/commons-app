@@ -2256,33 +2256,3 @@ export async function claimCommonsInvitation(
     await database.close();
   }
 }
-
-/** Exact organizer-supplied recipients, committed atomically with the Coordinator receipt.
- * Uses the same creation, access checks, encrypted tokens and delivery queue as People.
- */
-export async function inviteCoordinatorRecipientsInTransaction(
-  transaction: Parameters<Parameters<ReturnType<typeof createDatabase>["db"]["transaction"]>[0]>[0],
-  commonsId: string, recipients: Array<{email: string; displayName: string}>, options: SetupRepositoryOptions,
-): Promise<NonNullable<import("@commons/contracts").CoordinatorWorkspace["invitationReceipt"]>> {
-  await requireOrganizer(transaction, commonsId, options.actorPersonId);
-  const receipt: NonNullable<import("@commons/contracts").CoordinatorWorkspace["invitationReceipt"]> = [];
-  for (const recipient of recipients) {
-    const request = AddCommonsPersonRequestSchema.parse({...recipient, role: "member", accessMode: "account"});
-    const email = recipient.email.toLowerCase();
-    const [membership] = await transaction.select({status:memberships.status,role:memberships.role}).from(identities)
-      .innerJoin(memberships, and(eq(memberships.personId, identities.personId), eq(memberships.commonsId, commonsId)))
-      .where(and(eq(identities.kind,"email"),eq(identities.normalizedHash,emailHash(email)),inArray(memberships.status,["active","invited"]))).limit(1);
-    const [existing] = await transaction.select().from(invitations).where(and(eq(invitations.commonsId,commonsId),eq(invitations.recipientEmail,email),eq(invitations.status,"pending"))).limit(1);
-    if (membership?.status === "active") {
-      receipt.push({email,status:"already_member",invitationId:null,deliveryAttemptId:null}); continue;
-    }
-    if (membership?.role === "organizer" || existing && !["not_sent","failed"].includes(existing.deliveryState) || membership && !existing) {
-      receipt.push({email,status:"already_invited",invitationId:existing?.id ?? null,deliveryAttemptId:null}); continue;
-    }
-    const invitationId = existing?.id ?? await addAccountInvitationInTransaction(transaction, commonsId, request, options);
-    const [queued] = await queueInvitationDeliveriesInTransaction(transaction, commonsId, invitationId, options);
-    if (!queued) throw new Error("Invitation could not be queued.");
-    receipt.push({email,status:"queued",invitationId,deliveryAttemptId:queued.deliveryAttemptId});
-  }
-  return receipt;
-}

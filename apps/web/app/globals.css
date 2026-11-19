@@ -13,11 +13,7 @@
 @import "../components/beta-money-wrap-up.css";
 @import "../components/coordinator-continuity.css";
 @import "../components/coordinator-review.css";
-@import "../components/compare-stays.css";
-@import "../components/coordinator-dynamic-work.css";
 @import "../components/coordinator-workspace.css";
-@import "../components/research-decision-comparison.css";
-@import "../components/research-workspace.css";
 
 .travel-workspace { width: min(100% - 2 * var(--cm-gutter-mobile), 72rem); margin: 0 auto; padding-bottom: 4rem; }
 .travel-workspace-nav { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--cm-color-line); padding: 1rem 0; gap: 1rem; }

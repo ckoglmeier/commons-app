@@ -1,5 +1,4 @@
-import type { EvidenceRecord, InventoryCheckSelection, InventoryObservation, InventoryRequest, PollAnswer, PollQuestion, PollWorkingData, ProposalPayload, SubmitFeedbackRequest } from "@commons/contracts";
-import type { VerificationAttemptResult } from "@commons/domain";
+import type { PollAnswer, PollQuestion, PollWorkingData, ProposalPayload, SubmitFeedbackRequest } from "@commons/contracts";
 import {
   boolean,
   check,
@@ -33,7 +32,7 @@ export const workflowTemplates = pgTable("workflow_templates", {
   id: uuid("id").primaryKey().defaultRandom(),
   key: text("key").notNull(), version: integer("version").notNull(),
   title: text("title").notNull(), description: text("description").notNull(),
-  purpose: text("purpose").$type<import("@commons/contracts").WorkflowPurpose>().notNull(),
+  purpose: text("purpose").$type<unknown /* legacy WorkflowPurpose */>().notNull(),
   instructions: text("instructions").notNull(),
   status: text("status").$type<"draft" | "active" | "retired">().notNull().default("draft"),
   authoredBy: text("authored_by").notNull(),
@@ -404,7 +403,7 @@ export const eventCreationDrafts = pgTable(
     templateVersion: integer("template_version").notNull().default(1),
     supported: boolean("supported").notNull().default(true),
     brief: jsonb("brief").$type<Record<string, unknown>>().notNull().default({}),
-    coordinator: jsonb("coordinator").$type<import("@commons/contracts").SetupCoordinatorState>().notNull().default({personality:{id:"commons",specificationVersion:1},startingPoint:null,turns:[]}),
+    coordinator: jsonb("coordinator").$type<unknown /* legacy SetupCoordinatorState */>().notNull().default({personality:{id:"commons",specificationVersion:1},startingPoint:null,turns:[]}),
     interpretationStatus: text("interpretation_status").notNull().default("not_required"),
     interpretationErrorCode: text("interpretation_error_code"),
     /** Server-set at creation while the activation flag is on. Clients can never change it. */
@@ -675,7 +674,7 @@ export const coordinatorTurns = pgTable("coordinator_turns", {
   fingerprint: text("fingerprint").notNull(),
   userText: text("user_text").notNull(),
   assistantText: text("assistant_text").notNull(),
-  workspace: jsonb("workspace").$type<import("@commons/contracts").CoordinatorWorkspace>(),
+  workspace: jsonb("workspace").$type<unknown /* legacy CoordinatorWorkspace */>(),
   draftId: uuid("draft_id").references(() => pollDrafts.id, { onDelete: "set null" }),
   contextPollId: uuid("context_poll_id").references(() => polls.id, { onDelete: "set null" }),
   contextTurnId: uuid("context_turn_id"),
@@ -730,7 +729,7 @@ export const coordinatorResearchRuns = pgTable("coordinator_research_runs", {
   commandId: uuid("command_id").notNull(),
   query: text("query").notNull(),
   status: text("status").$type<"complete" | "partial" | "unavailable">().notNull(),
-  sources: jsonb("sources").$type<import("@commons/contracts").ResearchSource[]>().notNull(),
+  sources: jsonb("sources").$type<unknown /* legacy ResearchSource */[]>().notNull(),
   limitations: jsonb("limitations").$type<string[]>().notNull(),
   createdAt,
 }, table => [
@@ -1583,8 +1582,8 @@ export const pollDecisions = pgTable("poll_decisions", {
 export const recipeRuns = pgTable("recipe_runs", {
   id: uuid("id").primaryKey(),
   commonsId: uuid("commons_id").notNull().references(() => commons.id, { onDelete: "cascade" }),
-  recipe: text("recipe").$type<import("@commons/contracts").RecipeId>().notNull(),
-  workflow: jsonb("workflow").$type<import("@commons/contracts").WorkflowReference>().notNull(),
+  recipe: text("recipe").$type<unknown /* legacy RecipeId */>().notNull(),
+  workflow: jsonb("workflow").$type<unknown /* legacy WorkflowReference */>().notNull(),
   createdByPersonId: uuid("created_by_person_id").notNull().references(() => people.id, { onDelete: "restrict" }),
   commandId: uuid("command_id").notNull(),
   status: text("status").$type<"active" | "archived">().notNull().default("active"),
@@ -1604,9 +1603,9 @@ export const recipeOutcomes = pgTable("recipe_outcomes", {
   pollId: uuid("poll_id").notNull().references(() => polls.id, { onDelete: "cascade" }),
   decisionId: uuid("decision_id").notNull().references(() => pollDecisions.id, { onDelete: "cascade" }),
   kind: text("kind").$type<"dates_location" | "attendance" | "lodging" | "food_preferences">().notNull(),
-  result: jsonb("result").$type<import("@commons/contracts").RecipeOutcome>().notNull(),
+  result: jsonb("result").$type<unknown /* legacy RecipeOutcome */>().notNull(),
   /** Trip dates/location when approved; applying requires them to be unchanged. */
-  base: jsonb("base").$type<import("@commons/contracts").TripDatesLocation>().notNull(),
+  base: jsonb("base").$type<unknown /* legacy TripDatesLocation */>().notNull(),
   status: text("status").$type<"approved" | "applied" | "superseded">().notNull().default("approved"),
   approvedByPersonId: uuid("approved_by_person_id").notNull().references(() => people.id, { onDelete: "restrict" }),
   approvedByName: text("approved_by_name").notNull(),
@@ -1649,7 +1648,7 @@ export const discoveryEvidence = pgTable("discovery_evidence", {
   suppliedByPersonId: uuid("supplied_by_person_id").notNull().references(() => people.id),
   audience: text("audience").$type<"private" | "event">().notNull(),
   identityKey: text("identity_key").notNull(),
-  record: jsonb("record").$type<EvidenceRecord>().notNull(),
+  record: jsonb("record").$type<unknown /* legacy EvidenceRecord */>().notNull(),
   createdAt,
 }, table => [
   uniqueIndex("discovery_evidence_identity_unique").on(table.commonsId, table.suppliedByPersonId, table.identityKey),
@@ -1664,15 +1663,15 @@ export const inventoryChecks = pgTable("inventory_checks", {
   requestedByPersonId: uuid("requested_by_person_id").notNull().references(() => people.id),
   providerId: text("provider_id").notNull(),
   cacheKey: text("cache_key").notNull(),
-  selection: jsonb("selection").$type<InventoryCheckSelection>().notNull(),
-  request: jsonb("request").$type<InventoryRequest>().notNull(),
+  selection: jsonb("selection").$type<unknown /* legacy InventoryCheckSelection */>().notNull(),
+  request: jsonb("request").$type<unknown /* legacy InventoryRequest */>().notNull(),
   status: text("status").$type<"pending" | "processing" | "succeeded" | "failed">().notNull().default("pending"),
   attempts: integer("attempts").notNull().default(0),
   availableAt: timestamp("available_at", { withTimezone: true }).notNull().defaultNow(),
   leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
   errorCode: text("error_code"),
-  history: jsonb("history").$type<Array<{ attempt: number; result: VerificationAttemptResult | null; errorCode: string | null; finishedAt: string }>>().notNull().default([]),
-  observation: jsonb("observation").$type<InventoryObservation>(),
+  history: jsonb("history").$type<Array<{ attempt: number; result: unknown /* legacy VerificationAttemptResult */ | null; errorCode: string | null; finishedAt: string }>>().notNull().default([]),
+  observation: jsonb("observation").$type<unknown /* legacy InventoryObservation */>(),
   createdAt,
   updatedAt,
 }, table => [
@@ -1690,13 +1689,13 @@ export const researchTasks = pgTable("research_tasks", {
   threadId: uuid("thread_id").notNull().references(() => coordinatorThreads.id, { onDelete: "cascade" }),
   requestedByPersonId: uuid("requested_by_person_id").notNull().references(() => people.id, { onDelete: "restrict" }),
   commandId: uuid("command_id").notNull(), fingerprint: text("fingerprint").notNull(),
-  request: jsonb("request").$type<import("@commons/contracts").ResearchDelegationRequest>().notNull(),
+  request: jsonb("request").$type<unknown /* legacy ResearchDelegationRequest */>().notNull(),
   status: text("status").$type<"pending" | "processing" | "succeeded" | "failed" | "cancelled" | "needs_input">().notNull().default("pending"),
   attempts: integer("attempts").notNull().default(0),
   availableAt: timestamp("available_at", { withTimezone: true }).notNull().defaultNow(),
   leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
   errorCode: text("error_code"),
-  result: jsonb("result").$type<import("@commons/contracts").CoordinatorResearch>(),
+  result: jsonb("result").$type<unknown /* legacy CoordinatorResearch */>(),
   createdAt, updatedAt,
 }, table => [
   uniqueIndex("research_tasks_event_command_unique").on(table.commonsId, table.commandId),
@@ -1818,7 +1817,7 @@ export const coordinatorThreadOutcomes = pgTable("coordinator_thread_outcomes", 
 export const coordinatorGoals = pgTable("coordinator_goals", {
   id: uuid("id").primaryKey().defaultRandom(),
   commonsId: uuid("commons_id").notNull().references(() => commons.id, { onDelete: "cascade" }),
-  kind: text("kind").$type<import("@commons/contracts").GoalKind>().notNull(),
+  kind: text("kind").$type<unknown /* legacy GoalKind */>().notNull(),
   mainThreadId: uuid("main_thread_id").notNull().references(() => coordinatorThreads.id, { onDelete: "cascade" }),
   /** The goal's own focused conversation. One goal per conversation. */
   threadId: uuid("thread_id").notNull().references(() => coordinatorThreads.id, { onDelete: "cascade" }),
@@ -1829,16 +1828,16 @@ export const coordinatorGoals = pgTable("coordinator_goals", {
   /** Increments with every accepted change or reopen. Every step and report carries the revision it belongs to. */
   revision: integer("revision").notNull().default(1),
   contextVersion: integer("context_version"),
-  lifecycle: text("lifecycle").$type<import("@commons/contracts").GoalLifecycle>().notNull().default("ready"),
+  lifecycle: text("lifecycle").$type<unknown /* legacy GoalLifecycle */>().notNull().default("ready"),
   /** The question or approval being waited on. */
   waitDetail: text("wait_detail"),
-  envelope: jsonb("envelope").$type<import("@commons/contracts").GoalEnvelope>().notNull(),
+  envelope: jsonb("envelope").$type<unknown /* legacy GoalEnvelope */>().notNull(),
   /** Hash of the normalized goal, kind and linked ideas: at most one active goal per key, so a repeated start replays or offers the existing one. */
   goalKey: text("goal_key").notNull(),
   ideaIds: jsonb("idea_ids").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   /** The research task this goal was backfilled from; unique so re-running the backfill never duplicates a goal. */
   legacyTaskId: uuid("legacy_task_id").references(() => researchTasks.id, { onDelete: "set null" }),
-  outcome: jsonb("outcome").$type<import("@commons/contracts").GoalOutcome>(),
+  outcome: jsonb("outcome").$type<unknown /* legacy GoalOutcome */>(),
   outcomeRevision: integer("outcome_revision"),
   errorCode: text("error_code"),
   commandId: uuid("command_id").notNull(),
@@ -1863,9 +1862,9 @@ export const coordinatorGoalSteps = pgTable("coordinator_goal_steps", {
   commonsId: uuid("commons_id").notNull().references(() => commons.id, { onDelete: "cascade" }),
   goalRevision: integer("goal_revision").notNull(),
   seq: integer("seq").notNull(),
-  kind: text("kind").$type<import("@commons/contracts").GoalStepKind>().notNull(),
-  status: text("status").$type<import("@commons/contracts").GoalStepStatus>().notNull().default("pending"),
-  params: jsonb("params").$type<import("@commons/contracts").GoalStepParams>().notNull(),
+  kind: text("kind").$type<unknown /* legacy GoalStepKind */>().notNull(),
+  status: text("status").$type<unknown /* legacy GoalStepStatus */>().notNull().default("pending"),
+  params: jsonb("params").$type<unknown /* legacy GoalStepParams */>().notNull(),
   refId: uuid("ref_id"),
   /** What the step produced, written by code from the stored result (a poll tally, a receipt, a statement). */
   result: jsonb("result").$type<Record<string, unknown>>(),
@@ -1910,7 +1909,7 @@ export const coordinatorGoalReports = pgTable("coordinator_goal_reports", {
   goalId: uuid("goal_id").notNull().references(() => coordinatorGoals.id, { onDelete: "cascade" }),
   mainThreadId: uuid("main_thread_id").notNull().references(() => coordinatorThreads.id, { onDelete: "cascade" }),
   goalRevision: integer("goal_revision").notNull(),
-  kind: text("kind").$type<import("@commons/contracts").GoalReportKind>().notNull(),
+  kind: text("kind").$type<unknown /* legacy GoalReportKind */>().notNull(),
   discriminator: text("discriminator").notNull().default(""),
   headline: text("headline").notNull(),
   detail: text("detail"),
@@ -2010,7 +2009,7 @@ export const coordinatorOutreach = pgTable("coordinator_outreach", {
   channel: text("channel").$type<"synthetic_sms">().notNull().default("synthetic_sms"),
   /** The conversation address replies must arrive on; unique, so a reply identifies exactly one outreach in exactly one trip. */
   conversationAddress: text("conversation_address").notNull(),
-  status: text("status").$type<import("@commons/contracts").OutreachStatus>().notNull().default("awaiting_approval"),
+  status: text("status").$type<unknown /* legacy OutreachStatus */>().notNull().default("awaiting_approval"),
   sendSnapshot: jsonb("send_snapshot").$type<{ recipientName: string; question: string; text: string }>().notNull(),
   approvedByPersonId: uuid("approved_by_person_id").references(() => people.id, { onDelete: "set null" }),
   approvedAt: timestamp("approved_at", { withTimezone: true }),
@@ -2059,11 +2058,11 @@ export const tripBrainSettings = pgTable("trip_brain_settings", {
 }, t => [check("trip_brain_budget_valid", sql`${t.reservedCents} >= 0 and ${t.spentCents} >= 0 and (${t.budgetCents} is null or ${t.budgetCents} >= 0)`)]).enableRLS();
 export const tripBrainReviews = pgTable("trip_brain_reviews", {
   id: uuid("id").primaryKey().defaultRandom(), commonsId: uuid("commons_id").notNull().references(() => commons.id, { onDelete: "cascade" }),
-  requestedByPersonId: uuid("requested_by_person_id").notNull().references(() => people.id), snapshotHash: text("snapshot_hash").notNull(), snapshot: jsonb("snapshot").$type<import("@commons/contracts").BrainSnapshot>().notNull(), localDay: text("local_day").notNull(),
-  status: text("status").$type<"running" | "completed" | "superseded" | "failed">().notNull().default("running"), reservedCents: integer("reserved_cents").notNull(), actualCents: integer("actual_cents"), modelPolicy: text("model_policy").notNull(), execution: jsonb("execution").$type<import("@commons/contracts").BrainExecution>(), leaseUntil: timestamp("lease_until", { withTimezone: true }).notNull(), errorCode: text("error_code"), createdAt, finishedAt: timestamp("finished_at", { withTimezone: true }),
+  requestedByPersonId: uuid("requested_by_person_id").notNull().references(() => people.id), snapshotHash: text("snapshot_hash").notNull(), snapshot: jsonb("snapshot").$type<unknown /* legacy BrainSnapshot */>().notNull(), localDay: text("local_day").notNull(),
+  status: text("status").$type<"running" | "completed" | "superseded" | "failed">().notNull().default("running"), reservedCents: integer("reserved_cents").notNull(), actualCents: integer("actual_cents"), modelPolicy: text("model_policy").notNull(), execution: jsonb("execution").$type<unknown /* legacy BrainExecution */>(), leaseUntil: timestamp("lease_until", { withTimezone: true }).notNull(), errorCode: text("error_code"), createdAt, finishedAt: timestamp("finished_at", { withTimezone: true }),
 }, t => [uniqueIndex("trip_brain_reviews_one_day").on(t.commonsId,t.localDay), index("trip_brain_reviews_status").on(t.status,t.leaseUntil)]).enableRLS();
 export const tripBrainRecommendations = pgTable("trip_brain_recommendations", {
-  id: uuid("id").primaryKey().defaultRandom(), commonsId: uuid("commons_id").notNull().references(() => commons.id, { onDelete: "cascade" }), reviewId: uuid("review_id").notNull().references(() => tripBrainReviews.id, { onDelete: "cascade" }), snapshotHash: text("snapshot_hash").notNull(), evidenceHash: text("evidence_hash").notNull(), findingKey: text("finding_key").notNull(), finding: jsonb("finding").$type<import("@commons/contracts").BrainFinding>().notNull(),
+  id: uuid("id").primaryKey().defaultRandom(), commonsId: uuid("commons_id").notNull().references(() => commons.id, { onDelete: "cascade" }), reviewId: uuid("review_id").notNull().references(() => tripBrainReviews.id, { onDelete: "cascade" }), snapshotHash: text("snapshot_hash").notNull(), evidenceHash: text("evidence_hash").notNull(), findingKey: text("finding_key").notNull(), finding: jsonb("finding").$type<unknown /* legacy BrainFinding */>().notNull(),
   disposition: text("disposition").$type<"new" | "accepted" | "dismissed" | "snoozed" | "superseded">().notNull().default("new"), snoozedUntil: timestamp("snoozed_until", { withTimezone: true }), goalId: uuid("goal_id").references(() => coordinatorGoals.id, { onDelete: "set null" }), createdAt, updatedAt,
 }, t => [uniqueIndex("trip_brain_recommendations_evidence").on(t.commonsId,t.findingKey,t.evidenceHash)]).enableRLS();
 

@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GroupInvitationSchema, type GroupInvitation } from "@commons/contracts";
 import { groupInvitationPath } from "@/lib/group-invitation";
-import { stableCommand } from "@/lib/recipe-client";
+import { stableCommand } from "@/lib/stable-command";
 
 export function GroupInvitationPanel({ slug }: { slug: string }) {
   const [enabled, setEnabled] = useState(false), [link, setLink] = useState<GroupInvitation | null>(null);

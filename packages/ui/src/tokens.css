@@ -83,7 +83,7 @@
   --cm-radius-pill: 999px;
   --cm-shadow-elevated: 0 14px 36px rgb(22 55 47 / 12%);
 
-  /* Working panels: one quiet language for status, forms, notes and confirmations in the coordinator. A rule and a board wash; ember only when the
+  /* Working panels: one quiet language for status, forms, notes and confirmations in the app. A rule and a board wash; ember only when the
      organizer is needed, green only for a finished result. Never a second border or a nested card. */
   --cm-panel-surface: var(--cm-color-board);
   --cm-panel-line: var(--cm-color-line);

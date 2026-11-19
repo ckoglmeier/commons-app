@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { randomUUID } from "node:crypto";
-import { aggregatePollAnswers, buildDatesLocationPollData, CreatePollRequestSchema, DatesLocationConfigurationSchema, PollAnswerSchema, PollWorkingDataSchema, formatPollAnswer, type PollAnswer, type PollQuestion } from "@commons/contracts";
+import { aggregatePollAnswers, PollAnswerSchema, formatPollAnswer, type PollAnswer, type PollQuestion } from "@commons/contracts";
 import { normalizePollAnswers } from "./poll-repository";
 
 const options = ["Montreal", "Denver", "Miami"].map(label => ({ id: randomUUID(), label, place: { name: label }, description: null, exclusive: false }));
@@ -55,34 +55,4 @@ test("allocation requires integer, in-range points and exact ten; abstention dif
     assert.deepEqual(normalizePollAnswers([{ ...question, required: false }], [envelope(question, {})]), []);
     assert.throws(() => normalizePollAnswers([question], [envelope(question, { abstained: true, rankedOptionIds: [] })]), /not both/);
   }
-});
-
-test("v2 groups eight destinations plus airports/duration/suggestions; nine combinations publish and retain IDs", () => {
-  const locations = Array.from({ length: 8 }, (_, index) => ({ id: randomUUID(), place: `Destination ${index + 1}` }));
-  const configuration = DatesLocationConfigurationSchema.parse({ version: 2, blocks: [{ id: randomUUID(), type: "location", prompt: "Interest", required: true, options: locations }, ...["Airport", "Duration", "Suggestions"].map(prompt => ({ id: randomUUID(), type: "text", prompt, required: false, options: [] }))] });
-  const data = buildDatesLocationPollData({ configuration });
-  assert.equal(data.questions.length, 4);
-  assert.deepEqual(PollWorkingDataSchema.parse(JSON.parse(JSON.stringify(data))).recipeConfiguration, configuration);
-  assert.equal(PollWorkingDataSchema.safeParse({ ...data, questions: data.questions.map((question, index) => index ? question : { ...question, prompt: "Unrelated question" }) }).success, false, "generic edits cannot silently desynchronize configuration");
-  CreatePollRequestSchema.parse({ commandId: randomUUID(), ...data });
-  const choices = Array.from({ length: 9 }, (_, index) => ({ id: randomUUID(), startsOn: `2027-05-${String(10 + index).padStart(2, "0")}`, endsOn: `2027-05-${String(11 + index).padStart(2, "0")}`, place: "Denver" }));
-  const combinationConfig = DatesLocationConfigurationSchema.parse({ version: 2, blocks: [{ id: randomUUID(), type: "combination", required: true, prompt: "Select every combination that works", options: choices }] });
-  const round = buildDatesLocationPollData({ configuration: combinationConfig });
-  const repeated = buildDatesLocationPollData({ configuration: combinationConfig, previous: round });
-  assert.deepEqual(repeated.questions, round.questions);
-  assert.equal(round.questions[0].kind === "choice" ? round.questions[0].options.length : 0, 10);
-  CreatePollRequestSchema.parse({ commandId: randomUUID(), ...round });
-  assert.equal(DatesLocationConfigurationSchema.safeParse({ version: 2, blocks: [...combinationConfig.blocks, { ...combinationConfig.blocks[0], id: randomUUID() }] }).success, false);
-  const changedConfiguration = { ...combinationConfig, blocks: combinationConfig.blocks.map(block => ({ ...block, options: block.options.map((option, index) => index ? option : { ...option, place: "Montreal" }) })) };
-  const changed = buildDatesLocationPollData({ configuration: changedConfiguration, previous: round });
-  assert.notEqual(changed.recipeConfiguration?.blocks[0].options[0].id, choices[0].id, "changed place requires fresh identity");
-  assert.deepEqual(changed.recipeConfiguration?.blocks[0].options.slice(1).map(option => option.id), choices.slice(1).map(option => option.id), "unchanged options retain their identities");
-});
-
-test("location availability and simple choice blocks are typed and publication rejects incompatible metadata", () => {
-  const data = buildDatesLocationPollData({ configuration: { version: 2, blocks: [{ id: randomUUID(), type: "location", scale: "yes_maybe_no", required: true, prompt: "Could you go?", options: options.map(option => ({ id: option.id, place: option.label })) }, { id: randomUUID(), type: "choice", selectionMode: "multiple", required: false, prompt: "Room needs?", options: [{ id: randomUUID(), label: "Own bed" }, { id: randomUUID(), label: "Shared bed" }] }] } });
-  CreatePollRequestSchema.parse({ commandId: randomUUID(), ...data });
-  assert.equal(data.questions[0].convergence?.measure, "availability");
-  assert.equal(CreatePollRequestSchema.safeParse({ commandId: randomUUID(), ...data, questions: [{ ...interest, convergence: { dimension: "location", measure: "availability" } }] }).success, false);
-  assert.equal(CreatePollRequestSchema.safeParse({ commandId: randomUUID(), ...data, questions: [{ ...ranking, options: [{ ...options[0], label: "Wrong label" }, ...options.slice(1)] }] }).success, false);
 });
