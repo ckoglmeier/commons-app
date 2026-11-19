@@ -2266,3 +2266,29 @@ export const tripBudgetWorksheets = pgTable("trip_budget_worksheets", {
   updatedByPersonId: uuid("updated_by_person_id").references(() => people.id, { onDelete: "set null" }),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }).enableRLS();
+
+/**
+ * Settings for this copy of Commons: one row (id 1). The first account to sign in becomes the instance admin and chooses who may create an
+ * account. `invitationTokenKey` holds a generated key when COMMONS_INVITATION_TOKEN_KEY isn't set. Server-only: RLS on, no policies.
+ */
+export const instanceSettings = pgTable("instance_settings", {
+  id: integer("id").primaryKey().default(1),
+  adminPersonId: uuid("admin_person_id").references(() => people.id, { onDelete: "set null" }),
+  signupMode: text("signup_mode").$type<"invited" | "domains" | "anyone">().notNull().default("invited"),
+  allowedDomains: jsonb("allowed_domains").$type<string[]>().notNull().default([]),
+  invitationTokenKey: text("invitation_token_key"),
+  updatedByPersonId: uuid("updated_by_person_id").references(() => people.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, table => [
+  check("instance_settings_single_row", sql`${table.id} = 1`),
+  check("instance_settings_signup_mode", sql`${table.signupMode} in ('invited','domains','anyone')`),
+]).enableRLS();
+
+/** When each person was last emailed about new Messages with Commons, and when they last opened their thread. At most one notice until they read it. */
+export const messagingWebNudges = pgTable("messaging_web_nudges", {
+  personId: uuid("person_id").primaryKey().references(() => people.id, { onDelete: "cascade" }),
+  lastNudgedAt: timestamp("last_nudged_at", { withTimezone: true }),
+  lastReadAt: timestamp("last_read_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}).enableRLS();

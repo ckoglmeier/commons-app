@@ -96,6 +96,8 @@ export const RELEASE_SCHEMA_FINGERPRINTS: Record<number, string> = {
   "1793994106645": "48360978a703c4f4a962dd1565d77313b9a4e83648735b29ba51395be5aa6ddc",
   // 0112 phone verification and money by text: two additive server-only tables with RLS.
   "1794023922041": "84ecc665ebeeea23c6c3ee7a77282f526be905e63c1b7c60c2d55a88bf688b49",
+  // 0113 open source instance settings and Messages notice state: two additive server-only tables with RLS.
+  "1795125837060": "6ee79b02f65b6cd79b1b9f58d5ce8293244d86e06174c697bc026ab842b6a9dc",
 };
 export const RELEASE_BEHAVIOR_FINGERPRINTS: Record<number, string> = {
   "1791087867060": "67c1257b9e341d7e958a878fc57b14b8f970f2aee8972e46910860b900fcc9a0",
