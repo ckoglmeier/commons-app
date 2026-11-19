@@ -4,14 +4,14 @@ import type { CommonsParticipant, CommonsSummary } from "@commons/contracts";
 import { useEffect, useId, useRef, useState } from "react";
 import { AvatarStack } from "./avatar-stack";
 import { CoverSketch } from "./cover-sketch";
-import { ChevronRightIcon, MessageIcon, MoreIcon } from "./icons";
+import { ChevronRightIcon, MoreIcon } from "./icons";
 import { ResilientCoverImage } from "./resilient-cover-image";
 
 /**
  * Presentational trip identity for the persistent rail and the compact Menu.
  * It performs no fetching and infers no permissions: an action appears only when its callback or href is supplied.
  */
-export function TripIdentity({ placement, commons, meta, coverImage, participants, openPeople, openCoverPicker, openSettings, openContext, contextHref, demo, groupConversation, onAction }: {
+export function TripIdentity({ placement, commons, meta, coverImage, participants, openPeople, openCoverPicker, openSettings, openContext, contextHref, demo, onAction }: {
   placement: "rail" | "menu";
   commons: CommonsSummary;
   meta: string;
@@ -23,7 +23,6 @@ export function TripIdentity({ placement, commons, meta, coverImage, participant
   openContext?: () => void;
   contextHref?: string;
   demo?: boolean;
-  groupConversation?: { open: () => void; detail: string };
   onAction?: () => void;
 }) {
   const [dimensions, setDimensions] = useState<{ src: string; width: number; height: number } | null>(null);
@@ -100,13 +99,6 @@ export function TripIdentity({ placement, commons, meta, coverImage, participant
           {openContext ? <button type="button" onClick={() => { root.current?.querySelector<HTMLButtonElement>('[aria-label="Trip options"]')?.focus({ preventScroll: true }); setOptionsOpen(false); onAction?.(); openContext(); }}>Trip context</button> : contextHref ? <a href={contextHref} target="_blank" rel="noopener noreferrer" onClick={() => { setOptionsOpen(false); onAction?.(); }}>Trip context<span className="sr-only"> (opens in a new tab)</span><span aria-hidden="true"> ↗</span></a> : null}
         </div>
       ) : null}
-      {groupConversation ? (
-        <button className="trip-identity__conversation" type="button" onClick={() => act(groupConversation.open)}>
-          <MessageIcon />
-          <span><strong>Group conversation</strong><small>{groupConversation.detail}</small></span>
-        </button>
-      ) : null}
-
     </div>
   );
 }

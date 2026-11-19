@@ -28,7 +28,6 @@ export function JoinAction({
   demo,
   label = "Join trip",
   className = "join-primary",
-  destination = "trip",
   pollPublicId,
   textMessagingOffered = false,
 }: {
@@ -37,7 +36,6 @@ export function JoinAction({
   demo: boolean;
   label?: string;
   className?: string;
-  destination?: "trip" | "conversation";
   pollPublicId?: string;
   /** After joining, offer texts for this trip before opening it. Skippable, and only when texts can actually be sent. */
   textMessagingOffered?: boolean;
@@ -67,7 +65,7 @@ export function JoinAction({
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Invitation not accepted. Try again.");
-      router.push(pollPublicId && /^[0-9a-f]{12}$/.test(pollPublicId) ? `/c/poll/${pollPublicId}` : destination === "conversation" ? `${commonsPath(payload.commonsId)}?conversation=1` : textMessagingOffered ? `/messages/trip/${payload.commonsId}?joined=1` : commonsWorkspacePath(payload.commonsId));
+      router.push(pollPublicId && /^[0-9a-f]{12}$/.test(pollPublicId) ? `/c/poll/${pollPublicId}` : textMessagingOffered ? `/messages/trip/${payload.commonsId}?joined=1` : commonsWorkspacePath(payload.commonsId));
       router.refresh();
     } catch (joinError) {
       setError(joinError instanceof Error ? joinError.message : "Invitation not accepted. Try again.");

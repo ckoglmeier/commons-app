@@ -1,21 +1,16 @@
 "use client";
 import { TripContextSheet } from "./trip-context-sheet";
 import { TimeInput } from "./time-input";
-import { PersonalCoordinator } from "./personal-coordinator";
 import { TripMapView } from "./trip-map";
 import { BetaMoneyWrapUp } from "./beta-money-wrap-up";
 import { TripQuickAddSheet, type QuickAddInput } from "./trip-quick-add";
 import { TripStaysView } from "./trip-stays-view";
 import { TripTravelView } from "./trip-travel-view";
-import { CoordinatorWorkspace } from "./coordinator-workspace";
-import type { ComponentProps } from "react";
 import type { DecisionHandoff } from "@/lib/decision-handoff";
 
 import { TripItemDetail } from "./trip-item-detail";
 import { PlanLocationLink } from "./plan-location-link";
 import { activityExpenseConversion } from "@/lib/activity-expense";
-import { CoordinatorHomeEntry } from "./coordinator-home-entry";
-import { EventConversation } from "./event-conversation";
 
 import { itineraryDurationMinutes, itineraryEndTime, formatDuration } from "@commons/contracts";
 import { FlightBookingFields, blankFlightConnection, type FlightLegReview } from "./flight-booking-fields";
@@ -23,38 +18,31 @@ import type { ConfirmationDocumentInput } from "@commons/contracts";
 import { CoverSketch } from "./cover-sketch";
 import { ActivityArrangerField, ActivityArrangerLine } from "./activity-arranger";
 import { PlanPeopleField } from "./plan-people-field";
-import { CoordinatorMark, CommonsWordmark } from "@commons/ui";
+import { CommonsMark, CommonsWordmark } from "@commons/ui";
 import {
-  CommonsSnapshotSchema,
-  CommonsStateSchema,
-  StaySchema,
-  TravelPlanSchema,
-  ConfirmationPreviewResponseSchema,
-  LinkPreviewSchema,
-  type CommonsParticipant,
-  type CommonsSnapshot,
-  type CommonsState,
-  type ConfirmationDraft,
-  type CommonsSummary,
-  type Expense,
-  type Moment,
-  type LinkPreview,
-  type Reimbursement,
-  type Stay,
-  type TravelPlan,
+    CommonsSnapshotSchema,
+    CommonsStateSchema,
+    StaySchema,
+    TravelPlanSchema,
+    ConfirmationPreviewResponseSchema,
+    LinkPreviewSchema,
+    type CommonsParticipant,
+    type CommonsSnapshot,
+    type CommonsState,
+    type ConfirmationDraft,
+    type CommonsSummary,
+    type Expense,
+    type Moment,
+    type LinkPreview,
+    type Reimbursement,
+    type Stay,
+    type TravelPlan,
 } from "@commons/contracts";
-import {
-  appendConversationMessage,
-  approveProposal,
-  DomainError,
-  reviseProposal,
-} from "@commons/domain";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { TripTasks } from "./trip-tasks";
 import { NewExperienceSetting } from "./new-experience-setting";
 import { BudgetActivationAction, PlanStageBanner, StageLockedPage } from "./trip-stage-gate";
-import { askEntryHref } from "@/lib/ask-route";
 import Link from "next/link";
 import { TripApplicationShell } from "./trip-application-shell";
 import { TripIdentity } from "./trip-identity";
@@ -75,7 +63,7 @@ import { SUPPORTED_CURRENCIES, currencyLabel, currencySymbol } from "@commons/co
 import { normalizeMoneyInput, parseMoneyInput } from "@/lib/money-input";
 import { planDays, selectedPlanDay, tripDays, type DayOption } from "@/lib/plan-days";
 import { planAudienceValue, type PlanAudience } from "@/lib/plan-audience";
-import { commonsPath, commonsViewPath, commonsTravelPath, coordinatorReturnPath, eventLocation, parsePlanSection, planSectionPath, PUBLIC_DEMO_COMMONS_ID, visiblePlanSection, type EventView, type PlanSection } from "@/lib/commons-route";
+import { commonsPath, commonsViewPath, commonsTravelPath, eventLocation, parsePlanSection, planSectionPath, PUBLIC_DEMO_COMMONS_ID, visiblePlanSection, type EventView, type PlanSection } from "@/lib/commons-route";
 import { trackProductEvent } from "@/lib/product-analytics";
 import { getSupabaseBrowserClient, uploadCommonsConfirmation, uploadCommonsCover, uploadCommonsPhoto } from "@/lib/supabase/browser";
 import { createCoverCardImage } from "@/lib/cover-image";
@@ -88,30 +76,30 @@ import { ModalLayer } from "./modal-layer";
 import { EventAttendancePanel } from "./event-attendance";
 import { ResilientCoverImage } from "./resilient-cover-image";
 import {
-  QuestionIcon,
-  CalendarIcon,
-  CheckIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  CloseIcon,
-  DownloadIcon,
-  EditIcon,
-  FileTextIcon,
-  ImageIcon,
-  InfoIcon,
-  LinkIcon,
-  LockIcon,
-  MessageIcon,
-  PinIcon,
-  PlusIcon,
-  ReceiptIcon,
-  RouteIcon,
-  ShareIcon,
-  UsersIcon,
-  WalletIcon,
+    CalendarIcon,
+    CheckIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    CloseIcon,
+    DownloadIcon,
+    EditIcon,
+    FileTextIcon,
+    ImageIcon,
+    InfoIcon,
+    LinkIcon,
+    LockIcon,
+    MessageIcon,
+    PinIcon,
+    PlusIcon,
+    QuestionIcon,
+    ReceiptIcon,
+    RouteIcon,
+    ShareIcon,
+    UsersIcon,
+    WalletIcon
 } from "./icons";
 type Tab = EventView;
-type Sheet = "trip-context" | "add-item" | "item-detail" | "add-receipt" | "proposal" | "correct-proposal" | "transcript" | "expense" | "add-expense" | "edit-expense" | "payment" | "add-payment" | "edit-payment" | "close-expenses" | "reopen-expenses" | "money-settings" | "add-plan" | "add-meal" | "edit-plan" | "cover" | "edit-trip-details" | "add-stay" | "edit-stay" | "add-flight" | "add-rental" | "moment" | "edit-moment" | "photo-mapping" | "travel" | "people" | null;
+type Sheet = "trip-context" | "add-item" | "item-detail" | "add-receipt" | "expense" | "add-expense" | "edit-expense" | "payment" | "add-payment" | "edit-payment" | "close-expenses" | "reopen-expenses" | "money-settings" | "add-plan" | "add-meal" | "edit-plan" | "cover" | "edit-trip-details" | "add-stay" | "edit-stay" | "add-flight" | "add-rental" | "moment" | "edit-moment" | "photo-mapping" | "travel" | "people" | null;
 type ParticipationChoice = "in" | "maybe" | "skip";
 
 const initialPilotParticipation: Record<string, ParticipationChoice> = {
@@ -153,15 +141,6 @@ type PaymentInput = {
   toPersonId: string;
   amountCents: number;
   occurredOn: string;
-};
-
-type ProposalCorrectionInput = {
-  title: string;
-  date: string;
-  time: string;
-  location: string;
-  participantScope: "everyone" | "subgroup" | "optional";
-  note: string;
 };
 
 type AddPlanInput = {
@@ -229,13 +208,6 @@ type PendingConfirmation = {
   alreadyUploaded?: boolean;
   draft: ConfirmationDraft;
   upload: { storagePath: string; token: string; mimeType?: ConfirmationDocumentInput["mimeType"] };
-};
-
-type PendingPlanIdea = Omit<AddPlanInput, "date" | "time" | "participantScope"> & {
-  participantScope: "everyone" | "optional";
-  messageId: string;
-  date: string;
-  time: string;
 };
 
 type MappingSuggestion = {
@@ -374,55 +346,6 @@ function sortItinerary(items: CommonsState["itinerary"]) {
   });
 }
 
-function pendingPlanIdea(
-  state: CommonsState,
-  commons: CommonsSummary,
-): PendingPlanIdea | null {
-  const planQuestion = /^How about (.+) on ((?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday), [A-Za-z]+ \d{1,2}) at (\d{1,2}:\d{2} [AP]M)(?: for (?<duration>\d+) min)?(?: at (.+))?\? (Could everyone make that|Anyone interested)\?(?: (.+))?$/;
-  const days = tripDays(commons.startsOn, commons.endsOn);
-
-  for (let index = state.messages.length - 1; index >= 0; index -= 1) {
-    const message = state.messages[index];
-    if (message.actorType !== "human") continue;
-    const match = planQuestion.exec(message.body);
-    if (!match) continue;
-    const day = days.find((candidate) => formatDayHeading(candidate.id) === match[2]);
-    const time = parseTravelTime(match[3]);
-    if (!day || !time) continue;
-    const idea: PendingPlanIdea = {
-      messageId: message.id,
-      title: match[1],
-      date: day.id,
-      time,
-      durationMinutes: match.groups?.duration ? Number(match.groups.duration) : null,
-      location: match[5] ?? "",
-      note: match[7] ?? "",
-      expectedCostCents: null,
-      expectedCostBasis: "total",
-      expectedParticipantIds: [],
-      participantScope: match[6] === "Could everyone make that" ? "everyone" : "optional",
-      sourceUrl: null,
-    };
-    const startsAt = localDateTimeToIso(idea.date, idea.time, commons.timezone);
-    const added = state.itinerary.some(
-      (item) => item.title === idea.title && item.startsAt === startsAt,
-    );
-    const dismissed = state.messages.slice(index + 1).some(
-      (laterMessage) => laterMessage.actorType === "commons" && laterMessage.body === `${idea.title} is off the plan for now.`,
-    );
-    if (!added && !dismissed) return idea;
-  }
-  return null;
-}
-
-function nextMessageOccurredAt(messages: CommonsState["messages"]) {
-  const latest = messages.reduce(
-    (timestamp, message) => Math.max(timestamp, new Date(message.occurredAt).valueOf()),
-    0,
-  );
-  return new Date(Math.max(Date.now(), latest + 1_000)).toISOString();
-}
-
 function formatTripDates(startsOn: string | null, endsOn: string | null) {
   if (!startsOn && !endsOn) return "Dates to be decided";
   if (startsOn && !endsOn) return `Starts ${formatDayHeading(startsOn)}`;
@@ -474,17 +397,6 @@ function equalExpenseShares(amountCents: number, personIds: string[]) {
     personId,
     amountCents: base + (index < remainder ? 1 : 0),
   }));
-}
-
-const messagePlaceCatalog = [
-  { match: "Cross Knob", label: "Cross Knob", query: "Cross Knob, Nelson County, Kentucky" },
-  { match: "Horine Reservation", label: "Horine Reservation", query: "Horine Reservation, Louisville, Kentucky" },
-  { match: "Road to Hanekamp", label: "Road to Hanekamp’s", query: "Road to Hanekamp's, New Haven, Kentucky" },
-  { match: "Gralehaus · Louisville", label: "Gralehaus", query: "Gralehaus, Louisville, Kentucky" },
-] as const;
-
-function placesForMessage(body: string) {
-  return messagePlaceCatalog.filter((place) => body.includes(place.match));
 }
 
 function momentFileName(moment: Moment, index?: number) {
@@ -586,10 +498,6 @@ async function preparePhotoFiles(files: File[]): Promise<PendingPhoto[]> {
   })));
 }
 
-function sharedMessageCount(state: CommonsState) {
-  return state.messages.length;
-}
-
 function participantFirstNames(participants: CommonsParticipant[]) {
   return new Intl.ListFormat("en-US", {
     style: "long",
@@ -619,41 +527,15 @@ function participantsForItem(
   });
 }
 
-function alternativeForItem(
-  state: CommonsState,
-  item: CommonsState["itinerary"][number],
-) {
-  const prefix = `Alternative to ${item.title}: `;
-  const message = [...state.messages]
-    .reverse()
-    .find(
-      (entry) =>
-        entry.actorType === "human" && entry.body.startsWith(prefix),
-    );
-  if (!message) return null;
-  return {
-    actorName: message.actorName,
-    title: message.body
-      .slice(prefix.length)
-      .replace(/\. Same time(?:,|\.).*$/u, ""),
-  };
-}
-
-/** `showAlternatives` = group messages are visible; the "Proposed alternative" line is derived from a group message, so it follows the same pause. */
 export function SubgroupDetails({
   item,
   participants,
-  state,
-  showAlternatives = true,
 }: {
   item: CommonsState["itinerary"][number];
   participants: CommonsParticipant[];
-  state: CommonsState;
-  showAlternatives?: boolean;
 }) {
   if (item.participantScope !== "subgroup") return null;
   const going = participantsForItem(item, participants);
-  const alternative = showAlternatives ? alternativeForItem(state, item) : null;
 
   return (
     <div className="subgroup-details">
@@ -668,13 +550,6 @@ export function SubgroupDetails({
           {going.length ? <small>{participantFirstNames(going)}</small> : null}
         </p>
       </div>
-      {alternative ? (
-        <div className="alternative-preview">
-          <span>Proposed alternative</span>
-          <strong>{alternative.title}</strong>
-          <small>{alternative.actorName.split(" ")[0]} · Shared with the group</small>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -1096,18 +971,14 @@ function SectionHeading({ title, detail }: { title: string; detail?: string }) {
 export function HomeView(props: {
   coverImage?: string | null;
   decidingStage?: boolean;
-  legacyTasks?: import("@commons/contracts").CoordinatorTask[]; goals?: import("@commons/contracts").CoordinatorGoal[]; tasksUnavailable?: boolean; tasksLoading?: boolean; openTask?: (threadId: string) => void;
-  openItem?: (id: string) => void; canAskGroup?: boolean; recipesAvailable?: boolean; addPhotos?: () => void; openPhotos?: () => void; photoCount?: number;
-  openDecisions?: React.ReactNode;
-  coordinatorEntry?: React.ReactNode;
-  conversation?: React.ReactNode;
+  openItem?: (id: string) => void; canAskGroup?: boolean; addPhotos?: () => void; openPhotos?: () => void; photoCount?: number;
   state: CommonsState; commons: CommonsSummary; participants: CommonsParticipant[]; currentActorId: string; activityParticipation: Record<string, ParticipationChoice>;
   travelUploadAvailable?: boolean;
   confirmationIntakeEnabled?: boolean;
-  openProposal: (id: string) => void; openTranscript?: () => void; addPlan: (kind?: LogisticsAddKind) => void; addTravelPlans: (step?: import("@commons/domain").CoordinatorNextStep) => void;
+  addPlan: (kind?: LogisticsAddKind) => void; addTravelPlans: (step?: import("@commons/domain").CoordinatorNextStep) => void;
   goToPlan: (date?: string) => void; goToMoney: () => void; goToChoiceDay: () => void; copyAddress: (address: string, label?: string) => void;
   openTripDetails: () => void; openStay: (id: string) => void; addReceipt?: () => void;
-  openTodo?: (id: string) => void; coordinatorAvailable?: boolean; tasksPanel?: React.ReactNode; notice?: React.ReactNode; tripLetter?: boolean; textMessaging?: TextMessagingChannel;
+  openTodo?: (id: string) => void; tasksPanel?: React.ReactNode; tripLetter?: boolean; textMessaging?: TextMessagingChannel;
 }) {
   return <HomeDashboard {...props} addReceipt={props.addReceipt ?? props.goToMoney} />;
 }
@@ -1245,7 +1116,6 @@ export function PlanView({
   seededPilot,
   selectedDay,
   setSelectedDay,
-  openProposal,
   activityParticipation,
   respondToActivity,
   openMoments,
@@ -1258,13 +1128,12 @@ export function PlanView({
   scheduleIdea,
   canEditPlan,
   openStay,
-  showAlternatives,
   askGroupPath,
   askHref,
   sectionNavigation,
 }: {
   sectionNavigation?: ReactNode;
-  /** The organizer's Ask the group entry (askEntryHref); absent for travelers. */
+  /** The organizer's Ask the group entry (the poll editor); absent for travelers. */
   askHref?: string;
   /** Organizers on a saved trip: the private poll draft for selected shared ideas (/polls/new?activityIds=). */
   askGroupPath?: (activityIds: string[]) => string;
@@ -1277,7 +1146,6 @@ export function PlanView({
   seededPilot: boolean;
   selectedDay: string;
   setSelectedDay: (day: string) => void;
-  openProposal: () => void;
   activityParticipation: Record<string, ParticipationChoice>;
   respondToActivity: (itemId: string, response: ParticipationChoice) => void;
   openMoments: () => void;
@@ -1291,8 +1159,6 @@ export function PlanView({
   canEditPlan: boolean;
   openStay: (stayId: string) => void;
   openTripDetails: () => void;
-  /** Group messages are visible (not paused): only then may a plan line quote a group message. */
-  showAlternatives: boolean;
 }) {
   const [draggedIdeaId, setDraggedIdeaId] = useState<string | null>(null);
   // Ideas chosen for an Ask the group poll; nothing is saved or shared by choosing them.
@@ -1304,8 +1170,6 @@ export function PlanView({
     heading?.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
   }, [section]);
   const [ideaDropDay, setIdeaDropDay] = useState<string | null>(null);
-  const proposal = state.proposals[0];
-  const proposalActivity = proposal?.payload.kind === "group_activity" ? proposal.payload : null;
   const ideas = state.itinerary.filter((item) => !item.startsAt && !item.scheduledDate && item.status !== "cancelled");
   const scheduledItems = state.itinerary.filter((item) => (item.startsAt || item.scheduledDate) && item.status !== "cancelled");
   const selectedDayOption = selectedPlanDay(days, selectedDay) ?? days[0] ?? null;
@@ -1313,9 +1177,6 @@ export function PlanView({
   const items = selectedDayOption
     ? scheduledItems.filter((item) => (item.scheduledDate ?? (item.startsAt ? localDateKey(item.startsAt, commons.timezone) : null)) === selectedDayOption.id)
     : [];
-  const isProposalDay = seededPilot && proposalActivity && selectedDayOption
-    ? selectedDayOption.id === localDateKey(proposalActivity.startsAt, commons.timezone)
-    : false;
   const isChoiceDay = seededPilot && selectedDayOption?.id === "2027-07-22";
   const dayTravelPlans = travelPlans.filter(plan => plan.date === selectedDayOption?.id || (plan.kind === "car_rental" && plan.returnDate === selectedDayOption?.id));
   const travelKinds = [...new Set(dayTravelPlans.map(plan => plan.kind))];
@@ -1327,8 +1188,6 @@ export function PlanView({
     item.participantScope === "optional";
   const dayNote = selectedDayOption?.outsideTrip ? "Outside trip dates" : selectedIndex < 0
     ? "Dates not set"
-    : isProposalDay
-    ? proposal?.status === "proposed" ? "Decision pending" : "Decision approved"
     : isChoiceDay
       ? "Choose your own afternoon"
       : items.length > 1
@@ -1439,16 +1298,8 @@ export function PlanView({
           return <button type="button" key={stay.id} onClick={() => openStay(stay.id)}><span><PinIcon /></span><p><small>{dayLabel}{time ? ` · ${formatTravelTime(time)}` : ""}</small><strong>{stay.name}</strong><em>{stay.status[0].toUpperCase() + stay.status.slice(1)} · {stay.includedPersonIds.length} travelers</em></p><ChevronRightIcon /></button>;
         })}</section> : null}
 
-        {isProposalDay && proposal?.status === "proposed" ? (
-          <button className="timeline-proposal" onClick={openProposal}>
-            <span><CoordinatorMark /></span>
-            <p><strong>{proposalActivity ? `${formatTime(proposalActivity.startsAt, commons.timezone)} · ${proposalActivity.title} proposed` : proposal.title}</strong><small>An organizer must approve this version.</small></p>
-            <ChevronRightIcon />
-          </button>
-        ) : null}
-
         <div className="timeline" aria-label="Itinerary">
-        {items.length === 0 && !dayStays.length && !(isProposalDay && proposal) ? (
+        {items.length === 0 && !dayStays.length ? (
           <div className="empty-day"><RouteIcon /><h3>No plans yet.</h3></div>
         ) : null}
         {timeGroups.map((group) => group.length > 1 ? (
@@ -1471,7 +1322,7 @@ export function PlanView({
                     <p>{item.provenanceLabel}</p>
                     {item.note ? <p className="plan-item-note">{item.note}</p> : null}
                     {canEditPlan ? <button className="plan-edit-action" type="button" onClick={() => editPlan(item.id)} aria-label={`Edit ${item.title}`} title="Edit plan"><EditIcon /></button> : null}
-                    <SubgroupDetails item={item} participants={participants} state={state} showAlternatives={showAlternatives} />
+                    <SubgroupDetails item={item} participants={participants} />
                     <EventMomentPreview moments={eventMoments} openMoments={openMoments} />
                     {isInteractiveAttendance(item) ? (
                       <AttendanceControl title={item.title} participation={participation} respond={(response) => respondToActivity(item.id, response)} />
@@ -1482,7 +1333,7 @@ export function PlanView({
             </div>
           </div>
         ) : (
-          <article className="timeline-item" key={group[0].id} data-walkthrough-target={group[0].proposalId ? "decision-plan" : undefined}>
+          <article className="timeline-item" key={group[0].id}>
             <div className="timeline-time"><time>{group[0].startsAt ? formatTime(group[0].startsAt, commons.timezone) : "Time not set"}</time><i /></div>
             <div className="timeline-copy">
               <span>{group[0].participantScope === "everyone" ? "Everyone" : group[0].participantScope === "optional" ? "Optional" : "Subgroup"}</span>
@@ -1496,10 +1347,9 @@ export function PlanView({
               <p>{group[0].provenanceLabel}</p>
               {group[0].note ? <p className="plan-item-note">{group[0].note}</p> : null}
               {canEditPlan ? <button className="plan-edit-action" type="button" onClick={() => editPlan(group[0].id)} aria-label={`Edit ${group[0].title}`} title="Edit plan"><EditIcon /></button> : null}
-              <SubgroupDetails item={group[0]} participants={participants} state={state} showAlternatives={showAlternatives} />
+              <SubgroupDetails item={group[0]} participants={participants} />
               <EventMomentPreview moments={state.moments.filter((moment) => moment.itineraryItemId === group[0].id)} openMoments={openMoments} />
               {isInteractiveAttendance(group[0]) ? <AttendanceControl ask title={group[0].title} participation={activityParticipation[group[0].id]} respond={(response) => respondToActivity(group[0].id, response)} /> : null}
-              {group[0].proposalId ? <button onClick={openProposal}>View decision</button> : null}
             </div>
           </article>
         ))}
@@ -2122,7 +1972,7 @@ function PhotoMappingSheet({
         <div className="sheet-handle" />
         <h2 className="sr-only" id="photo-mapping-title">Link photos to the trip plan</h2>
         <header className="sheet-header">
-          <div><span className="commons-mark-box"><CoordinatorMark /></span><span><small>Photo match</small><strong>Photo {index + 1} of {photos.length}</strong></span></div>
+          <div><span className="commons-mark-box"><CommonsMark /></span><span><small>Photo match</small><strong>Photo {index + 1} of {photos.length}</strong></span></div>
           <button onClick={close} aria-label="Close photo mapping"><CloseIcon /></button>
         </header>
         <div className="photo-map-progress" aria-hidden="true"><span style={{ width: `${progress}%` }} /></div>
@@ -2130,7 +1980,7 @@ function PhotoMappingSheet({
           <div className="photo-map-preview"><Image src={currentPhoto.assetUrl} alt="Photo waiting to be added" fill sizes="(max-width: 899px) 100vw, 22rem" unoptimized /></div>
           <div className="photo-map-controls">
             <div className={`photo-map-suggestion${corrected ? " photo-map-suggestion--corrected" : ""}`}>
-              <span><CoordinatorMark /></span>
+              <span><CommonsMark /></span>
               <p>
                 <small>{corrected ? "Changed" : suggestedEvent ? "Suggested match" : "No match"}</small>
                 <strong>{corrected ? selectedEvent?.title ?? "Outside the plan" : suggestedEvent?.title ?? "Choose where this belongs"}</strong>
@@ -2948,114 +2798,6 @@ function ExpenseSheet({
   );
 }
 
-function ProposalSheet({
-  state,
-  timeZone,
-  participants,
-  close,
-  approve,
-  askGroup,
-  correct,
-  viewConversation,
-}: {
-  state: CommonsState;
-  timeZone: string;
-  participants: CommonsParticipant[];
-  close: () => void;
-  approve: () => void;
-  askGroup?: () => void;
-  correct: () => void;
-  viewConversation?: () => void;
-}) {
-  const proposal = state.proposals[0];
-  if (!proposal) return null;
-  const approved = proposal.status === "approved";
-  const approverName = participants.find((participant) => participant.id === proposal.approvedBy)?.displayName.split(" ")[0] ?? "An organizer";
-  const activity = proposal.payload.kind === "group_activity" ? proposal.payload : null;
-  const activityDetail = activity
-    ? `${formatDayHeading(localDateKey(activity.startsAt, timeZone))} · ${formatTime(activity.startsAt, timeZone)}${activity.endsAt ? `–${formatTime(activity.endsAt, timeZone)}` : ""}${activity.location ? ` · ${activity.location}` : ""} · Everyone`
-    : "Shared detail · Everyone";
-  return (
-    <ModalLayer close={close}>
-      <section className="sheet proposal-sheet" role="dialog" aria-modal="true" aria-labelledby="proposal-title">
-        <div className="sheet-handle" />
-        <header className="sheet-header"><div><span className="commons-mark-box"><CoordinatorMark /></span><span><small>{approved ? "Decision record" : "Commons proposal"}</small><strong>{approved ? "Approved" : "Organizer approval required"}</strong></span></div><button onClick={close} aria-label="Close proposal"><CloseIcon /></button></header>
-        <div className={`proposal-status${approved ? " approved" : ""}`}><span>{approved ? "Approved" : "Proposed"}</span><em>v{proposal.version} · Everyone</em></div>
-        <h2 id="proposal-title">{proposal.title}</h2>
-        <p className="sheet-summary">{proposal.summary}</p>
-        <div className="proposal-preview"><CalendarIcon /><p><strong>{activity?.title ?? proposal.title}</strong><small>{activityDetail}</small></p></div>
-        <div className="authority-note"><UsersIcon /><p><strong>{proposal.affectedPersonIds.length} travelers included</strong><small>{approved ? `${approverName} approved this version.` : "An organizer must approve this exact version."}</small></p></div>
-        {activity?.correction ? <div className="proposal-correction-note"><strong>Corrected by {activity.correction.actorName.split(" ")[0]}</strong><p>{activity.correction.note}</p></div> : null}
-        <section className="evidence-section" data-walkthrough-target="proposal-evidence" aria-labelledby="evidence-title">
-          <div className="section-heading"><h3 id="evidence-title">From the group conversation</h3><span>{proposal.evidence.length} messages</span></div>
-          <div className="evidence-list">
-            {proposal.evidence.map((evidence) => (
-              <article key={evidence.messageId}><span>{evidence.actorName[0]}</span><p><strong>{evidence.actorName}</strong><small>{evidence.excerpt}</small></p><time>{new Date(evidence.occurredAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone })}</time></article>
-            ))}
-          </div>
-          {viewConversation ? <button className="evidence-open-thread" type="button" onClick={viewConversation}><MessageIcon /> View in conversation</button> : null}
-        </section>
-        {approved ? (
-          <button className="sheet-primary" onClick={close}><CheckIcon /> Done</button>
-        ) : (
-          <div className="proposal-decision-actions" data-walkthrough-target="proposal-actions">
-            <div><button type="button" onClick={correct}>Not quite</button>{askGroup ? <button type="button" onClick={askGroup}>Ask the group</button> : null}</div>
-            <button type="button" onClick={approve}>Approve this version</button>
-          </div>
-        )}
-        <p className="sheet-footnote">Approval updates the Commons plan. It does not make a reservation.</p>
-      </section>
-    </ModalLayer>
-  );
-}
-
-function CorrectProposalSheet({ proposal, timeZone, close, save }: {
-  proposal: CommonsState["proposals"][number];
-  timeZone: string;
-  close: () => void;
-  save: (input: ProposalCorrectionInput) => Promise<void>;
-}) {
-  const activity = proposal.payload.kind === "group_activity" ? proposal.payload : null;
-  const [title, setTitle] = useState(activity?.title ?? proposal.title.replace(/^Add\s+/i, ""));
-  const [date, setDate] = useState(activity ? localDateKey(activity.startsAt, timeZone) : "");
-  const [time, setTime] = useState(activity ? localTimeValue(activity.startsAt, timeZone) : "09:00");
-  const [location, setLocation] = useState(activity?.location ?? "");
-  const [participantScope, setParticipantScope] = useState<ProposalCorrectionInput["participantScope"]>(activity?.participantScope ?? "everyone");
-  const [note, setNote] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
-  return (
-    <ModalLayer close={close}>
-      <section className="sheet correction-sheet" role="dialog" aria-modal="true" aria-labelledby="correction-title">
-        <div className="sheet-handle" />
-        <header className="sheet-header"><div><span className="commons-mark-box"><CoordinatorMark /></span><span><small>Correct proposal</small><strong>Version {proposal.version + 1}</strong></span></div><button onClick={close} aria-label="Close correction"><CloseIcon /></button></header>
-        <h2 id="correction-title">What should change?</h2>
-        <p className="sheet-summary">Edit the proposal. Version {proposal.version + 1} still needs organizer approval.</p>
-        <form onSubmit={(event) => {
-          event.preventDefault();
-          setBusy(true);
-          setError("");
-          void save({ title: title.trim(), date, time, location: location.trim(), participantScope, note: note.trim() })
-            .catch((saveError) => { setError(saveError instanceof Error ? saveError.message : "Correction not saved. Try again."); setBusy(false); });
-        }}>
-          <label className="field"><span>Activity</span><input value={title} onChange={(event) => setTitle(event.target.value)} required /></label>
-          <div className="import-item-grid">
-            <label className="field"><span>Date</span><input type="date" value={date} onChange={(event) => setDate(event.target.value)} required /></label>
-            <label className="field"><span>Time</span><TimeInput value={time} onChange={(event) => setTime(event.target.value)} required /></label>
-          </div>
-          <label className="field"><span>Place <small>Optional</small></span><input value={location} onChange={(event) => setLocation(event.target.value)} /></label>
-          <label className="field"><span>Who is this for?</span><select value={participantScope} onChange={(event) => setParticipantScope(event.target.value as ProposalCorrectionInput["participantScope"])}><option value="everyone">Everyone</option><option value="subgroup">A subgroup</option><option value="optional">Whoever wants to join</option></select></label>
-          <label className="field"><span>What was wrong?</span><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="The reservation is at 8, not 7:30." required /></label>
-          {error ? <p className="form-error" role="alert">{error}</p> : null}
-          <button className="sheet-primary" type="submit" disabled={busy || !title.trim() || !date || !time || !note.trim()}>{busy ? "Saving…" : `Save version ${proposal.version + 1}`}</button>
-        </form>
-        <p className="sheet-footnote">The original messages stay attached so the group can see what changed.</p>
-      </section>
-    </ModalLayer>
-  );
-}
-
 function ExpectedPlanCostFields({
   amount,
   currency,
@@ -3156,13 +2898,11 @@ function AddPlanSheet({
   persistent,
   close,
   save,
-  canAskGroup,
 }: {
   meal?: boolean;
   commonsSlug: string;
   timeZone: string;
   /** Asking first posts a group message, so it is offered only while group messages are on. */
-  canAskGroup: boolean;
   days: DayOption[];
   defaultDate: string;
   currency?: string;
@@ -3170,7 +2910,7 @@ function AddPlanSheet({
   currentActorId: string;
   persistent: boolean;
   close: () => void;
-  save: (input: AddPlanInput, intent: "add" | "ask") => Promise<void>;
+  save: (input: AddPlanInput) => Promise<void>;
 }) {
   const [mealType, setMealType] = useState<import("@commons/contracts").MealType>("restaurant");
   const [reservationNumber, setReservationNumber] = useState("");
@@ -3229,7 +2969,7 @@ function AddPlanSheet({
     setError("");
   }
 
-  function submit(intent: "add" | "ask") {
+  function submit() {
     if (!title.trim() || (scheduled && !date) || busy) return;
     if (participantScope === "subgroup" && !expectedParticipantIds.length) {
       setError("Choose at least one person for this plan.");
@@ -3253,7 +2993,7 @@ function AddPlanSheet({
       setError("Choose at least one traveler for the per-person estimate.");
       return;
     }
-    setBusy(intent);
+    setBusy("add");
     setError("");
     void save({
       title: title.trim(),
@@ -3271,7 +3011,7 @@ function AddPlanSheet({
       participantScope,
       sourceUrl: linkPreview?.url ?? null,
       arrangerPersonId,
-    }, intent).catch((saveError) => {
+    }).catch((saveError) => {
       setError(saveError instanceof Error ? saveError.message : "Plan not shared. Try again.");
       setBusy(null);
     });
@@ -3284,7 +3024,7 @@ function AddPlanSheet({
         <header className="sheet-header"><div><span className="expense-sheet-mark"><CalendarIcon /></span><span><small>Plan</small><strong>{meal ? "Add meal" : "Add something"}</strong></span></div><button onClick={close} aria-label="Close add plan"><CloseIcon /></button></header>
         <h2 id="add-plan-title">{meal ? "What’s the meal?" : "What are you considering?"}</h2>
         <p className="sheet-summary">Add what you know. A day, time and confirmation can be added separately.</p>
-        <form className="add-plan-form" onSubmit={(event) => { event.preventDefault(); submit("add"); }}>
+        <form className="add-plan-form" onSubmit={(event) => { event.preventDefault(); submit(); }}>
           {meal ? <MealTypeField value={mealType} onChange={setMealType} disabled={previewBusy} /> : null}
           <section className="plan-link-import" aria-labelledby="plan-link-import-title">
             <div><span className="plan-link-import__mark"><LinkIcon /></span><p><strong id="plan-link-import-title">{meal ? mealType === "home" ? "Add a recipe or other link" : "Add a restaurant website" : "Add something you found"}</strong><small>{meal ? "Optional. Review imported details before saving." : "Paste a hike, restaurant, map, or other link."}</small></p></div>
@@ -3326,7 +3066,6 @@ function AddPlanSheet({
           <label className="field"><span>Details <small>Optional</small></span><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder={meal && mealType === "home" ? "Menu, ingredients or what to bring" : "What the group should know"} maxLength={500} /></label>
           {error ? <p className="form-error" role="alert">{error}</p> : null}
           <button className="sheet-primary" type="submit" disabled={!title.trim() || Boolean(linkPreview?.existingItem) || (scheduled && !date) || Boolean(busy)}>{busy === "add" ? "Adding…" : <><CheckIcon /> {meal ? "Add meal" : "Add activity"}</>}</button>
-          {canAskGroup && scheduled && !justMe && participantScope !== "subgroup" ? <button className="sheet-secondary" type="button" onClick={() => submit("ask")} disabled={!title.trim() || !date || !time || Boolean(linkPreview?.existingItem) || Boolean(busy)}>{busy === "ask" ? "Sharing…" : <><MessageIcon /> Ask the group first</>}</button> : null}
         </form>
         <p className="sheet-footnote">{persistent ? "Everyone on this trip can see ideas and scheduled plans." : "Changes to this demo stay on your device."}</p>
       </section>
@@ -3737,27 +3476,6 @@ export function TravelPlansSheet({
   );
 }
 
-function TranscriptSheet({ state, commons, close, conversation, canResolvePlanIdeas, resolvePlanIdea }: {
-  state: CommonsState; commons: CommonsSummary; close: () => void;
-  conversation: React.ReactNode; canResolvePlanIdeas: boolean;
-  resolvePlanIdea: (idea: PendingPlanIdea, resolution: "add" | "dismiss") => void;
-}) {
-  const unresolvedIdea = canResolvePlanIdeas ? pendingPlanIdea(state, commons) : null;
-  return <ModalLayer close={close}><section className="sheet transcript-sheet" role="dialog" aria-modal="true" aria-labelledby="transcript-title">
-    <header className="sheet-header"><h2 id="transcript-title">Group conversation</h2><button onClick={close} aria-label="Close conversation"><CloseIcon /></button></header>
-    <p className="sheet-footnote">Messages are shared with everyone in this event. Polls follow their selected audience.</p>
-    {conversation}
-        {unresolvedIdea ? (
-          <aside className="thread-pinned-idea" aria-label={`Idea to resolve: ${unresolvedIdea.title}`}>
-            <span className="message-mark"><CoordinatorMark /></span>
-            <div className="thread-pinned-idea__copy"><small>Idea to resolve</small><strong>{unresolvedIdea.title}</strong><span>{formatDayHeading(unresolvedIdea.date)} · {formatTravelTime(unresolvedIdea.time)}{unresolvedIdea.location ? ` · ${unresolvedIdea.location}` : ""} · {unresolvedIdea.participantScope === "everyone" ? "Everyone" : "Optional"}</span></div>
-            <div className="thread-pinned-idea__actions"><button type="button" onClick={() => resolvePlanIdea(unresolvedIdea, "dismiss")}>Dismiss idea</button><button type="button" onClick={() => resolvePlanIdea(unresolvedIdea, "add")}><CalendarIcon /> Add to plan</button></div>
-          </aside>
-        ) : null}
-
-  </section></ModalLayer>;
-}
-
 export function CommonsApp({
   betaActivationEnabled = false,
   tripStagesOn = false,
@@ -3765,15 +3483,11 @@ export function CommonsApp({
   dataMode,
   signedIn,
   showArrival = true,
-  openConversation = false,
   openTravelExpense,
   decisionHandoff = null,
   decisionHandoffUnavailable = false,
   initialView = "home",
-  groupMessagesEnabled = false,
   confirmationIntakeEnabled = false,
-  coordinator,
-  organizerWorkspace, personalTurns,
   initialPlanSection = "schedule",
   initialItem,
   tripMapEnabled = false,
@@ -3781,9 +3495,6 @@ export function CommonsApp({
   textMessagingEnabled = false,
   betaMapEnabled = false,
   betaCompletion,
-  coordinatorAvailable = true,
-  heldFeatureNotice = false,
-  directGoals,
 }: {
   /** Server flag for the first-invite gate. Off: no extra request, nothing changes. */
   betaActivationEnabled?: boolean;
@@ -3793,13 +3504,10 @@ export function CommonsApp({
   dataMode: "database" | "demo";
   signedIn: boolean;
   showArrival?: boolean;
-  openConversation?: boolean;
   openTravelExpense?: string;
   decisionHandoff?: DecisionHandoff | null;
   decisionHandoffUnavailable?: boolean;
   initialView?: EventView;
-  personalTurns?: import("@commons/contracts").PersonalCoordinatorTurn[];
-  organizerWorkspace?: ComponentProps<typeof CoordinatorWorkspace>;
   initialPlanSection?: PlanSection;
   initialItem?: { kind: "plan" | "stay"; id: string };
   /** COMMONS_TRIP_MAP_ENABLED. Off by default: Plan → Map for stays and activities. */
@@ -3813,23 +3521,11 @@ export function CommonsApp({
   betaMapEnabled?: boolean;
   /** Sub-features for the Money wrap-up. Undefined (trip not on the new experience) renders nothing new. */
   betaCompletion?: { paymentReports: boolean; closure: boolean; recap: boolean; successor: boolean };
-  /** COMMONS_GROUP_MESSAGES_ENABLED. Paused by default; the sample trip keeps its local-only conversation. */
-  groupMessagesEnabled?: boolean;
   confirmationIntakeEnabled?: boolean;
-  /** Server-resolved trip capability (trip-capabilities.ts). False on a free trip: Trip · Plan · Money, no Coordinator. */
-  coordinatorAvailable?: boolean;
-  /** The request was a link to a held-back destination; Trip says so once. */
-  heldFeatureNotice?: boolean;
-  /** Beta trip (COMMONS_BETA_REWORK_ENABLED): organizer's saved goals, opened on their direct pages instead of a conversation. */
-  directGoals?: { goals: import("@commons/contracts").CoordinatorGoal[] };
-  /** What the organizer's Home entry may offer. Absent for travelers and when the coordinator is unavailable. */
-  coordinator?: { conversationAvailable: boolean; voiceAvailable: boolean; main?: { threadId: string; turnVersion: number; label?:string } };
 }) {
-  const [coordinatorNavigation, setCoordinatorNavigation] = useState<{selected:string;revision:number;intent?:"import"}>();
   const [planSection, setPlanSection] = useState<PlanSection>(initialPlanSection === "map" && !tripMapEnabled ? "schedule" : initialPlanSection);
   // Persistent shell: in-session places to return to. Exact selections live in the URL; these only remember where you were.
   const lastPlanSection = useRef<PlanSection>(initialView === "logistics" ? "travel" : initialPlanSection);
-  const lastCoordinatorPath = useRef<string | null>(null);
   const [mapOrigin, setMapOrigin] = useState<"schedule" | "travel">(initialView === "logistics" ? "travel" : "schedule");
   const [quickAdd, setQuickAdd] = useState<"activity" | "stay" | null>(null);
   const [confirmingStayId, setConfirmingStayId] = useState<string | null>(null);
@@ -3837,8 +3533,6 @@ export function CommonsApp({
   const [photoActivityId, setPhotoActivityId] = useState<string | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const seededPilot = initialSnapshot.commons.slug === "cape-cod-couples-week";
-  // The public sample reflects the current app without group conversation.
-  const messagesVisible = dataMode !== "demo" && groupMessagesEnabled;
   const [travelIntakeId,setTravelIntakeId]=useState<string|null>(null);
   const [participants, setParticipants] = useState(initialSnapshot.participants);
   const [savedWorksheet, setSavedWorksheet] = useState<BudgetInputs | null>(null);
@@ -3864,14 +3558,12 @@ export function CommonsApp({
     expensesClosedByName: initialSnapshot.commons.expensesClosedByName ?? null,
   });
   const router = useRouter();
-  // A free trip never shows Coordinator; its links resolve to Trip (held-feature recovery).
   const tripStage = tripStagesOn ? initialSnapshot.commons.stage ?? "going" : null;
-    const availableTab = useCallback((view: Tab): Tab => !coordinatorAvailable && view === "coordinator" ? "home" : view, [coordinatorAvailable]);
-  const [tab, setActiveTab] = useState<Tab>(() => availableTab(initialView));
+  const [tab, setActiveTab] = useState<Tab>(initialView);
   const [arrivalOpen, setArrivalOpen] = useState(showArrival);
   const validTravelExpense = initialSnapshot.state.travelPlans?.find(plan => plan.id === openTravelExpense && plan.personId === initialSnapshot.currentActor.id);
   const [, setPeopleRevision] = useState(0);
-  const [sheet, setSheet] = useState<Sheet>(initialItem ? "item-detail" : decisionHandoff ? decisionHandoff.action === "dates" ? "edit-trip-details" : decisionHandoff.action === "stay" ? "add-stay" : decisionHandoff.planId ? "edit-plan" : "add-plan" : validTravelExpense ? "add-expense" : openConversation && messagesVisible ? "transcript" : null);
+  const [sheet, setSheet] = useState<Sheet>(initialItem ? "item-detail" : decisionHandoff ? decisionHandoff.action === "dates" ? "edit-trip-details" : decisionHandoff.action === "stay" ? "add-stay" : decisionHandoff.planId ? "edit-plan" : "add-plan" : validTravelExpense ? "add-expense" : null);
   useEffect(() => {
     if (sheet || !decisionHandoff) return;
     // Once saved/cancelled, refresh must not reopen the original handoff editor.
@@ -3883,18 +3575,17 @@ export function CommonsApp({
   const inlineLogisticsEditing = false;
   const backgroundInert = arrivalOpen || Boolean(sheet && !inlineLogisticsEditing);
   const setTab = useCallback((requested: Tab) => {
-    const next = availableTab(requested);
-    // The rail returns to where you were: the mounted Coordinator keeps its selection and Plan its last section.
+    const next = requested;
+    // The rail returns to where you were: Plan keeps its last section.
     const section = next === "logistics" ? "travel" : lastPlanSection.current;
     setActiveTab(next === "plan" && visiblePlanSection(section) === "travel" ? "logistics" : next);
     if (next === "plan" || next === "logistics") setPlanSection(section);
     setSheet(null);
     setArrivalOpen(false);
-    const path = next === "coordinator" && lastCoordinatorPath.current ? lastCoordinatorPath.current
-      : next === "plan" || next === "logistics" ? planSectionPath(initialSnapshot.commons.id, section)
+    const path = next === "plan" || next === "logistics" ? planSectionPath(initialSnapshot.commons.id, section)
       : commonsViewPath(initialSnapshot.commons.id, next);
     if (window.location.pathname + window.location.search !== path) window.history.pushState(null, "", path);
-  }, [availableTab, initialSnapshot.commons.id, setSheet]);
+  }, [initialSnapshot.commons.id, setSheet]);
   const openLogistics = () => { setSheet(null); setTab("logistics"); };
   // Stays saved from the map stay on the map: Travel & stays omits considered stays.
   const openStays = () => { setSheet(null); setActiveTab("plan"); setPlanSection("stays"); window.history.pushState(null, "", planSectionPath(initialSnapshot.commons.id, "stays")); };
@@ -3909,17 +3600,13 @@ export function CommonsApp({
     if (routeSearch === lastRouteSearch.current) return;
     lastRouteSearch.current = routeSearch;
     const restore = () => { const search = new URLSearchParams(routeSearch);
-      setActiveTab(availableTab(eventLocation(search))); setPlanSection(parsePlanSection(search.get("section"), tripMapEnabled));
+      setActiveTab(eventLocation(search)); setPlanSection(parsePlanSection(search.get("section"), tripMapEnabled));
       const kind = search.get("item"), id = search.get("itemId");
       setDetailRef(id && (kind === "plan" || kind === "stay") ? {kind, id} : undefined);
       setArrivalOpen(false); setSheet(id && (kind === "plan" || kind === "stay") ? "item-detail" : null);
-      if (eventLocation(search) === "coordinator" && coordinatorAvailable) {
-        const selection = search.get("research") ? `research:${search.get("research")}` : search.get("itinerary") ? `itinerary:${search.get("itinerary")}` : search.get("poll") ? `poll:${search.get("poll")}` : search.get("draft") ? `draft:${search.get("draft")}` : search.get("thread") ? `thread:${search.get("thread")}` : undefined;
-        if (selection) setCoordinatorNavigation(current => ({ selected: selection, revision: (current?.revision ?? 0) + 1 }));
-      }
     };
     restore();
-  }, [availableTab, coordinatorAvailable, routeSearch, tripMapEnabled]);
+  }, [routeSearch, tripMapEnabled]);
   // Restore the exact item targeted by a saved task link once after hydration.
   /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
   useEffect(() => {
@@ -3942,10 +3629,6 @@ export function CommonsApp({
   /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
   useEffect(() => { commandIds.current.clear(); }, [sheet, quickAdd]);
   useEffect(() => { if (tab === "plan" || tab === "logistics") lastPlanSection.current = tab === "logistics" ? "travel" : planSection; }, [tab, planSection]);
-  useEffect(() => {
-    const search = new URLSearchParams(routeSearch);
-    if (eventLocation(search) === "coordinator") lastCoordinatorPath.current = coordinatorReturnPath(initialSnapshot.commons.id, search);
-  }, [routeSearch, initialSnapshot.commons.id]);
   function choosePlanSection(section: PlanSection) {
     if (section === "map") setMapOrigin(tab === "logistics" ? "travel" : visiblePlanSection(planSection) ?? mapOrigin);
     setPlanSection(section); setActiveTab(section === "travel" ? "logistics" : "plan"); setSheet(null);
@@ -4014,19 +3697,11 @@ export function CommonsApp({
   );
   const displayedCoverImage = coverImage ?? suggestTripCover({ ...commonsSummary, title: commonsSummary.name })?.src ?? null;
   const [coverStorageReady, setCoverStorageReady] = useState(dataMode !== "demo");
-  const [draft, setDraft] = useState("");
-  const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null);
   const [toast, setToast] = useState("");
   // Persistent shell: the last canonical save, with an exact way to see it in Plan. Never set for drafts or failures.
   const [planReceipt, setPlanReceipt] = useState<PlanReceipt | null>(null);
   const commandIds = useRef(new Map<string, { fingerprint: string; id: string }>());
 
-  useEffect(() => {
-    if (!heldFeatureNotice) return;
-    trackProductEvent("held_feature_link_opened", { commonsSlug: initialSnapshot.commons.slug });
-    // Keep the notice for this visit only; the address becomes Trip so reload and sharing don't repeat a held link.
-    window.history.replaceState(null, "", commonsViewPath(initialSnapshot.commons.id, "home"));
-  }, [heldFeatureNotice, initialSnapshot.commons.id, initialSnapshot.commons.slug]);
   useEffect(() => {
     trackProductEvent("trip_tab_viewed", {
       commonsSlug: initialSnapshot.commons.slug,
@@ -4081,7 +3756,7 @@ export function CommonsApp({
     if (dataMode !== "database") return;
     let cancelled = false;
 
-    async function refreshConversation() {
+    async function refreshTripState() {
       if (document.visibilityState !== "visible") return;
       try {
         const response = await fetch(
@@ -4108,16 +3783,16 @@ export function CommonsApp({
       }
     }
 
-    const interval = window.setInterval(refreshConversation, 10_000);
-    window.addEventListener("focus", refreshConversation);
-    window.addEventListener("commons:trip-state-changed", refreshConversation);
-    document.addEventListener("visibilitychange", refreshConversation);
+    const interval = window.setInterval(refreshTripState, 10_000);
+    window.addEventListener("focus", refreshTripState);
+    window.addEventListener("commons:trip-state-changed", refreshTripState);
+    document.addEventListener("visibilitychange", refreshTripState);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
-      window.removeEventListener("focus", refreshConversation);
-      window.removeEventListener("commons:trip-state-changed", refreshConversation);
-      document.removeEventListener("visibilitychange", refreshConversation);
+      window.removeEventListener("focus", refreshTripState);
+      window.removeEventListener("commons:trip-state-changed", refreshTripState);
+      document.removeEventListener("visibilitychange", refreshTripState);
     };
   }, [dataMode, initialSnapshot.commons.slug]);
 
@@ -4133,7 +3808,6 @@ export function CommonsApp({
     setParticipants(CommonsSnapshotSchema.parse(payload.snapshot).participants);
   }, [initialSnapshot.commons.slug]);
 
-  const proposal = state.proposals.find(item => item.id === selectedProposalId) ?? state.proposals[0];
   const selectedExpense = state.expenses.find((expense) => expense.id === selectedExpenseId);
   const selectedPayment = state.reimbursements.find((payment) => payment.id === selectedPaymentId);
   const selectedPlan = state.itinerary.find((item) => item.id === selectedPlanId);
@@ -4196,7 +3870,6 @@ export function CommonsApp({
   const basicsEditor = sheet === "edit-trip-details" && canEditBasics ? <TripDetailsEditorSheet experience={canManageTrip && dataMode === "database" ? { slug: initialSnapshot.commons.id, enabled: tripStagesOn } : undefined} inline={false} sampleOnly={previewBasics} commons={commonsSummary} close={() => setSheet(null)} save={saveTripDetails} /> : null;
   const newStayEditor = sheet === "add-stay" && canManageStays ? <StayEditorSheet sampleOnly={previewBasics} commons={commonsSummary} participants={participants} close={() => setSheet(null)} save={addStay} confirmationUploadEnabled={dataMode === "database"} /> : null;
   const existingStayEditor = sheet === "edit-stay" && canManageStays && selectedStay ? <StayEditorSheet sampleOnly={previewBasics} key={selectedStay.id} initialStatus={confirmingStayId === selectedStay.id ? "planned" : undefined} stay={selectedStay} commons={commonsSummary} participants={participants} close={() => { setSelectedStayId(null); setConfirmingStayId(null); setSheet(null); }} save={updateStay} remove={deleteStay} linkedExpense={selectedStayExpense} recordExpense={dataMode === "database" ? () => setSheet("add-expense") : undefined} openLinkedExpense={selectedStayExpense ? () => { setSelectedExpenseId(selectedStayExpense.id); setSelectedStayId(null); setTab("money"); setSheet("expense"); } : undefined} confirmationUploadEnabled={dataMode === "database"} /> : null;
-  const conversation = <EventConversation messagesEnabled={messagesVisible} attendance={dataMode === "database" ? <EventAttendancePanel key={`${commonsSummary.id}:${commonsSummary.startsOn}:${commonsSummary.endsOn}`} eventId={commonsSummary.id} context="conversation" onSaved={() => setPeopleRevision(value => value + 1)} /> : undefined} showOpenDecisions={sheet === "transcript"} state={state} commons={commonsSummary} participants={participants} currentActorId={initialSnapshot.currentActor.id} draft={draft} setDraft={setDraft} send={sendMessage} participation={activityParticipation} respond={respondToActivity} openActivity={(id) => { const item = state.itinerary.find(item => item.id === id); if (item?.startsAt) setSelectedDay(localDateKey(item.startsAt, commonsSummary.timezone)); setTab("plan"); }} openProposal={(id) => { setSelectedProposalId(id); setSheet("proposal"); }} openMoments={() => setTab("moments")} messageExtras={(message) => <>{placesForMessage(message.body).map(place => <a className="text-action" key={place.label} href={`https://maps.apple.com/?q=${encodeURIComponent(place.query)}`} target="_blank" rel="noreferrer"><PinIcon /> {place.label}</a>)}</>} />;
   async function startPhotoUpload(files: File[]) {
     try {
       const photos = await preparePhotoFiles(files);
@@ -4225,22 +3898,16 @@ export function CommonsApp({
     else if (kind === "stay") { if (dataMode === "database" && canManageTrip) { setSheet(null); setQuickAdd("stay"); } else setSheet("add-stay"); }
     else { setTravelKind(kind === "flight" ? "arrival" : "transport"); setSelectedTravelPlanId(kind === "transport" ? "" : null); setSheet(kind === "flight" ? "add-flight" : "add-rental"); }
   }
-  // Free trip: Trip carries Ask the group, polls and the ordinary to-do list (DESIGN.md "Free beta presentation").
-  const freeTripHome = coordinatorAvailable ? {} : {
-    coordinatorAvailable: false,
+  // Trip carries polls and the ordinary to-do list.
+  const tripHome = {
     openTodo: () => { const panel = document.getElementById("trip-todos"); panel?.scrollIntoView({ block: "start" }); panel?.focus({ preventScroll: true }); },
-    ...(directGoals ? {
-      goals: directGoals.goals,
-      openTask: (threadId: string) => { const goal = directGoals.goals.find(item => item.threadId === threadId); router.push(goal ? `${commonsPath(initialSnapshot.commons.id)}/goals/${goal.goalId}` : `${commonsPath(initialSnapshot.commons.id)}/goals`); },
-    } : {}),
     tasksPanel: dataMode === "database" ? <><TripTasks showSuggestions={false} slug={initialSnapshot.commons.id} actorId={initialSnapshot.currentActor.id} context={{ people: participants, state: { ...state, travelPlans }, commons: commonsSummary, organizer: canManageTrip, confirmationIntakeEnabled }} onOpenPollResults={id => router.push(`${commonsPath(initialSnapshot.commons.id)}/polls/${id}`)} /></> : undefined,
-    notice: heldFeatureNotice ? <p className="cm-note held-feature-notice" role="status">Coordinator has been retired. Your trip is unchanged.</p> : undefined,
   };
-  const overviewView = (context?: { legacyTasks: import("@commons/contracts").CoordinatorTask[]; goals: import("@commons/contracts").CoordinatorGoal[]; tasksUnavailable: boolean; tasksLoading: boolean; openTask: (threadId: string) => void; openTodo:(id:string)=>void }) => <HomeView coverImage={displayedCoverImage} {...context} {...freeTripHome} tripLetter={tripLetterEnabled} decidingStage={tripStage === "deciding" && canManageTrip} textMessaging={textMessagingEnabled} addPhotos={() => addActivityPhotos()} openPhotos={() => setTab("moments")} photoCount={state.moments.length + localMoments.length} openItem={id => openItem("plan", id)} canAskGroup={canManageTrip} recipesAvailable={Boolean(organizerWorkspace?.recipesEnabled) || Boolean(directGoals)} confirmationIntakeEnabled={confirmationIntakeEnabled} travelUploadAvailable={dataMode === "database"} addReceipt={() => { setMoneyEntryCurrency(undefined); setSelectedStayId(null); setSelectedTravelPlanId(null); setSheet("add-receipt"); }} state={state} commons={commonsSummary} participants={participants} currentActorId={initialSnapshot.currentActor.id} activityParticipation={activityParticipation} copyAddress={copyAddress} openTripDetails={() => { trackProductEvent("trip_details_opened", { commonsSlug: initialSnapshot.commons.slug, properties: { source: "home_stays" } }); openStays(); }} openStay={stayId => openItem("stay", stayId)} openProposal={id => { setSelectedProposalId(id); setSheet("proposal"); }} openTranscript={messagesVisible ? () => setSheet("transcript") : undefined} addPlan={chooseTripAdd} addTravelPlans={step => {
+  const overviewView = () => <HomeView coverImage={displayedCoverImage} {...tripHome} tripLetter={tripLetterEnabled} decidingStage={tripStage === "deciding" && canManageTrip} textMessaging={textMessagingEnabled} addPhotos={() => addActivityPhotos()} openPhotos={() => setTab("moments")} photoCount={state.moments.length + localMoments.length} openItem={id => openItem("plan", id)} canAskGroup={canManageTrip} confirmationIntakeEnabled={confirmationIntakeEnabled} travelUploadAvailable={dataMode === "database"} addReceipt={() => { setMoneyEntryCurrency(undefined); setSelectedStayId(null); setSelectedTravelPlanId(null); setSheet("add-receipt"); }} state={state} commons={commonsSummary} participants={participants} currentActorId={initialSnapshot.currentActor.id} activityParticipation={activityParticipation} copyAddress={copyAddress} openTripDetails={() => { trackProductEvent("trip_details_opened", { commonsSlug: initialSnapshot.commons.slug, properties: { source: "home_stays" } }); openStays(); }} openStay={stayId => openItem("stay", stayId)} addPlan={chooseTripAdd} addTravelPlans={step => {
         openLogistics();
         if(!step || step.reason === "arrival_processing" || !step.target.canEdit)return;
         setTravelIntakeId(step?.intakeId ?? null);setTravelKind("arrival");setSelectedTravelPlanId(step?.target.planId ?? null);setSheet(step?.target.planId ? "travel" : "add-flight");
-      }} coordinatorEntry={coordinator ? <CoordinatorHomeEntry slug={initialSnapshot.commons.id} actorId={initialSnapshot.currentActor.id} main={coordinator.main} personal={initialSnapshot.currentActor.role !== "organizer"} onContinue={() => setTab("coordinator")} /> : undefined} goToPlan={(date) => { setTab("plan"); setSelectedDay(date ?? defaultDay); }} goToMoney={() => setTab("money")} goToChoiceDay={() => { setTab("plan"); setSelectedDay(seededPilot ? "2027-07-22" : days[1]?.id ?? defaultDay); }} />
+      }} goToPlan={(date) => { setTab("plan"); setSelectedDay(date ?? defaultDay); }} goToMoney={() => setTab("money")} goToChoiceDay={() => { setTab("plan"); setSelectedDay(seededPilot ? "2027-07-22" : days[1]?.id ?? defaultDay); }} />
 ;
   const visibleSection = tab === "logistics" ? "travel" : tab === "plan" ? visiblePlanSection(planSection) : null;
   const sectionLink = (section: PlanSection, label: ReactNode, className?: string) => <Link key={section} className={className} href={planSectionPath(initialSnapshot.commons.id, section)}
@@ -4255,8 +3922,6 @@ export function CommonsApp({
     : tab === "moments" && !tripStage ? <p className="context-return"><Link href={commonsViewPath(initialSnapshot.commons.id, "home")} onClick={event => { if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); setTab("home"); } }}><ChevronLeftIcon /> Back to Trip</Link></p>
     : null;
   const view = tab === "home" ? overviewView()
-    : tab === "coordinator"
-      ? <PersonalCoordinator slug={initialSnapshot.commons.id} actorId={initialSnapshot.currentActor.id} initialTurns={personalTurns ?? []} taskContext={dataMode === "database" ? {people:participants,state:{...state,travelPlans},commons:commonsSummary,organizer:false,confirmationIntakeEnabled}:undefined} available={dataMode === "database" && Boolean(coordinator?.conversationAvailable)} active={tab === "coordinator"} />
     : tripStage === "deciding" && tab === "money" ? <div className="product-view"><TripBudgetPanel tripId={initialSnapshot.commons.id} destinationName={commonsSummary.locationName ?? undefined} startsOn={commonsSummary.startsOn} endsOn={commonsSummary.endsOn} travelerCount={participants.length} currency={commonsSummary.currency} canEdit={canManageTrip} persistent={dataMode === "database"} onSaved={setSavedWorksheet} activationSlot={canManageTrip ? <BudgetActivationAction slug={initialSnapshot.commons.id} /> : undefined} /></div>
     : tripStage === "deciding" && tab === "moments" ? <StageLockedPage slug={initialSnapshot.commons.id} kind="photos" />
     : tripStage === "deciding" && tab === "plan" && planSection === "map" ? <StageLockedPage slug={initialSnapshot.commons.id} kind="map" />
@@ -4282,7 +3947,7 @@ export function CommonsApp({
           editTravel={plan => { setTravelKind(plan.kind); setSelectedTravelPlanId(plan.id); setSheet("travel"); }} />
         </div>
     : tab === "plan"
-      ? <>{tripStage === "deciding" ? <PlanStageBanner slug={initialSnapshot.commons.id} /> : null}<PlanView sectionNavigation={contextNavigation} section={planSection === "map" || planSection === "stays" ? "schedule" : planSection} openItem={id => openItem("plan", id)} canSchedule={canManageTrip || previewBasics} state={{...state, moments: [...state.moments, ...localMoments]}} commons={commonsSummary} days={days} seededPilot={seededPilot} selectedDay={selectedDay} setSelectedDay={setSelectedDay} openProposal={() => { setSelectedProposalId(null); setSheet("proposal"); }} activityParticipation={activityParticipation} respondToActivity={respondToActivity} openMoments={() => setTab("moments")} travelPlans={travelPlans} openTravelPlans={(kind) => { setTravelKind(kind); setSheet("travel"); }} participantCount={participants.length} participants={participants} addPlan={chooseTripAdd} editPlan={(itemId) => { setPlanScheduleDate(null); setSelectedPlanId(itemId); setSheet("edit-plan"); }} scheduleIdea={(itemId, day) => { setPlanScheduleDate(day); setSelectedPlanId(itemId); setSheet("edit-plan"); }} canEditPlan showAlternatives={messagesVisible} openStay={stayId => openItem("stay", stayId)} openTripDetails={() => { trackProductEvent("trip_details_opened", { commonsSlug: initialSnapshot.commons.slug, properties: { source: "plan" } }); openLogistics(); }} askHref={tripStage === "deciding" ? undefined : askEntryHref(initialSnapshot.commons.id, canManageTrip, Boolean(organizerWorkspace?.recipesEnabled), coordinatorAvailable)} askGroupPath={dataMode === "database" && canManageTrip ? ids => `${commonsPath(initialSnapshot.commons.id)}/polls/new?activityIds=${ids.map(encodeURIComponent).join(",")}` : undefined} /></>
+      ? <>{tripStage === "deciding" ? <PlanStageBanner slug={initialSnapshot.commons.id} /> : null}<PlanView sectionNavigation={contextNavigation} section={planSection === "map" || planSection === "stays" ? "schedule" : planSection} openItem={id => openItem("plan", id)} canSchedule={canManageTrip || previewBasics} state={{...state, moments: [...state.moments, ...localMoments]}} commons={commonsSummary} days={days} seededPilot={seededPilot} selectedDay={selectedDay} setSelectedDay={setSelectedDay} activityParticipation={activityParticipation} respondToActivity={respondToActivity} openMoments={() => setTab("moments")} travelPlans={travelPlans} openTravelPlans={(kind) => { setTravelKind(kind); setSheet("travel"); }} participantCount={participants.length} participants={participants} addPlan={chooseTripAdd} editPlan={(itemId) => { setPlanScheduleDate(null); setSelectedPlanId(itemId); setSheet("edit-plan"); }} scheduleIdea={(itemId, day) => { setPlanScheduleDate(day); setSelectedPlanId(itemId); setSheet("edit-plan"); }} canEditPlan openStay={stayId => openItem("stay", stayId)} openTripDetails={() => { trackProductEvent("trip_details_opened", { commonsSlug: initialSnapshot.commons.slug, properties: { source: "plan" } }); openLogistics(); }} askHref={tripStage === "deciding" || !canManageTrip ? undefined : `${commonsPath(initialSnapshot.commons.id)}/polls/new`} askGroupPath={dataMode === "database" && canManageTrip ? ids => `${commonsPath(initialSnapshot.commons.id)}/polls/new?activityIds=${ids.map(encodeURIComponent).join(",")}` : undefined} /></>
       : tab === "money"
         ? <><MoneyView budgetEditor={targetControl => <TripBudgetPanel targetControl={targetControl} embedded tripId={initialSnapshot.commons.id} destinationName={commonsSummary.locationName ?? undefined} startsOn={commonsSummary.startsOn} endsOn={commonsSummary.endsOn} travelerCount={participants.length} currency={commonsSummary.currency} canEdit={canManageTrip} persistent={dataMode === "database"} onSaved={setSavedWorksheet} />} worksheet={savedWorksheet} openItem={openItem} state={state} commons={commonsSummary} participants={activeMoneyParticipants} tripStarted={tripStarted} postTrip={postTrip} currentActorId={initialSnapshot.currentActor.id} openExpense={(expenseId) => { setStartExpenseAsRecorded(false); setSelectedExpenseId(expenseId); setSheet("expense"); }} openPayment={(paymentId) => { setSelectedPaymentId(paymentId); setSheet("payment"); }} addExpense={(currency) => { setMoneyEntryCurrency(currency); setSelectedStayId(null); setSelectedTravelPlanId(null); setSheet("add-expense"); }} openMoneySettings={canManageTrip ? () => setSheet("money-settings") : undefined} recordPayment={(currency) => { setMoneyEntryCurrency(currency); setSheet("add-payment"); }} markExpensesComplete={markExpensesComplete} closeExpenses={() => setSheet("close-expenses")} reopenExpenses={() => setSheet("reopen-expenses")} expensesClosedAt={moneyStatus.expensesClosedAt} expensesClosedByName={moneyStatus.expensesClosedByName} saveTargetBudget={saveTargetBudget} />
 
@@ -5077,11 +4742,11 @@ export function CommonsApp({
     notify("Travel plan removed.");
   }
 
-  async function savePlan(input: AddPlanInput, intent: "add" | "ask") {
+  async function savePlan(input: AddPlanInput) {
     const startsAt = input.date && input.time
       ? localDateTimeToIso(input.date, input.time, initialSnapshot.commons.timezone)
       : null;
-    if (intent === "add" && dataMode === "demo") {
+    if (dataMode === "demo") {
       const firstName = initialSnapshot.currentActor.displayName.split(" ")[0];
       const newItem: CommonsState["itinerary"][number] = {
         id: crypto.randomUUID(),
@@ -5122,123 +4787,29 @@ export function CommonsApp({
       return;
     }
 
-    if (intent === "add") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/itinerary`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            commandId: stableCommandId(commandIds.current, "add-plan", input),
-            ...input,
-            occurredAt: new Date().toISOString(),
-          }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Plan not added. Try again.");
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      const added = addedRecord(new Set(state.itinerary.map(item => item.id)), snapshot.state.itinerary, item => sameText(item.title, input.title));
-      setState(snapshot.state);
-      setActivityParticipation(snapshot.state.participation);
-      // Keep your place; the receipt offers View in Plan instead of moving the day.
-      setPlanReceipt(added ? activityReceipt(initialSnapshot.commons.id, added, commonsSummary.timezone) : null);
-      setSheet(null);
-      trackProductEvent("plan_added", { commonsSlug: initialSnapshot.commons.slug, properties: { mode: dataMode, scope: input.participantScope } });
-      notify(startsAt ? `${input.title} added to the plan.` : `${input.title} added as an idea.`);
-      return;
-    }
-
-    if (!input.date || !input.time) throw new Error("Choose a day and time before asking the group.");
-    const body = `How about ${input.title} on ${formatDayHeading(input.date)} at ${formatTravelTime(input.time)}${input.durationMinutes ? ` for ${input.durationMinutes} min` : ""}${input.location ? ` at ${input.location}` : ""}? ${input.participantScope === "everyone" ? "Could everyone make that?" : "Anyone interested?"}${input.note ? ` ${input.note}` : ""}`;
-    if (dataMode === "database") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/messages`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            commandId: crypto.randomUUID(),
-            body,
-            occurredAt: new Date().toISOString(),
-          }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Plan idea not shared. Try again.");
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      setState(snapshot.state);
-    } else {
-      setState((current) => appendConversationMessage(current, {
-        id: crypto.randomUUID(),
-        actorId: initialSnapshot.currentActor.id,
-        actorName: initialSnapshot.currentActor.displayName,
-        actorType: "human",
-        body,
-        occurredAt: new Date().toISOString(),
-        source: "web",
-      }));
-    }
+    const response = await fetch(
+      `/api/v1/commons/${initialSnapshot.commons.slug}/itinerary`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          commandId: stableCommandId(commandIds.current, "add-plan", input),
+          ...input,
+          occurredAt: new Date().toISOString(),
+        }),
+      },
+    );
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error ?? "Plan not added. Try again.");
+    const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
+    const added = addedRecord(new Set(state.itinerary.map(item => item.id)), snapshot.state.itinerary, item => sameText(item.title, input.title));
+    setState(snapshot.state);
+    setActivityParticipation(snapshot.state.participation);
+    // Keep your place; the receipt offers View in Plan instead of moving the day.
+    setPlanReceipt(added ? activityReceipt(initialSnapshot.commons.id, added, commonsSummary.timezone) : null);
     setSheet(null);
-    notify("Plan idea shared with the group.");
-  }
-
-  function resolvePlanIdea(idea: PendingPlanIdea, resolution: "add" | "dismiss") {
-    if (dataMode !== "demo") return;
-    const commandId = crypto.randomUUID();
-    const itineraryItemId = crypto.randomUUID();
-    const actorFirstName = initialSnapshot.currentActor.displayName.split(" ")[0];
-
-    setState((current) => {
-      const occurredAt = nextMessageOccurredAt(current.messages);
-      const confirmation = {
-        id: crypto.randomUUID(),
-        actorId: "commons",
-        actorName: "Commons",
-        actorType: "commons" as const,
-        body: resolution === "add"
-          ? `Added ${idea.title} to the plan for ${formatDayHeading(idea.date)} at ${formatTravelTime(idea.time)}.`
-          : `${idea.title} is off the plan for now.`,
-        occurredAt,
-        source: "channel" as const,
-      };
-      const auditEvent = {
-        id: crypto.randomUUID(),
-        commandId,
-        actorId: initialSnapshot.currentActor.id,
-        action: resolution === "add" ? "itinerary.added" : "plan_idea.dismissed",
-        targetId: resolution === "add" ? itineraryItemId : idea.messageId,
-        occurredAt,
-        summary: resolution === "add"
-          ? `${initialSnapshot.currentActor.displayName} added ${idea.title}`
-          : `${initialSnapshot.currentActor.displayName} dismissed ${idea.title}`,
-      };
-      const next = resolution === "add" ? {
-        ...current,
-        itinerary: sortItinerary([...current.itinerary, {
-          id: itineraryItemId,
-          title: idea.title,
-          startsAt: localDateTimeToIso(idea.date, idea.time, initialSnapshot.commons.timezone),
-          durationMinutes: idea.durationMinutes,
-          endsAt: itineraryEndTime(localDateTimeToIso(idea.date, idea.time, initialSnapshot.commons.timezone), idea.durationMinutes ?? null),
-          location: idea.location || undefined,
-          note: idea.note || undefined,
-          participantScope: idea.participantScope,
-          status: "planned" as const,
-          provenanceLabel: `${actorFirstName} added this from the group conversation`,
-        }]),
-        auditEvents: [...current.auditEvents, auditEvent],
-        processedCommandIds: [...current.processedCommandIds, commandId],
-      } : {
-        ...current,
-        auditEvents: [...current.auditEvents, auditEvent],
-        processedCommandIds: [...current.processedCommandIds, commandId],
-      };
-      return appendConversationMessage(next, confirmation);
-    });
-
-    if (resolution === "add") setSelectedDay(idea.date);
-    notify(resolution === "add" ? `${idea.title} added to the plan.` : `${idea.title} dismissed.`);
+    trackProductEvent("plan_added", { commonsSlug: initialSnapshot.commons.slug, properties: { mode: dataMode, scope: input.participantScope } });
+    notify(startsAt ? `${input.title} added to the plan.` : `${input.title} added as an idea.`);
   }
 
   async function updatePlan(input: EditPlanInput) {
@@ -5713,226 +5284,30 @@ export function CommonsApp({
     notify("Expenses reopened. The group can add to the ledger again.");
   }
 
-  async function approve() {
-    const proposal = state.proposals.find(item => item.id === selectedProposalId) ?? state.proposals[0];
-    if (!proposal) {
-      notify("No proposal is waiting for approval.");
-      return;
-    }
-    const commandId = `approve-${proposal.id}-v${proposal.version}`;
-    const occurredAt = new Date().toISOString();
-    const activityName = proposal.payload.kind === "group_activity"
-      ? proposal.payload.title
-      : proposal.title;
-    const activityTiming = proposal.payload.kind === "group_activity"
-      ? `${formatDayHeading(localDateKey(proposal.payload.startsAt, initialSnapshot.commons.timezone))} at ${formatTime(proposal.payload.startsAt, initialSnapshot.commons.timezone)}`
-      : "the agreed time";
-
-    if (dataMode === "database") {
-      try {
-        const response = await fetch(
-          `/api/v1/commons/${initialSnapshot.commons.slug}/proposals/${proposal.id}/approve`,
-          {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              commandId,
-              expectedVersion: proposal.version,
-              occurredAt,
-            }),
-          },
-        );
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload.error ?? "Plan not updated. Try again.");
-        }
-        const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-        setState(snapshot.state);
-        setSheet(null);
-        trackProductEvent("proposal_approved", { commonsSlug: initialSnapshot.commons.slug, properties: { mode: dataMode } });
-        notify(`${activityName} added.`);
-      } catch (error) {
-        notify(error instanceof Error ? error.message : "Plan not updated. Try again.");
-      }
-      return;
-    }
-
-    try {
-      const next = approveProposal(state, {
-        commandId,
-        proposalId: proposal.id,
-        expectedVersion: proposal.version,
-        actor: initialSnapshot.currentActor,
-        occurredAt,
-      });
-      setState({
-        ...next,
-        messages: [...next.messages, {
-          id: crypto.randomUUID(),
-          actorId: "commons",
-          actorName: "Commons",
-          actorType: "commons",
-          body: `${activityName} is on the plan for ${activityTiming}. ${initialSnapshot.currentActor.displayName.split(" ")[0]} approved it.`,
-          occurredAt,
-          source: "channel",
-        }],
-      });
-      setSheet(null);
-      trackProductEvent("proposal_approved", { commonsSlug: initialSnapshot.commons.slug, properties: { mode: dataMode } });
-      notify(`${activityName} added.`);
-    } catch (error) {
-      notify(error instanceof DomainError ? error.message : "Plan not updated. Try again.");
-    }
-  }
-
-  function askGroupAboutProposal() {
-    const proposal = state.proposals.find(item => item.id === selectedProposalId) ?? state.proposals[0];
-    if (!proposal) {
-      setSheet("transcript");
-      return;
-    }
-    const activityName = proposal.payload.kind === "group_activity"
-      ? proposal.payload.title
-      : proposal.title;
-    const activityTime = proposal.payload.kind === "group_activity"
-      ? formatTime(proposal.payload.startsAt, initialSnapshot.commons.timezone)
-      : "the proposed time";
-    setDraft(`Can everyone do ${activityName} at ${activityTime}? Reply with any conflicts.`);
-    setSheet("transcript");
-  }
-
-  async function saveProposalCorrection(input: ProposalCorrectionInput) {
-    const proposal = state.proposals.find(item => item.id === selectedProposalId) ?? state.proposals[0];
-    if (!proposal) throw new Error("That proposal is no longer available.");
-    const occurredAt = new Date().toISOString();
-    const startsAt = localDateTimeToIso(input.date, input.time, initialSnapshot.commons.timezone);
-    const request = {
-      commandId: crypto.randomUUID(),
-      expectedVersion: proposal.version,
-      occurredAt,
-      title: input.title,
-      startsAt,
-      location: input.location || undefined,
-      participantScope: input.participantScope,
-      note: input.note,
-    };
-
-    if (dataMode === "database") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/proposals/${proposal.id}/revise`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(request),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Correction not saved. Try again.");
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      setState(snapshot.state);
-    } else {
-      const next = reviseProposal(state, {
-        ...request,
-        proposalId: proposal.id,
-        actor: initialSnapshot.currentActor,
-      });
-      setState({
-        ...next,
-        messages: [...next.messages, {
-          id: crypto.randomUUID(),
-          actorId: initialSnapshot.currentActor.id,
-          actorName: initialSnapshot.currentActor.displayName,
-          actorType: "human",
-          body: `Correction: ${input.note}`,
-          occurredAt,
-          source: "web",
-        }],
-      });
-    }
-    setSheet("proposal");
-    notify("Corrected version saved. It still needs approval.");
-  }
-
-  async function sendMessage() {
-    const body = draft.trim();
-    if (!body) return false;
-    if (dataMode === "database") {
-      try {
-        const response = await fetch(
-          `/api/v1/commons/${initialSnapshot.commons.slug}/messages`,
-          {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              commandId: crypto.randomUUID(),
-              body,
-              occurredAt: new Date().toISOString(),
-            }),
-          },
-        );
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload.error ?? "Message not sent. Try again.");
-        }
-        const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-        setState(snapshot.state);
-        setDraft("");
-        trackProductEvent("group_message_sent", { commonsSlug: initialSnapshot.commons.slug, properties: { mode: dataMode } });
-        notify("Message sent.");
-        return true;
-      } catch (error) {
-        notify(error instanceof Error ? error.message : "Message not sent. Try again.");
-        return false;
-      }
-    }
-
-    const next = appendConversationMessage(state, {
-      id: crypto.randomUUID(),
-      actorId: initialSnapshot.currentActor.id,
-      actorName: initialSnapshot.currentActor.displayName,
-      actorType: "human",
-      body,
-      occurredAt: new Date().toISOString(),
-      source: "web",
-    });
-    setState(next);
-    setDraft("");
-    trackProductEvent("group_message_sent", { commonsSlug: initialSnapshot.commons.slug, properties: { mode: dataMode } });
-    notify("Message sent.");
-    return true;
-  }
-
   const detailItem = detailRef?.kind === "plan" ? state.itinerary.find(item => item.id === detailRef.id) : undefined;
   const detailStay = detailRef?.kind === "stay" ? state.stays?.find(stay => stay.id === detailRef.id) : undefined;
   return (
     <div className={`commons-shell commons-shell--persistent${arrivalOpen ? " commons-shell--arrival" : ""}`}>
-      <TripApplicationShell tripStage={tripStage} commonsId={initialSnapshot.commons.id} view={tab} navigate={setTab} tripName={commonsSummary.name} inert={backgroundInert} coordinatorAvailable={coordinatorAvailable}
-        fill={tab === "coordinator" && Boolean(organizerWorkspace || personalTurns)}
+      <TripApplicationShell tripStage={tripStage} commonsId={initialSnapshot.commons.id} view={tab} navigate={setTab} tripName={commonsSummary.name} inert={backgroundInert}
         account={{ signedIn, actorName: initialSnapshot.currentActor.displayName, actorInitials, roleLabel: canManageTrip ? "Organizer" : "Traveler", signInHref: `/sign-in?next=${encodeURIComponent(commonsPath(initialSnapshot.commons.id))}`, feedbackCommonsSlug: initialSnapshot.commons.slug }}
         identity={(placement, closeMenu) => <TripIdentity placement={placement} onAction={closeMenu} commons={commonsSummary} meta={[formatTripDates(commonsSummary.startsOn, commonsSummary.endsOn), formatTripPlaces(commonsSummary)].filter(Boolean).join(" · ")} coverImage={displayedCoverImage} participants={participants}
           openPeople={() => { trackProductEvent("people_opened", { commonsSlug: initialSnapshot.commons.slug }); setSheet("people"); }} openCoverPicker={() => setSheet("cover")}
           openSettings={canEditBasics ? () => setSheet("edit-trip-details") : undefined} openContext={canManageTrip && dataMode === "database" ? () => setSheet("trip-context") : undefined}
-          demo={seededPilot}
-          groupConversation={messagesVisible ? { open: () => setSheet("transcript"), detail: sharedMessageCount(state) ? `${sharedMessageCount(state)} ${sharedMessageCount(state) === 1 ? "message" : "messages"}` : "No messages yet" } : undefined} />}>
-          <div className={tab === "coordinator" && (organizerWorkspace || personalTurns) ? "trip-shell-fill" : "trip-shell-page"}>
+          demo={seededPilot} />}>
+          <div className="trip-shell-page">
               {decisionHandoff ? <p className="decision-return"><a href={`${commonsPath(initialSnapshot.commons.id)}/polls/${decisionHandoff.pollId}`}>Back to decision</a></p> : null}
               {decisionHandoffUnavailable ? <p role="status">Couldn’t open those details. Nothing changed. Try opening the poll again.</p> : null}
               {(tab === "plan" && planSection === "map") || tab === "moments" ? contextNavigation : null}
-              {organizerWorkspace ? <div hidden={tab !== "home" && tab !== "coordinator"}><CoordinatorWorkspace {...organizerWorkspace} onAddRecord={kind => chooseTripAdd(kind === "hotel" ? "stay" : kind === "activity" ? "thing" : kind)} taskContext={{people:participants,state:{...state,travelPlans},commons:commonsSummary,organizer:true,confirmationIntakeEnabled,openProposal:id=>{setSelectedProposalId(id);setSheet("proposal");}}} tripIdeas={state.itinerary.filter(item => !item.startsAt && !item.scheduledDate && item.status !== "cancelled")} embedded layout="persistent" active={tab === "coordinator"} overview={overviewView} showOverview={tab === "home"} onActivate={() => { setActiveTab("coordinator"); setSheet(null); }} navigation={coordinatorNavigation} /></div> : null}
-              {personalTurns ? <div hidden={tab !== "coordinator"}><PersonalCoordinator slug={initialSnapshot.commons.id} actorId={initialSnapshot.currentActor.id} initialTurns={personalTurns} taskContext={{people:participants,state:{...state,travelPlans},commons:commonsSummary,organizer:false,confirmationIntakeEnabled}} available={Boolean(coordinator?.conversationAvailable)} active={tab === "coordinator"} /></div> : null}
-              {(!organizerWorkspace || (tab !== "home" && tab !== "coordinator")) && !(personalTurns && tab === "coordinator") ? view : null}
+              {view}
           </div>
         </TripApplicationShell>
       {arrivalOpen ? <TripArrival coverImage={displayedCoverImage} commons={commonsSummary} close={closeArrival} /> : null}
       <input className="sr-only" aria-label="Choose trip photos" ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={event => { const files = Array.from(event.target.files ?? []); event.target.value = ""; if (files.length) void startPhotoUpload(files); }} />
       {sheet === "item-detail" ? detailItem || detailStay ? <TripItemDetail commons={commonsSummary} item={detailItem} stay={detailStay} close={closeItem} edit={detailItem ? () => { setSelectedPlanId(detailItem.id); setPlanScheduleDate(null); setSheet("edit-plan"); } : canManageStays && detailStay ? () => { setSelectedStayId(detailStay.id); setSheet("edit-stay"); } : undefined} addPhotos={detailItem ? () => addActivityPhotos(detailItem.id) : undefined} convertToExpense={detailItem && ledgerOpen && (detailItem.mealType || activityExpenseConversion(detailItem, state.expenses)) ? () => convertActivityToExpense(detailItem) : undefined} photoCount={detailItem ? [...state.moments, ...localMoments].filter(photo => photo.itineraryItemId === detailItem.id).length : 0} viewPhotos={() => setTab("moments")} /> : <ModalLayer close={closeItem}><section className="sheet" role="dialog" aria-modal="true" aria-labelledby="item-missing"><h2 id="item-missing">Item unavailable</h2><button type="button" className="sheet-secondary" onClick={closeItem}>Close</button></section></ModalLayer> : null}
-      {sheet === "proposal" && proposal ? <ProposalSheet state={{ ...state, proposals: [proposal, ...state.proposals.filter(item => item.id !== proposal.id)] }} timeZone={initialSnapshot.commons.timezone} participants={participants} close={() => setSheet(null)} approve={approve} askGroup={messagesVisible ? askGroupAboutProposal : undefined} correct={() => setSheet("correct-proposal")} viewConversation={messagesVisible ? () => setSheet("transcript") : undefined} /> : null}
-      {sheet === "correct-proposal" && proposal ? <CorrectProposalSheet proposal={proposal} timeZone={initialSnapshot.commons.timezone} close={() => setSheet("proposal")} save={saveProposalCorrection} /> : null}
       {sheet === "add-item" ? <ModalLayer close={() => setSheet(null)}><section className="sheet" role="dialog" aria-modal="true" aria-labelledby="add-item-title"><header className="sheet-header"><h2 id="add-item-title">Add to trip</h2><button type="button" onClick={() => setSheet(null)}>Close</button></header><LogisticsAddMenu canAddStay={canManageStays} choose={chooseTripAdd} /></section></ModalLayer> : null}
-      {sheet === "add-plan" || sheet === "add-meal" ? <AddPlanSheet key={sheet} meal={sheet === "add-meal"} currency={commonsSummary.currency ?? "USD"} timeZone={initialSnapshot.commons.timezone} commonsSlug={initialSnapshot.commons.slug} days={days} defaultDate={selectedDay} participants={activePlanParticipants} currentActorId={initialSnapshot.currentActor.id} persistent={dataMode === "database"} close={() => setSheet(null)} save={savePlan} canAskGroup={messagesVisible} /> : null}
+      {sheet === "add-plan" || sheet === "add-meal" ? <AddPlanSheet key={sheet} meal={sheet === "add-meal"} currency={commonsSummary.currency ?? "USD"} timeZone={initialSnapshot.commons.timezone} commonsSlug={initialSnapshot.commons.slug} days={days} defaultDate={selectedDay} participants={activePlanParticipants} currentActorId={initialSnapshot.currentActor.id} persistent={dataMode === "database"} close={() => setSheet(null)} save={savePlan} /> : null}
       {sheet === "edit-plan" && selectedPlan ? <EditPlanSheet key={`${selectedPlan.id}:${planScheduleDate ?? "edit"}`} item={selectedPlan} days={days} participants={activePlanParticipants} currentActorId={initialSnapshot.currentActor.id} timeZone={initialSnapshot.commons.timezone} initialDate={planScheduleDate} close={() => { setPlanScheduleDate(null); setSheet(null); }} save={updatePlan} remove={deletePlan} persistent={dataMode === "database"} /> : null}
       {travelEditor}
-      {sheet === "transcript" && messagesVisible ? <TranscriptSheet state={state} commons={commonsSummary} close={() => setSheet(null)} conversation={conversation} canResolvePlanIdeas={false} resolvePlanIdea={resolvePlanIdea} /> : null}
       {sheet === "expense" && selectedExpense ? <ExpenseSheet expense={selectedExpense} participants={activeMoneyParticipants} itinerary={state.itinerary} balancesDisabled={commonsSummary.balancesDisabled ?? false} close={() => setSheet(null)} edit={() => { setStartExpenseAsRecorded(false); setSheet("edit-expense"); }} markRecorded={() => { setStartExpenseAsRecorded(true); setSheet("edit-expense"); }} remove={deleteExpense} /> : null}
       {sheet === "add-expense" || sheet === "add-receipt" ? <ExpenseEditorSheet defaultCurrency={moneyEntryCurrency ?? commonsSummary.currency ?? "USD"} receiptEntry={sheet === "add-receipt"} startAsRecorded={sheet === "add-receipt" || Boolean(expensePlan)} key={`new-expense:${expensePlan?.id ?? selectedStay?.id ?? selectedTravelPlan?.id ?? "general"}`} defaultPlan={expensePlan} defaultPlanCostCents={expensePlanConversion?.amountCents} defaultStay={selectedStay} defaultTravel={selectedTravelPlan} participants={activeMoneyParticipants} itinerary={state.itinerary} stays={state.stays ?? []} travelPlans={travelPlans} balancesDisabled={commonsSummary.balancesDisabled ?? false} timeZone={initialSnapshot.commons.timezone} currentActorId={initialSnapshot.currentActor.id} defaultDate={localDateKey(new Date().toISOString(), commonsSummary.timezone)} close={() => { setSelectedStayId(null); setSelectedTravelPlanId(null); setExpensePlanId(null); setSheet(expensePlan ? "item-detail" : null); }} save={addExpense} /> : null}
       {sheet === "edit-expense" && selectedExpense ? <ExpenseEditorSheet key={`${selectedExpense.id}:${startExpenseAsRecorded ? "record" : "edit"}`} expense={selectedExpense} startAsRecorded={startExpenseAsRecorded} participants={activeMoneyParticipants} itinerary={state.itinerary} stays={state.stays ?? []} travelPlans={travelPlans} balancesDisabled={commonsSummary.balancesDisabled ?? false} timeZone={initialSnapshot.commons.timezone} currentActorId={initialSnapshot.currentActor.id} defaultDate={selectedExpense.occurredOn} close={() => { setExpensePlanId(null); setSheet(expensePlan ? "item-detail" : "expense"); }} save={updateExpense} /> : null}

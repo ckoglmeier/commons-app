@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import { itineraryParticipantDraft } from "@commons/contracts";
 import { detailedSonomaItinerary, sonomaMessageOutline } from "../../../packages/contracts/src/fixtures/sonoma-message";
 import { itineraryMessageContent, itineraryMessageHtml, itineraryMessageText } from "./itinerary-message";
-import { publishedPollHtml, publishedPollMessage } from "./coordinator-sharing";
 import { renderPollEmail } from "./email/poll-email";
 
 test("warm outline, copy and supported email share one participant snapshot and preserve safe links",()=>{
@@ -22,8 +21,8 @@ test("warm outline, copy and supported email share one participant snapshot and 
   assert.doesNotMatch(text,/Time open|Day open|PRIVATE_|1:12|2:30|Driver|Tasks|Draft \d|Nothing was booked/);
   assert.equal(detailed.items.find(item=>item.id==="arrival")!.time,"13:12","projection does not rewrite input anchors");
   const url="https://www.commons.travel/c/poll/abcdef012345", email=renderPollEmail("https://www.commons.travel","abcdef012345",data);
-  assert.equal(email.text,publishedPollMessage(data,url)); assert.equal(email.text,`${text}\n\nRespond in Commons: ${url}`);
-  assert.ok(email.html.includes(html)); assert.ok(publishedPollHtml(data,url).includes(html));
+  assert.equal(email.text,`${text}\n\nRespond in Commons: ${url}`);
+  assert.ok(email.html.includes(html));
   assert.equal(JSON.stringify(data),before,"all renderers read the immutable snapshot");
 });
 test("outline HTML escapes prose and rejects executable links while legacy ballots retain their original copy",()=>{
@@ -33,5 +32,4 @@ test("outline HTML escapes prose and rejects executable links while legacy ballo
   data.communication!.links=[{label:"Bad",url:"javascript:alert(1)"}]; assert.throws(()=>itineraryMessageHtml(data));
   data.communication!.links=[]; const question=data.questions[0]; if(question.kind==="choice") delete question.itinerary!.feedbackMode;
   assert.equal(itineraryMessageText(data),null); assert.equal(itineraryMessageContent(data),null);
-  assert.match(publishedPollMessage(data,"https://example.test/poll"),/Vote in Commons/);
 });

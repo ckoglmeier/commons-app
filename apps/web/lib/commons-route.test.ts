@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { commonsPath, commonsSetupPath, commonsWorkspacePath, commonsViewPath, commonsTravelPath, eventLocation, planSectionPath, itemDetailPath, parseEventView, travelReturnView, eventViews, PUBLIC_DEMO_COMMONS_ID, parsePlanSection, planSections, visiblePlanSection, COORDINATOR_ENTRY_KEYS, coordinatorReturnPath } from "./commons-route";
+import { commonsPath, commonsSetupPath, commonsWorkspacePath, commonsViewPath, commonsTravelPath, eventLocation, planSectionPath, itemDetailPath, parseEventView, travelReturnView, eventViews, PUBLIC_DEMO_COMMONS_ID, parsePlanSection, planSections, visiblePlanSection } from "./commons-route";
 
 test("builds canonical event URLs from opaque IDs", () => {
   assert.equal(commonsPath("8b26fd00-0000-4000-8000-000000000001"), "/c/8b26fd00-0000-4000-8000-000000000001");
@@ -57,17 +57,4 @@ test("Plan section links resolve to the two persistent sections; Map needs its f
   assert.equal(parsePlanSection("bogus", true), "schedule");
   assert.equal(parsePlanSection(null, true), "schedule");
   assert.deepEqual(planSections.map(visiblePlanSection), ["schedule", "travel", "schedule", null, "travel"]);
-});
-
-test("old Coordinator links keep every exact selection, including itinerary and research", () => {
-  assert.deepEqual([...COORDINATOR_ENTRY_KEYS], ["thread", "draft", "poll", "itinerary", "research", "ask", "new", "voice"]);
-});
-
-test("the rail returns to the exact Coordinator selection without replaying starters", () => {
-  const path = coordinatorReturnPath("trip", new URLSearchParams("view=coordinator&thread=t1&research=r1&voice=1&ask=1&add=thing"));
-  const url = new URL(path, "https://commons.test");
-  assert.equal(url.searchParams.get("view"), "coordinator");
-  assert.equal(url.searchParams.get("thread"), "t1");
-  assert.equal(url.searchParams.get("research"), "r1");
-  for (const key of ["voice", "ask", "add"]) assert.equal(url.searchParams.get(key), null);
 });

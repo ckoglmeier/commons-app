@@ -26,11 +26,9 @@ const DESKTOP_QUERY = "(min-width: 1100px)";
  * It owns the single main landmark. Destination links keep real hrefs; plain clicks use the in-app `navigate` transition.
  * Class names for page content: wrap Trip, Plan, Money and Photos content in `.trip-shell-page` (add `.trip-shell-page--document` for the narrower reading width).
  */
-export function TripApplicationShell({ tripStage = null, commonsId, view, navigate, tripName, identity, account, busy = false, inert = false, fill = false, contentLabel, coordinatorAvailable = true, children }: {
+export function TripApplicationShell({ tripStage = null, commonsId, view, navigate, tripName, identity, account, busy = false, inert = false, contentLabel, children }: {
   tripStage?: "deciding" | "going" | null;
   commonsId: string;
-  /** Server-resolved trip capability; false shows Trip · Plan · Money (DESIGN.md "Free beta presentation"). */
-  coordinatorAvailable?: boolean;
   view: EventView;
   navigate: (view: EventView) => void;
   tripName: string;
@@ -38,7 +36,6 @@ export function TripApplicationShell({ tripStage = null, commonsId, view, naviga
   account: ShellAccount;
   busy?: boolean;
   inert?: boolean;
-  fill?: boolean;
   contentLabel?: string;
   children: ReactNode;
 }) {
@@ -80,7 +77,7 @@ export function TripApplicationShell({ tripStage = null, commonsId, view, naviga
   const brand = <Link className="trip-shell__brand" href="/" aria-label="Commons homepage" title="Commons homepage" aria-disabled={busy || undefined} onClick={guard}><CommonsWordmark /></Link>;
 
   return (
-    <div className="trip-shell" data-fill={fill || undefined} data-busy={busy || undefined} data-inert={inert || undefined}>
+    <div className="trip-shell" data-busy={busy || undefined} data-inert={inert || undefined}>
       <a className="skip-link" href="#workspace-content">Skip to trip content</a>
       <header className="trip-shell__compact" {...inertProps}>
         {brand}
@@ -95,7 +92,7 @@ export function TripApplicationShell({ tripStage = null, commonsId, view, naviga
           {brand}
           {identity("rail", closeMenu)}
           <nav className="trip-shell__nav" aria-label="Trip navigation">
-            <EventNavigationLinks eventId={commonsId} view={view} navigate={navigate} busy={busy} showCoordinator={coordinatorAvailable} tripStage={tripStage} />
+            <EventNavigationLinks eventId={commonsId} view={view} navigate={navigate} busy={busy} tripStage={tripStage} />
           </nav>
         </div>
         <div className="trip-shell__foot">
@@ -114,7 +111,7 @@ export function TripApplicationShell({ tripStage = null, commonsId, view, naviga
       }}>
         <div className="trip-shell__menu-heading"><h2 id={titleId}>Menu</h2><button className="cm-action" type="button" onClick={closeMenu}>Close</button></div>
         <nav className="trip-shell__nav" aria-label="Trip menu navigation">
-          <EventNavigationLinks eventId={commonsId} view={view} busy={busy} showCoordinator={coordinatorAvailable} tripStage={tripStage} navigate={next => { closeMenu(); navigate(next); }} />
+          <EventNavigationLinks eventId={commonsId} view={view} busy={busy} tripStage={tripStage} navigate={next => { closeMenu(); navigate(next); }} />
         </nav>
         {identity("menu", closeMenu)}
         <div className="trip-shell__menu-trips">{newTrip}{yourTrips}</div>

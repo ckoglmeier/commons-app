@@ -3,26 +3,25 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import type { CommonsParticipant, CommonsState, CommonsSummary, CoordinatorGoal, TripLetterSections } from "@commons/contracts";
+import type { CommonsParticipant, CommonsState, CommonsSummary, TripLetterSections } from "@commons/contracts";
 import { CommonsSnapshotSchema, TripTaskSchema, type TripTask } from "@commons/contracts";
 import { thingsToDo, coordinatorNextSteps, currentNextStep, travelNextStepDescriptor } from "@commons/domain";
 import { commonsPath } from "@/lib/commons-route";
-import { askEntryHref } from "@/lib/ask-route";
 import { useTripTaskIntakes } from "./use-trip-task-intakes";
 import { homeShortcuts, homeUpdates } from "@/lib/home-dashboard";
 import { DEFAULT_LETTER_SECTIONS, tripLetterDateline, tripLetterFacts, tripLetterUpdateText } from "@/lib/trip-letter";
 import { TripLetterArrange, TripLetterShareUpdate, TripLetterWelcome } from "./trip-letter-controls";
 import { FirstInviteNotice } from "./first-invite-notice";
 import { TripBigQuestions } from "./trip-big-questions";
+import { CalendarIcon, ImageIcon, PinIcon, QuestionIcon, ReceiptIcon } from "./icons";
+import { ParticipantQuestionNextSteps } from "./participant-question-next-steps";
+import { LogisticsAddMenu, type LogisticsAddKind } from "./logistics-add-menu";
 
 const ignoreMayInvite = () => undefined;
 /** Where a traveler can talk with Commons from this trip: messages in Commons ("web"), texting ("sms"), or neither. */
 export type TextMessagingChannel = false | "sms" | "web";
-import { CalendarIcon, FileTextIcon, ImageIcon, PinIcon, QuestionIcon, ReceiptIcon } from "./icons";
-import { ParticipantQuestionNextSteps } from "./participant-question-next-steps";
-import { LogisticsAddMenu, type LogisticsAddKind } from "./logistics-add-menu";
 
-export function HomeDashboard({ coverImage = null, decidingStage = false, state, commons, participants, currentActorId, activityParticipation, addPlan, addReceipt, addPhotos, openPhotos, photoCount = state.moments.length, addTravelPlans, travelUploadAvailable = false, confirmationIntakeEnabled = false, recipesAvailable = false, conversation, openTranscript, coordinatorEntry, goToPlan, openItem, openStay, canAskGroup = false, goals = [], legacyTasks = [], tasksUnavailable = false, tasksLoading = false, openTask, openTodo, openProposal, coordinatorAvailable = true, tasksPanel, notice, tripLetter = false, textMessaging = false }: {
+export function HomeDashboard({ coverImage = null, decidingStage = false, state, commons, participants, currentActorId, activityParticipation, addPlan, addReceipt, addPhotos, openPhotos, photoCount = state.moments.length, addTravelPlans, travelUploadAvailable = false, confirmationIntakeEnabled = false, goToPlan, openItem, openStay, canAskGroup = false, openTodo, tasksPanel, tripLetter = false, textMessaging = false }: {
   /** Organizer, still getting to "We're going": the big questions are the whole page. */
   coverImage?: string | null;
   decidingStage?: boolean;
@@ -30,19 +29,12 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
   tripLetter?: boolean;
   /** The text channel can actually send. Off: no enrollment link or text action. */
   textMessaging?: TextMessagingChannel;
-  /** Server-resolved trip capability. False: Ask the group, polls and to-dos live on Trip (DESIGN.md "Free beta presentation"). */
-  coordinatorAvailable?: boolean; tasksPanel?: React.ReactNode; notice?: React.ReactNode;
-  legacyTasks?: readonly import("@commons/contracts").CoordinatorTask[]; goals?: readonly CoordinatorGoal[]; tasksUnavailable?: boolean; tasksLoading?: boolean; openTask?: (threadId: string) => void; openTodo?: (id:string)=>void;
-  openItem?: (id: string) => void; openStay?: (id: string) => void; canAskGroup?: boolean; recipesAvailable?: boolean; addPhotos?: () => void; openPhotos?: () => void; photoCount?: number;
-  conversation?: React.ReactNode;
-  /** Recovery for a legacy saved Trip-page draft; renders nothing when there is none. */
-  coordinatorEntry?: React.ReactNode;
-  openDecisions?: React.ReactNode;
-  /** Navigation to the authorized organizer or personal conversation. */
+  tasksPanel?: React.ReactNode; openTodo?: (id:string)=>void;
+  openItem?: (id: string) => void; openStay?: (id: string) => void; canAskGroup?: boolean; addPhotos?: () => void; openPhotos?: () => void; photoCount?: number;
   travelUploadAvailable?: boolean;
   confirmationIntakeEnabled?: boolean;
   state: CommonsState; commons: CommonsSummary; participants: CommonsParticipant[]; currentActorId: string; activityParticipation: CommonsState["participation"];
-  addPlan: (kind?: LogisticsAddKind) => void; addTravelPlans: (step?: import("@commons/domain").CoordinatorNextStep) => void; addReceipt: () => void; openProposal: (id: string) => void; openTranscript?: () => void;
+  addPlan: (kind?: LogisticsAddKind) => void; addTravelPlans: (step?: import("@commons/domain").CoordinatorNextStep) => void; addReceipt: () => void;
   goToPlan: (date?: string) => void; goToMoney: () => void; openTripDetails: () => void;
 }) {
   const [now, setNow] = useState<number | null>(null);
@@ -75,7 +67,7 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
   const {intakes,setIntakes,intakeState,setIntakeState} = useTripTaskIntakes(commons.slug,confirmationIntakeEnabled);
   useEffect(() => { const first = window.setTimeout(() => setNow(Date.now()), 0); const timer = window.setInterval(() => setNow(Date.now()), 60_000); return () => { window.clearTimeout(first); window.clearInterval(timer); }; }, []);
   const shortcuts = homeShortcuts(state, commons, currentActorId, activityParticipation, now ?? 0);
-  const askHref = askEntryHref(commons.id, canAskGroup, recipesAvailable, coordinatorAvailable);
+  const askHref = canAskGroup ? `${commonsPath(commons.id)}/polls/new` : undefined;
   const nextStep = now === null ? undefined : coordinatorNextSteps({ commons, state, participants, personId: currentActorId, now, travelState: "loaded", intakes, intakeState, uploadAvailable:travelUploadAvailable }).steps[0];
   const descriptor = nextStep ? travelNextStepDescriptor(nextStep) : null;
   async function openNextStep() {
@@ -118,14 +110,14 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
     } catch(cause){setStepError(cause instanceof Error?cause.message:"The to-do wasn’t completed. Try again.");}
     finally{setCompletingTodo(null);}
   }
-  const actionItems = thingsToDo({tripId:commons.id,personId:currentActorId,organizer:canAskGroup,state,legacyTasks:tasksUnavailable ? [] : legacyTasks,goals:tasksUnavailable ? [] : goals,travel:nextStep,tripTasks:tripTasksUnavailable ? [] : tripTasks,today:now === null ? undefined : new Intl.DateTimeFormat("en-CA",{timeZone:commons.timezone,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(now))});
+  const actionItems = thingsToDo({tripId:commons.id,personId:currentActorId,organizer:canAskGroup,state,travel:nextStep,tripTasks:tripTasksUnavailable ? [] : tripTasks,today:now === null ? undefined : new Intl.DateTimeFormat("en-CA",{timeZone:commons.timezone,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(now))});
   const [showAllSteps, setShowAllSteps] = useState(false);
   const [firstInviteWaiting, setFirstInviteWaiting] = useState(false);
   const stepCount = actionItems.length;
   const next = now === null ? undefined : shortcuts.next;
   const stay = shortcuts.stay ?? shortcuts.legacyStay;
   const formatDate = (at: string) => new Intl.DateTimeFormat("en-US", { timeZone: commons.timezone, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(at));
-  if (decidingStage) return <div className="trip-letter"><header className="event-page-header trip-page-heading"><h2>Trip</h2><LogisticsAddMenu canAddStay={canAskGroup} choose={addPlan} addPhotos={addPhotos} addReceipt={addReceipt} /></header>{notice}<div className="big-questions-page">{coverImage ? <Image className="trip-letter__cover" src={coverImage} alt="" width={1200} height={480} sizes="(max-width: 899px) 100vw, 65vw" /> : null}<TripBigQuestions slug={commons.slug} tripName={commons.name} /></div></div>;
+  if (decidingStage) return <div className="trip-letter"><header className="event-page-header trip-page-heading"><h2>Trip</h2><LogisticsAddMenu canAddStay={canAskGroup} choose={addPlan} addPhotos={addPhotos} addReceipt={addReceipt} /></header><div className="big-questions-page">{coverImage ? <Image className="trip-letter__cover" src={coverImage} alt="" width={1200} height={480} sizes="(max-width: 899px) 100vw, 65vw" /> : null}<TripBigQuestions slug={commons.slug} tripName={commons.name} /></div></div>;
   if (tripLetter) {
     const dateline = tripLetterDateline(state, commons, participants, currentActorId);
     const facts = tripLetterFacts(state, commons, currentActorId, activityParticipation, now ?? 0);
@@ -136,7 +128,6 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
     const updateDate = (at: string) => new Intl.DateTimeFormat("en-US", { timeZone: commons.timezone, month: "long", day: "numeric" }).format(new Date(at));
     return <div className="trip-letter">
       <header className="event-page-header trip-page-heading"><h2>Trip</h2><LogisticsAddMenu canAddStay={canAskGroup} choose={addPlan} addPhotos={addPhotos} addReceipt={addReceipt} /></header>
-      {notice}
       <div className="trip-letter__layout">
         <div className="trip-letter__side">
           <section className="trip-letter__needs-section" aria-labelledby="trip-letter-needs-title">
@@ -145,11 +136,10 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
             {stepCount ? <ul className="trip-letter__needs">{(showAllSteps ? actionItems : actionItems.slice(0,3)).map(item => {
               const content = <><strong>{item.title}</strong><span>{item.detail}</span><small>{item.action}</small></>;
               const poll = (item.target.kind === "poll" || item.target.kind === "poll_results") ? state.pollRequests?.find(poll=>poll.id === item.target.id) : undefined;
-              return <li key={item.id}>{item.target.kind === "todo" && openTodo ? <button type="button" className="home-next-step" onClick={()=>openTodo(item.target.id)}>{content}</button> : item.target.kind === "todo" ? <Link className="home-next-step" href={`${commonsPath(commons.id)}?arrival=0&view=coordinator&todo=${encodeURIComponent(item.target.id)}`}>{content}</Link> : item.target.kind === "travel_item" ? <Link className="home-next-step" href={`${commonsPath(commons.id)}?arrival=0&view=logistics&travelId=${encodeURIComponent(item.target.id)}`}>{content}</Link> : poll ? <Link className="home-next-step" href={item.target.kind === "poll_results" ? `${commonsPath(commons.id)}/polls/${poll.id}` : poll.canManage ? `${commonsPath(commons.id)}/polls/${poll.id}` : `/c/poll/${poll.publicId}`}>{content}</Link> : <button className="home-next-step" type="button" disabled={item.target.kind === "travel" && checkingStep} onClick={()=>{if(item.target.kind === "task") openTask?.(item.target.id);else if(item.target.kind === "proposal") openProposal(item.target.id);else if(item.target.kind === "travel") void openNextStep();}}>{content}</button>}{item.target.kind === "todo" ? <button type="button" className="text-action" disabled={completingTodo !== null} onClick={()=>void completeTodo(item.target.id)}>{completingTodo === item.target.id ? "Saving…" : "Mark complete"}</button> : null}</li>;
-            })}</ul> : firstInviteWaiting ? null : <p className="trip-letter__quiet">{now === null || tasksLoading ? "Checking your to-dos…" : tasksUnavailable ? "Your saved plans are still available." : "Nothing is waiting for you."}</p>}
+              return <li key={item.id}>{item.target.kind === "todo" && openTodo ? <button type="button" className="home-next-step" onClick={()=>openTodo(item.target.id)}>{content}</button> : item.target.kind === "todo" ? <Link className="home-next-step" href={`${commonsPath(commons.id)}?arrival=0&view=home&todo=${encodeURIComponent(item.target.id)}`}>{content}</Link> : item.target.kind === "travel_item" ? <Link className="home-next-step" href={`${commonsPath(commons.id)}?arrival=0&view=logistics&travelId=${encodeURIComponent(item.target.id)}`}>{content}</Link> : poll ? <Link className="home-next-step" href={item.target.kind === "poll_results" ? `${commonsPath(commons.id)}/polls/${poll.id}` : poll.canManage ? `${commonsPath(commons.id)}/polls/${poll.id}` : `/c/poll/${poll.publicId}`}>{content}</Link> : <button className="home-next-step" type="button" disabled={item.target.kind === "travel" && checkingStep} onClick={()=>{if(item.target.kind === "travel") void openNextStep();}}>{content}</button>}{item.target.kind === "todo" ? <button type="button" className="text-action" disabled={completingTodo !== null} onClick={()=>void completeTodo(item.target.id)}>{completingTodo === item.target.id ? "Saving…" : "Mark complete"}</button> : null}</li>;
+            })}</ul> : firstInviteWaiting ? null : <p className="trip-letter__quiet">{now === null ? "Checking your to-dos…" : "Nothing is waiting for you."}</p>}
             <ParticipantQuestionNextSteps slug={commons.slug} />
             {stepCount > 3 ? <button className="text-action" type="button" onClick={()=>setShowAllSteps(value=>!value)}>{showAllSteps ? "Show fewer" : `Show ${stepCount-3} more`}</button> : null}
-            {tasksUnavailable ? <p className="cm-note" role="status">Couldn’t load updates. Reload to see what’s outstanding.</p> : null}
             {tripTasksUnavailable ? <p className="cm-note" role="status">Couldn’t reload your assigned to-dos. They’re still saved.</p> : null}
             {stepError ? <p className="cm-note" role="alert">{stepError}</p> : null}
           </section>
@@ -164,7 +154,6 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
             <div className="trip-letter__tool-group">
               {shortcuts.hasPlans ? <button className="home-action" type="button" onClick={() => goToPlan()}><CalendarIcon /><span>View plans</span></button> : null}
               {photoCount > 0 && openPhotos ? <button className="home-action" type="button" onClick={openPhotos}><ImageIcon /><span>View photos</span></button> : null}
-              {!conversation && openTranscript ? <button className="home-action" type="button" onClick={openTranscript}><FileTextIcon /><span>Group conversation</span></button> : null}
               {textMessaging ? <Link className="home-action" href={`/messages/trip/${commons.slug}`}><span>{textMessaging === "web" ? "Messages from Commons" : "Text with Commons"}</span></Link> : null}
             </div>
             {canAskGroup ? <div className="trip-letter__tool-group"><TripLetterArrange slug={commons.slug} sections={savedLetterSections ? savedLetterSections.value : commons.letterSections ?? null} onSaved={next => setSavedLetterSections({ value: next })} /></div> : null}
@@ -181,18 +170,15 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
               <img key="photo" className="trip-letter__photo" src={photo.assetUrl} alt={photo.altText} /> : null;
             return updates.length ? <section key="latest" aria-labelledby="trip-letter-latest-title"><h3 id="trip-letter-latest-title">Latest</h3><ul className="trip-letter__updates">{updates.map(update => <li key={update.id}><strong>{update.title}</strong><span>{update.detail} · {updateDate(update.at)}</span></li>)}</ul></section> : null;
           })}
-          {coordinatorEntry}
-          {conversation}
         </article>
       </div>
     </div>;
   }
   return <div className="product-view home-dashboard">
-    {/* Free trip: Ask the group is Trip's primary organizer action, reachable first on phones (DESIGN.md "Free beta presentation"). */}
-    {!coordinatorAvailable && askHref
+    {/* Ask the group is Trip's primary organizer action, reachable first on phones. */}
+    {askHref
       ? <header className="view-intro view-intro--with-action event-page-header"><h2>Trip</h2><div className="money-actions"><LogisticsAddMenu canAddStay={canAskGroup} choose={addPlan} addPhotos={addPhotos} addReceipt={addReceipt} /><Link className="view-primary-action" href={askHref}><QuestionIcon /> Ask the group</Link></div></header>
       : <header className="event-page-header trip-page-heading"><h2>Trip</h2><LogisticsAddMenu canAddStay={canAskGroup} choose={addPlan} addPhotos={addPhotos} addReceipt={addReceipt} /></header>}
-    {notice}
     <div className="home-dashboard__columns">
       <aside className="home-dashboard__rail" aria-label="Coming up and actions">
         <section className="home-dashboard__shortcuts home-dashboard__coming-up" aria-labelledby="home-coming-up-title">
@@ -207,8 +193,7 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
         <section className="home-dashboard__shortcuts home-dashboard__actions" aria-labelledby="home-actions-title">
         <h3 id="home-actions-title">Actions</h3>
         <div className="home-actions">
-          {askHref && coordinatorAvailable ? <Link className="home-action" href={askHref}><QuestionIcon /><span>Ask the group</span></Link> : null}
-          {!coordinatorAvailable && canAskGroup ? <Link className="home-action" href={`${commonsPath(commons.id)}/polls`}><QuestionIcon /><span>Polls and results</span></Link> : null}
+          {canAskGroup ? <Link className="home-action" href={`${commonsPath(commons.id)}/polls`}><QuestionIcon /><span>Polls and results</span></Link> : null}
           {photoCount > 0 && openPhotos ? <button className="home-action" type="button" onClick={openPhotos}><ImageIcon /><span>View photos</span></button> : null}
           <button className="home-action" type="button" onClick={addReceipt}><ReceiptIcon /><span>Add receipts</span></button>
         </div>
@@ -216,26 +201,20 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
       </aside>
       <section className="home-dashboard__feed" aria-label="Decisions and recent activity">
         <section className="home-next-steps" aria-labelledby="home-next-steps-title">
-          <h3 id="home-next-steps-title">{goals.length ? "Things to do" : "What’s next"}</h3>
-          {canAskGroup && goals.length ? <Link className="cm-action" href={`/c/${commons.id}/goals`}>All goals</Link> : null}
+          <h3 id="home-next-steps-title">What’s next</h3>
           {confirmationIntakeEnabled && intakeState === "unavailable" ? <p className="cm-note" role="status">Checking your confirmation uploads. Arrival reminders show once they load.</p> : null}
           {nextStep?.reason === "arrival_processing" ? <p role="status">Your confirmation is processing. You don’t need to upload it again.</p> : null}
-          {tasksLoading ? <p role="status">Checking tasks…</p> : null}
-          {tasksUnavailable ? <p className="cm-note" role="status">{coordinatorAvailable ? "Task updates are unavailable. Open Coordinator to check outstanding work." : "Couldn’t load task updates. Reload to check."}</p> : null}
-          {tripTasksUnavailable ? <p className="cm-note" role="status">{coordinatorAvailable ? "Assigned tasks could not reload. Open Coordinator to check them." : "Couldn’t reload your assigned to-dos. They’re still saved."}</p> : null}
+          {tripTasksUnavailable ? <p className="cm-note" role="status">Couldn’t reload your assigned to-dos. They’re still saved.</p> : null}
           {stepCount ? <ul className="home-next-steps__list">{(showAllSteps ? actionItems : actionItems.slice(0,3)).map(item => {
             const content = <><strong>{item.title}</strong><span>{item.detail}</span><small>{item.action}</small></>;
             const poll = (item.target.kind === "poll" || item.target.kind === "poll_results") ? state.pollRequests?.find(poll=>poll.id === item.target.id) : undefined;
-            return <li key={item.id}>{item.target.kind === "todo" && openTodo ? <button type="button" className="home-next-step" onClick={()=>openTodo(item.target.id)}>{content}</button> : item.target.kind === "todo" ? <Link className="home-next-step" href={`${commonsPath(commons.id)}?arrival=0&view=coordinator&todo=${encodeURIComponent(item.target.id)}`}>{content}</Link> : item.target.kind === "travel_item" ? <Link className="home-next-step" href={`${commonsPath(commons.id)}?arrival=0&view=logistics&travelId=${encodeURIComponent(item.target.id)}`}>{content}</Link> : poll ? <Link className="home-next-step" href={item.target.kind === "poll_results" ? `${commonsPath(commons.id)}/polls/${poll.id}` : poll.canManage ? `${commonsPath(commons.id)}/polls/${poll.id}` : `/c/poll/${poll.publicId}`}>{content}</Link> : <button className="home-next-step" type="button" disabled={item.target.kind === "travel" && checkingStep} data-next-step={item.descriptor?.reason} onClick={()=>{if(item.target.kind === "task") openTask?.(item.target.id);else if(item.target.kind === "proposal") openProposal(item.target.id);else if(item.target.kind === "travel") void openNextStep();}}>{content}</button>}{item.target.kind === "todo" ? <button type="button" className="text-action" disabled={completingTodo !== null} onClick={()=>void completeTodo(item.target.id)}>{completingTodo === item.target.id ? "Saving…" : "Mark complete"}</button> : null}</li>;
-          })}</ul> : <p className="home-next-steps__empty">{now === null || tasksLoading || confirmationIntakeEnabled && intakeState === "unavailable" ? "Checking your to-dos…" : tasksUnavailable ? "Your saved plans are still available." : "No to-dos waiting for you."}</p>}
+            return <li key={item.id}>{item.target.kind === "todo" && openTodo ? <button type="button" className="home-next-step" onClick={()=>openTodo(item.target.id)}>{content}</button> : item.target.kind === "todo" ? <Link className="home-next-step" href={`${commonsPath(commons.id)}?arrival=0&view=home&todo=${encodeURIComponent(item.target.id)}`}>{content}</Link> : item.target.kind === "travel_item" ? <Link className="home-next-step" href={`${commonsPath(commons.id)}?arrival=0&view=logistics&travelId=${encodeURIComponent(item.target.id)}`}>{content}</Link> : poll ? <Link className="home-next-step" href={item.target.kind === "poll_results" ? `${commonsPath(commons.id)}/polls/${poll.id}` : poll.canManage ? `${commonsPath(commons.id)}/polls/${poll.id}` : `/c/poll/${poll.publicId}`}>{content}</Link> : <button className="home-next-step" type="button" disabled={item.target.kind === "travel" && checkingStep} data-next-step={item.descriptor?.reason} onClick={()=>{if(item.target.kind === "travel") void openNextStep();}}>{content}</button>}{item.target.kind === "todo" ? <button type="button" className="text-action" disabled={completingTodo !== null} onClick={()=>void completeTodo(item.target.id)}>{completingTodo === item.target.id ? "Saving…" : "Mark complete"}</button> : null}</li>;
+          })}</ul> : <p className="home-next-steps__empty">{now === null || confirmationIntakeEnabled && intakeState === "unavailable" ? "Checking your to-dos…" : "No to-dos waiting for you."}</p>}
           <ParticipantQuestionNextSteps slug={commons.slug} />
           {stepCount > 3 ? <button className="text-action" type="button" onClick={()=>setShowAllSteps(value=>!value)}>{showAllSteps ? "Show fewer" : `Show ${stepCount-3} more`}</button> : null}
           {stepError ? <p className="cm-note" role="alert">{stepError}</p> : null}
         </section>
         {tasksPanel ? <div className="home-todos" id="trip-todos" tabIndex={-1}>{tasksPanel}</div> : null}
-        {coordinatorEntry}
-        {conversation ?? (openTranscript ? <button className="text-action" onClick={openTranscript}>Open group conversation</button> : null)}
-
       </section>
     </div>
 

@@ -17,9 +17,6 @@ import { PollCombinationReview } from "@/components/poll-combination-review";
 import { itineraryQuestion } from "@/lib/itinerary-workshop";
 import { ItineraryDocument } from "@/components/itinerary-document";
 import { ItineraryFeedbackResults } from "@/components/itinerary-feedback-results";
-import { recipesAvailableFor } from "@/lib/server/recipe-access";
-import { askNavigationHref } from "@/lib/ask-route";
-import { tripCapabilitiesFor } from "@/lib/server/trip-capabilities";
 
 export const dynamic = "force-dynamic";
 
@@ -35,17 +32,12 @@ export default async function PollDetailPage({ params }: { params: Promise<{ slu
   }
   const origin = commonsSiteOrigin();
   const shareUrl = `${origin}${publicPollPath(poll.publicId)}`;
-  const askHref = askNavigationHref(slug, poll.currentActorRole, poll.currentActorRole === "organizer" && await recipesAvailableFor(slug));
-  const capabilities = await tripCapabilitiesFor(slug);
-  const goalsHref = poll.currentActorRole === "organizer" && capabilities.tier === "beta" ? `/c/${slug}/goals` : undefined;
   const itinerary = itineraryQuestion(poll.questions);
-  if (itinerary) return <main className="poll-organizer-shell"><PollWorkspaceHeader eventName={poll.event.name} eventHref={`/c/${slug}`} eventLabel="Trip Home" askHref={askHref} goalsHref={goalsHref} pollsHref={`/c/${slug}/polls`}/><div className="poll-organizer-content poll-detail-content"><h1>{poll.title}</h1>{poll.currentActorRole === "organizer" ? <>{capabilities.tier !== "beta" ? <Link className="cm-action" href={`/c/${slug}/coordinator?poll=${poll.id}`}>Open in Workspace</Link> : null}<ItineraryFeedbackResults slug={slug} pollId={poll.id} initialPoll={poll}/></> : <p>The organizer is reviewing feedback. <Link href={publicPollPath(poll.publicId)}>View your itinerary and response</Link></p>}<ItineraryDocument itinerary={itinerary.itinerary}/></div></main>;
+  if (itinerary) return <main className="poll-organizer-shell"><PollWorkspaceHeader eventName={poll.event.name} eventHref={`/c/${slug}`} eventLabel="Trip Home" pollsHref={`/c/${slug}/polls`}/><div className="poll-organizer-content poll-detail-content"><h1>{poll.title}</h1>{poll.currentActorRole === "organizer" ? <><ItineraryFeedbackResults slug={slug} pollId={poll.id} initialPoll={poll}/></> : <p>The organizer is reviewing feedback. <Link href={publicPollPath(poll.publicId)}>View your itinerary and response</Link></p>}<ItineraryDocument itinerary={itinerary.itinerary}/></div></main>;
   const nextDraft = poll.currentActorRole === "organizer" ? (await loadAuthenticatedPollDrafts(slug)).find(draft => draft.data.sourcePollId === pollId && draft.data.communication && !draft.publishedPollId) : undefined;
   const audiencePeople = poll.audienceReview ? (await loadAuthenticatedEventAttendance(slug)).people.map(person => ({ id: person.personId, name: person.displayName })) : [];
   return <main className="poll-organizer-shell">
-    <PollWorkspaceHeader eventName={poll.event.name} eventHref={`/c/${slug}`} eventLabel="Trip Home" askHref={askHref} goalsHref={goalsHref} pollsHref={`/c/${slug}/polls`}>
-      {poll.currentActorRole === "organizer" && capabilities.coordinator ? <Link className="cm-action" href={`/c/${slug}/coordinator`}>Talk with Commons</Link> : null}
-    </PollWorkspaceHeader>
+    <PollWorkspaceHeader eventName={poll.event.name} eventHref={`/c/${slug}`} eventLabel="Trip Home" pollsHref={`/c/${slug}/polls`} />
     <div className="poll-organizer-content poll-detail-content">
       <div className="poll-organizer-intro poll-page-heading"><div><span className="view-kicker">{poll.status === "open" ? "Voting open" : "Poll closed"}</span><h1>{poll.title}</h1></div><a className="cm-action" href="#poll-sharing">Share</a></div>
       {poll.intro ? <p>{poll.intro}</p> : null}

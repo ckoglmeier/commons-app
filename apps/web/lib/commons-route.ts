@@ -1,6 +1,6 @@
 export const PUBLIC_DEMO_COMMONS_ID = "10000000-0000-4000-8000-000000000001";
 
-export const eventViews = ["home", "coordinator", "plan", "logistics", "money", "moments"] as const;
+export const eventViews = ["home", "plan", "logistics", "money", "moments"] as const;
 export type EventView = typeof eventViews[number];
 
 export function parseEventView(value?: string | null): EventView {
@@ -18,19 +18,6 @@ export function travelReturnView(value?: string | null): "plan" | "logistics" {
 export function commonsTravelPath(commonsId: string, _from: "plan" | "logistics" = "logistics") {
   void _from; // Retained for existing callers; Travel now has one destination.
   return commonsViewPath(commonsId, "logistics");
-}
-
-/** Exact Coordinator selections a link may carry: a thread and at most one of its artifacts, or a starter. */
-export const COORDINATOR_ENTRY_KEYS = ["thread", "draft", "poll", "itinerary", "research", "ask", "new", "voice"] as const;
-
-/** Where the rail returns to in Coordinator: the exact selection, never a one-time starter such as ask, new or voice. */
-export function coordinatorReturnPath(commonsId: string, search: URLSearchParams) {
-  const url = new URL(commonsViewPath(commonsId, "coordinator"), "http://localhost");
-  for (const key of ["thread", "draft", "poll", "itinerary", "research"] as const) {
-    const value = search.get(key);
-    if (value) url.searchParams.set(key, value);
-  }
-  return url.pathname + url.search;
 }
 
 export function commonsPath(commonsId: string) {

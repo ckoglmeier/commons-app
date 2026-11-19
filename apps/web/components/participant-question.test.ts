@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createElement } from "react";
-import type { CoordinatorGoal, OrganizerParticipantQuestion, RecipientParticipantQuestion } from "@commons/contracts";
+import type { RecipientParticipantQuestion } from "@commons/contracts";
 import { createHookRenderer, registerComponentImportStubs, textOf, type RenderedNode } from "../lib/test-support/hook-harness";
 
 registerComponentImportStubs();
@@ -106,39 +106,6 @@ test("a closed question keeps the saved answer visible and removes the form", as
     type("Late"); await submit();
     assert.match(text(renderer), /This question is closed/);
     assert.ok(!renderer.findAll(node => node.type === "textarea").length);
-  } finally { env.restore(); }
-});
-
-const goal = { goalId: "33333333-3333-4333-8333-333333333333", title: "Airport transfers", revision: 4, lifecycle: "working", ownedByMe: true } as unknown as CoordinatorGoal;
-const draft: OrganizerParticipantQuestion = {
-  questionId: qid, goalId: goal.goalId, goalRevision: 4, state: "draft", version: 2, purpose: "Airport pickup", question: "What time do you land on Friday?",
-  recipient: { personId: person, name: "Robin Synthetic" }, askedBy: { personId: "44444444-4444-4444-8444-444444444444", name: "Casey Synthetic" }, expiresAt: later, publishedAt: null,
-  visibility: "task_organizers", answer: null, canManage: true,
-};
-
-test("the organizer draft review says nothing is sent and publish posts the question version", async () => {
-  const env = environment((_url, init) => init?.method === "POST" ? json({ questionId: qid, version: 3, replayed: false }) : json({ enabled: true, questions: [draft], recipients: [{ personId: person, name: "Robin Synthetic", organizer: false }] }));
-  try {
-    const { GoalParticipantQuestions } = await import("./participant-question-ask");
-    const renderer = createHookRenderer({ expand: [GoalParticipantQuestions] });
-    renderer.render(createElement(GoalParticipantQuestions, { slug, goal })); await settle(renderer);
-    assert.match(text(renderer), /Nothing is sent\. Making it available lets Robin Synthetic answer in Commons. Commons doesn’t text or email them\./);
-    assert.match(text(renderer), /Draft · not shared yet/);
-    assert.ok(has(renderer, "Discard draft"));
-    click(button(renderer, "Make available to Robin")); await settle(renderer);
-    const post = env.calls.find(call => call.init?.method === "POST")!.body!;
-    assert.equal(post.action, "publish"); assert.equal(post.questionId, qid); assert.equal(post.expectedVersion, 2); assert.match(String(post.commandId), /^[0-9a-f-]{36}$/);
-    assert.match(text(renderer), /No message was sent\./);
-  } finally { env.restore(); }
-});
-
-test("nothing renders when the lane is off and there are no questions", async () => {
-  const env = environment(() => json({ enabled: false, questions: [], recipients: [] }));
-  try {
-    const { GoalParticipantQuestions } = await import("./participant-question-ask");
-    const renderer = createHookRenderer({ expand: [GoalParticipantQuestions] });
-    renderer.render(createElement(GoalParticipantQuestions, { slug, goal })); await settle(renderer);
-    assert.equal(renderer.tree.length, 0);
   } finally { env.restore(); }
 });
 

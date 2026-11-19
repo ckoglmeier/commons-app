@@ -12,7 +12,7 @@ Object.assign(globalThis, { React });
 
 const account: ShellAccount = { signedIn: true, actorName: "Ada Lovelace", actorInitials: "AL", roleLabel: "Organizer", signInHref: "/sign-in?next=%2Fc%2Ftrip", feedbackCommonsSlug: "trip" };
 
-function shell(options: { view?: EventView; account?: ShellAccount; fill?: boolean; inert?: boolean; busy?: boolean; placements?: string[] } = {}) {
+function shell(options: { view?: EventView; account?: ShellAccount; inert?: boolean; busy?: boolean; placements?: string[] } = {}) {
   const placements = options.placements ?? [];
   const html = renderToStaticMarkup(createElement(TripApplicationShell, {
     commonsId: "trip",
@@ -21,7 +21,6 @@ function shell(options: { view?: EventView; account?: ShellAccount; fill?: boole
     tripName: "Cape Cod week",
     identity: (placement: "rail" | "menu"): ReactNode => { placements.push(placement); return createElement("div", { "data-identity": placement }, `identity ${placement}`); },
     account: options.account ?? account,
-    fill: options.fill,
     inert: options.inert,
     busy: options.busy,
   } as never, createElement("p", null, "page body")));
@@ -34,12 +33,12 @@ function currentLabels(html: string) {
   return [...rail.matchAll(/<a [^>]*aria-current="page"[^>]*>.*?<span>(.*?)<\/span>/g)].map(match => match[1]);
 }
 
-test("renders one main landmark, a skip link, and four destination links in the rail and Menu", () => {
+test("renders one main landmark, a skip link, and three destination links in the rail and Menu", () => {
   const html = shell();
   assert.equal((html.match(/<main /g) ?? []).length, 1);
   assert.match(html, /<main id="workspace-content" class="trip-shell__content" tabindex="-1"/);
   assert.match(html, /<a class="skip-link" href="#workspace-content">/);
-  const destinations = ["Trip", "Coordinator", "Plan", "Money"];
+  const destinations = ["Trip", "Plan", "Money"];
   for (const nav of html.split('class="trip-shell__nav"').slice(1)) {
     const links = [...nav.slice(0, nav.indexOf("</nav>")).matchAll(/<a [^>]*href="([^"]+)"[^>]*><svg[\s\S]*?<span>(.*?)<\/span>/g)];
     assert.deepEqual(links.map(link => link[2]), destinations);
@@ -51,7 +50,6 @@ test("renders one main landmark, a skip link, and four destination links in the 
 test("the active destination follows the view: moments is Trip, logistics is Plan", () => {
   assert.deepEqual(currentLabels(shell({ view: "home" })), ["Trip"]);
   assert.deepEqual(currentLabels(shell({ view: "moments" })), ["Trip"]);
-  assert.deepEqual(currentLabels(shell({ view: "coordinator" })), ["Coordinator"]);
   assert.deepEqual(currentLabels(shell({ view: "plan" })), ["Plan"]);
   assert.deepEqual(currentLabels(shell({ view: "logistics" })), ["Plan"]);
   assert.deepEqual(currentLabels(shell({ view: "money" })), ["Money"]);
@@ -93,9 +91,7 @@ test("signed-out visitors get a Sign in link instead of an account menu", () => 
   assert.doesNotMatch(html, /account-menu--rail|Sign out|auth\/sign-out/);
 });
 
-test("fill, inert and busy states are exposed for the lead and styling", () => {
-  assert.match(shell({ fill: true }), /<div class="trip-shell" data-fill="true"/);
-  assert.doesNotMatch(shell(), /data-fill/);
+test("inert and busy states are exposed for the lead and styling", () => {
   const inert = shell({ inert: true });
   assert.equal((inert.match(/ inert=""/g) ?? []).length, 3, "compact header, rail and content are inert");
   assert.equal((inert.match(/aria-hidden="true"[^>]*>/g) ?? []).length >= 3, true);
@@ -134,5 +130,4 @@ test("TripIdentity keeps the demo marker without a walkthrough launcher", () => 
   const sample = identity({ demo: true });
   assert.match(sample, /\[DEMO\]/);
   assert.doesNotMatch(sample, /Start walkthrough/);
-  assert.match(identity({ groupConversation: { open() {}, detail: "3 messages" } }), /Group conversation[\s\S]*3 messages/);
 });

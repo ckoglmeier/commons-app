@@ -4,27 +4,7 @@ import { createElement } from "react";
 import { TripTaskSchema, type TripTask } from "@commons/contracts";
 import { createHookRenderer, registerComponentImportStubs } from "../lib/test-support/hook-harness";
 import { installFakeLiveEnvironment, settle } from "../lib/test-support/fake-live-transport";
-import type { TripTaskContext } from "./trip-tasks";
 registerComponentImportStubs();
-
-test("Goal next actions open their existing conversation without a task save or trip navigation", async () => {
-  const requests: string[] = [], opened: string[] = [];
-  const live = installFakeLiveEnvironment({ liveFetch: async url => { requests.push(url); return Response.json({ tasks: [] }); } });
-  const { TripTasks, SuggestionAction } = await import("./trip-tasks");
-  const renderer = createHookRenderer({ expand: [TripTasks, SuggestionAction] });
-  const context = { people: [], organizer: true, commons: { id: "trip", timezone: "UTC" }, state: { commonsId: "trip", itinerary: [], proposals: [], pollRequests: [] }, goals: [{ goalId: "goal", threadId: "goal-thread", title: "Find dates", ownedByMe: true, lifecycle: "waiting_for_event", waitDetail: "Waiting for answers", revision: 1, updatedAt: "2026-10-11T12:00:00Z" }] } as unknown as TripTaskContext;
-  try {
-    renderer.render(createElement(TripTasks, { slug: "trip", actorId: "me", context, onOpenGoal: id => opened.push(id) }));
-    await settle(5); renderer.flush();
-    const button = renderer.find(node => node.type === "button" && node.children.includes("View goal"));
-    (button.props.onClick as () => void)();
-    assert.deepEqual(opened, ["goal-thread"]);
-    assert.deepEqual(requests, ["/api/v1/commons/trip/tasks"]);
-    renderer.render(createElement(TripTasks, { slug: "trip", actorId: "me", context: { ...context, organizer: false } }));
-    renderer.flush();
-    assert.equal(renderer.findAll(node => node.type === "button" && node.children.includes("View goal")).length, 0);
-  } finally { renderer.unmount(); live.restore(); }
-});
 
 test("Task snapshots reuse authorized loads and ignore late data after switching trips", async () => {
   const task = TripTaskSchema.parse({ id: crypto.randomUUID(), title: "Arrange airport transfer", ownerPersonId: crypto.randomUUID(), dueOn: null, completed: false, version: 1, itemKind: null, itemId: null, itemTitle: null });
