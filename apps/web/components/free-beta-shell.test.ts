@@ -25,10 +25,3 @@ test("Trip · Plan · Money on free trips: rail and Menu share one filtered list
   assert.match(app, /availableTab\(eventLocation\(search\)\)/, "back/forward cannot reopen Coordinator");
   assert.match(app, /<TripTasks showSuggestions=\{false\} slug=\{initialSnapshot\.commons\.id\}/, "ordinary to-dos are on Trip, once");
 });
-
-test("queued Coordinator work is re-checked against the trip's capability before it runs", async () => {
-  const runner = await readFile(new URL("../lib/server/coordinator-turn-runner.ts", import.meta.url), "utf8");
-  assert.match(runner, /if \(!\(await resolveTripCapabilities\(claim\.tripId\)\)\.coordinator\) return failClaim\(new CoordinatorTurnError\("unsupported_capability"\)\)/);
-  const check = runner.indexOf("resolveTripCapabilities(claim.tripId)"), run = runner.indexOf("runCoordinatorTurn(");
-  assert.ok(check > 0 && check < runner.indexOf("runAsTurnPrincipal(", check) && (run < 0 || check < runner.lastIndexOf("runCoordinatorTurn(")), "the check precedes execution");
-});

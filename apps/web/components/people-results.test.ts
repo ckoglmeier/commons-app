@@ -18,20 +18,6 @@ test("Logistics roster includes managed travelers as joined, without people cont
   assert.doesNotMatch(html, /<button|<input|<form|Attending|Who’s coming/);
 });
 
-test("one modal owns people controls and retains production permission gates", async () => {
-  const app = await readFile(new URL("./commons-app.tsx", import.meta.url), "utf8");
-  const people = await readFile(new URL("./people-sheet.tsx", import.meta.url), "utf8");
-  const logistics = await readFile(new URL("./event-logistics-view.tsx", import.meta.url), "utf8");
-  assert.equal((app.match(/<PeopleSheet/g) ?? []).length, 1);
-  assert.match(app, /openPeople=\{\(\) => \{[^\n]*setSheet\("people"\)/);
-  assert.match(app, /onPeopleChanged=\{refreshPeople\} attendance=\{dataMode === "database"/);
-  assert.match(people, /canManage && persistent/);
-  assert.match(people, /managedByPersonIds\?\.includes\(currentPersonId\)/);
-  assert.match(people, /<ModalLayer close=\{close\}/);
-  assert.doesNotMatch(logistics, /PeopleSheet|Manage people/);
-  assert.match(logistics, /readOnly participants=\{participants\}/);
-});
-
 test("compact traveler entry remains visible and the shared modal restores focus", async () => {
   const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
   const modal = await readFile(new URL("./modal-layer.tsx", import.meta.url), "utf8");

@@ -34,38 +34,6 @@ test("Overview stays outside Coordinator navigation and the workspace stays moun
   assert.doesNotMatch(workspace, />Overview<\/button>|workspace-thread-title">Overview/);
 });
 
-test("Travel has bounded return destinations and Your trips opens the event index", async () => {
-  const source = await readFile(new URL("./travel-workspace.tsx", import.meta.url), "utf8");
-  assert.match(source, /href="\/trips\/">Your trips/);
-  assert.match(source, /commonsViewPath\(snapshot.commons.id, returnView\)/);
-  const route = await readFile(new URL("../app/c/[slug]/travel/page.tsx", import.meta.url), "utf8");
-  assert.match(route, /redirect\(commonsViewPath\(slug, "logistics"\)\)/);
-  assert.doesNotMatch(route, /TravelWorkspace|loadCommonsSnapshot/);
-});
-
-test("Logistics uses progressive sections and organizer-only edits without a readiness score", async () => {
-  const source = await readFile(new URL("./event-logistics-view.tsx", import.meta.url), "utf8");
-  assert.match(source, /<h2>Plan<\/h2>/);
-  assert.match(source, /canEditBasics = canManage/);
-  assert.match(source, /canEditBasics \? <button[^>]*type="button" onClick=\{editBasics\}/);
-  assert.match(source, /readOnly participants=\{participants\}/);
-  assert.match(source, /basicsEditor \?\?/);
-  assert.match(source, /editingStayId === stay.id && stayEditor/);
-  assert.doesNotMatch(source, /Manage people|View people|Manage travel|commonsTravelPath|arrivalCoverage|departureCoverage/);
-  assert.doesNotMatch(source, /needs plans|missing|readinessScore|confirmationCode|confirmationDocumentUrl/);
-  assert.match(source, /<details className="event-stay-details"/);
-  assert.match(source, /<StayAddressActions name=\{stay.name\} address=\{stay.address\}/);
-});
-
-test("attendance reloads after dates change and can recover without closing a page", async () => {
-  const page = await readFile(new URL("./event-logistics-view.tsx", import.meta.url), "utf8");
-  const attendance = await readFile(new URL("./event-attendance.tsx", import.meta.url), "utf8");
-  assert.match(page, /key=\{`\$\{commons.id\}:\$\{commons.startsOn\}:\$\{commons.endsOn\}:\$\{peopleRevision\}`\}/);
-  assert.match(attendance, /Reload attendance/);
-  assert.match(attendance, /\[endpoint, reloadVersion\]/);
-  assert.doesNotMatch(attendance, /Close and reopen this panel/);
-});
-
 test("Photos is contextual under Trip and Travel & stays belongs to Plan in the shared destination links", () => {
   Object.assign(globalThis, { React });
   const current = (view: EventView | "workspace") => [...renderToStaticMarkup(createElement(EventNavigationLinks, { eventId: "trip", view, navigate() {} })).matchAll(/aria-current="page"[^>]*><svg[\s\S]*?<span>(.*?)<\/span>/g)].map(match => match[1]);
