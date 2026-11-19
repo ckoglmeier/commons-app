@@ -20,3 +20,5 @@ export * from "./messaging-booking";
 export * from "./messaging-copy";
 export * from "./messaging-plan";
 export * from "./messaging-money";
+export * from "./signup-policy";
+export * from "./plan-templates";
