@@ -1,0 +1,50 @@
+/* Money: the saved budget and forecast share one place. */
+.money-page > .view-intro { margin-bottom: 24px; }
+.money-plan-column__contents { display: block; }
+.money-plan-column__contents > .expected-cost-panel { display: block; margin: 0; padding-block: 16px; }
+.expected-cost-stat span { text-transform: none; letter-spacing: normal; font-size: 16px; font-weight: 400; }
+.forecast-budget-breakdown { max-width: 42rem; }
+.forecast-budget-breakdown p { color: var(--cm-color-mineral); line-height: 1.6; margin: 12px 0; }
+.forecast-budget-breakdown dl { margin: 0; }
+.forecast-budget-breakdown dl > div { display: flex; justify-content: space-between; gap: 24px; padding: 12px 0; border-bottom: 1px solid var(--cm-color-line); }
+.forecast-budget-breakdown dd { margin: 0; font-variant-numeric: tabular-nums; }
+.money-budget-editor { margin-top: 16px; }
+.money-budget-editor > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--cm-color-green); text-decoration: underline; font-weight: 550; }
+.money-budget-editor > summary:focus-visible { outline: 3px solid var(--cm-color-ember); outline-offset: 2px; }
+.money-budget-editor[open] > summary { margin-bottom: 16px; }
+.money-empty-expenses { padding: 24px 0; border-top: 1px solid var(--cm-color-line); }
+.money-empty-expenses h3 { margin: 0 0 8px; font-size: 20px; font-weight: 500; }
+.money-empty-expenses p { margin: 0; color: var(--cm-color-mineral); line-height: 1.6; }
+.money-currency-section--estimating { display: flex; flex-direction: column; gap: 24px; }
+.money-currency-section--estimating > * { width: 100%; }
+.money-currency-section--estimating > .money-plan-column { margin-top: 0; }
+.money-currency-section--estimating .money-empty-expenses { border-top: 0; }
+
+/* Shared operational page-header rhythm. Trip retains its letter composition. */
+.product-view > .event-page-header { margin-bottom: 32px; gap: 16px; }
+.event-page-header h2 { font-size: clamp(32px, 4vw, 44px); font-weight: 500; line-height: 1.15; }
+.event-page-header .photo-add-action { box-shadow: none; }
+@media (max-width: 699px) {
+  .product-view > .event-page-header { flex-direction: column; align-items: stretch; }
+  .event-page-header .money-actions, .event-page-header .plan-actions, .event-page-header .photo-actions { display: flex; width: auto; justify-content: flex-start; align-self: flex-start; flex-wrap: wrap; gap: 8px; }
+  .event-page-header .photo-actions > button { flex: none; }
+}
+
+.money-currency-heading { margin-top: 0; margin-bottom: 0; }
+
+/* Page titles precede local navigation and content on every destination. */
+.plan-view > .plan-sections-bar { grid-column: 1 / -1; grid-row: 2; }
+.trip-page-heading { margin: 0 0 32px; }
+.trip-page-heading h2 { margin: 0; letter-spacing: -.035em; }
+
+.trip-page-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+
+.commons-cover-library > summary { min-height: 44px; cursor: pointer; padding-block: 12px; color: var(--cm-color-green); font-weight: 550; }
+.commons-cover-library .cover-choice-grid { max-height: 50vh; overflow-y: auto; margin-block: 16px; }
+
+.money-currency-label { font-size: 14px; color: var(--cm-color-mineral); }
+.money-currency-heading:has(> .sr-only):not(:has(button)) { display: none; }
+
+.expense-advanced { border-top: 1px solid var(--cm-color-line); margin-top: 16px; }
+.expense-advanced > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--cm-color-green); font-weight: 550; }
+.expense-advanced[open] > summary { margin-bottom: 16px; }

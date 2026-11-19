@@ -1,0 +1,13 @@
+-- Add a new core recipe, preserving historical pins and operator-authored recipes.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM workflow_templates WHERE key = 'itinerary' AND version = 1
+      AND status = 'active' AND authored_by = 'migration' AND save_fingerprint = 'seed:itinerary:1')
+      AND NOT EXISTS (SELECT 1 FROM workflow_templates WHERE key = 'itinerary' AND version > 1) THEN
+    UPDATE workflow_templates SET status = 'retired' WHERE key = 'itinerary' AND version = 1 AND status = 'active';
+    INSERT INTO workflow_templates (key, version, title, description, purpose, instructions, status, authored_by, save_command_id, save_fingerprint)
+    VALUES ('itinerary', 2, 'Build and refine an itinerary', 'Prepare a complete proposed schedule and collect input on its individual pieces.', 'itinerary',
+      'Build one complete, paced itinerary in the existing Coordinator draft flow. Review belongs in Working material beside the conversation. Retain supplied recommended time windows, named stops and identities; do not erase recommendations just because they are unbooked. Saved dates, lodging, flights and organizer corrections outrank imported suggestions. Missing flight times stay unknown. Distinguish proposed ground transfers from flight arrival/departure context; flight anchors cannot be saved as new ground transport. Preserve intentional downtime and optional participation. Group geographically sensible stops without inventing route durations, hours, prices or availability; show conditional alternatives when eligibility or timing is unresolved. Include an organizer-only driver brief and simple human follow-ups for settling logistics, with owner selection through the supported approval flow. Internal research is not a traveler task. Retain source references and mark unsourced ideas as suggestions. Provide concise participant-visible notes separately from private imports and research. Keep lunch and dinner restaurant fields open for suggestions when undecided. Ask for input on individual pieces: winery choices, comments, meal suggestions and unscheduled optional interests. New itineraries have no overall approval ballot. Voting never confirms attendance, a stop or a booking. Refinements stay in the same private draft. A participant preview and explicit publication of its exact saved version are separate from organizer approval of selected Plan items and Tasks. Preserve published snapshots and historical responses. This recipe grants no booking, sending or automatic trip mutation authority.',
+      'active', 'migration', '97000000-0000-4000-8000-000000000006', 'seed:itinerary:2');
+  END IF;
+END $$;

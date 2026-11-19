@@ -1,0 +1,251 @@
+"use client";
+import Link from "next/link";
+
+import {
+  SendSetupInvitationsResultSchema,
+  type EventBrief,
+  type EventCreationDraft,
+  type RecentReusableEvent,
+} from "@commons/contracts";
+import { SetupCoordinator } from "@/components/setup-coordinator";
+import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { commonsPath } from "@/lib/commons-route";
+import { tripOpensCoordinator } from "./actions";
+import { trackProductEvent } from "@/lib/product-analytics";
+import { FirstInviteFlow, type FirstInviteDelivery } from "@/components/first-invite-flow";
+import { tripEntrySignInPath, type TripEntryContext } from "@/lib/trip-entry/context";
+
+type Stage = "entry" | "setup" | "people" | "review";
+
+async function requestJson<T>(url: string, init: RequestInit): Promise<T> {
+  const response = await fetch(url, { ...init, headers: { "content-type": "application/json", ...init.headers } });
+  const payload = await response.json().catch(() => ({})) as { error?: string };
+  if (!response.ok) throw new Error(payload.error ?? "That didn’t save. Try again.");
+  return payload as T;
+}
+
+const lines = (value: string) => value.split("\n").map((item) => item.trim()).filter(Boolean);
+const joined = (value: string[]) => value.join("\n");
+const dollars = (cents: number | null) => cents === null ? "" : String(cents / 100);
+const cents = (value: string) => value.trim() && Number.isFinite(Number(value)) ? Math.round(Number(value) * 100) : null;
+
+function dateLabel(startsOn: string | null, endsOn: string | null) {
+  if (!startsOn && !endsOn) return "Dates to be decided";
+  const format = (value: string) => new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+  if (startsOn && endsOn) return startsOn === endsOn ? format(startsOn) : `${format(startsOn)}–${format(endsOn)}`;
+  return format((startsOn ?? endsOn)!);
+}
+
+function Progress({ stage }: { stage: Exclude<Stage, "entry"> }) {
+  const steps: Array<{ key: Exclude<Stage, "entry">; label: string }> = [
+    { key: "setup", label: "Setup" }, { key: "people", label: "People" }, { key: "review", label: "Review" },
+  ];
+  const active = steps.findIndex((step) => step.key === stage);
+  return <nav className="setup-progress" aria-label="Trip setup progress"><ol>{steps.map((step, index) => (
+    <li className={index === active ? "active" : index < active ? "complete" : ""} aria-current={index === active ? "step" : undefined} key={step.key}>
+      <span>{index + 1}</span><strong>{step.label}</strong>
+    </li>
+  ))}</ol></nav>;
+}
+
+export function EventCreationFlow({ coordinatorEnabled = false, personalitiesEnabled = false, signedIn, allowed, accessStatus, accessRequestedFromHomepage = false, initialRecentEvents, initialDraft, activation = null }: {
+  /** Null keeps today's flow exactly. */
+  activation?: { entryContext: TripEntryContext; requestedDraftId: string | null; draftLoadFailed: boolean; checkout: "returned" | "cancelled" | null } | null;
+  coordinatorEnabled?: boolean; /** Show the coordinator style picker (paused by default). */ personalitiesEnabled?: boolean; signedIn: boolean; allowed: boolean; accessStatus: string | null; accessRequestedFromHomepage?: boolean; initialRecentEvents: RecentReusableEvent[]; initialDraft: EventCreationDraft | null;
+}) {
+  const router = useRouter();
+  const [draft, setDraft] = useState(initialDraft);
+  const [stage, setStage] = useState<Stage>(initialDraft ? (activation?.checkout ? "review" : "setup") : "entry");
+  const [title, setTitle] = useState("");
+  const [name, setName] = useState(initialDraft?.proposedName ?? "");
+  const [location, setLocation] = useState(initialDraft?.locationName ?? "");
+  const [startsOn, setStartsOn] = useState(initialDraft?.startsOn ?? "");
+  const [endsOn, setEndsOn] = useState(initialDraft?.endsOn ?? "");
+  const [goals, setGoals] = useState(joined(initialDraft?.brief.goals ?? []));
+  const [constraints, setConstraints] = useState(joined(initialDraft?.brief.constraints ?? []));
+  const [budgetMinimum, setBudgetMinimum] = useState(dollars(initialDraft?.brief.budgetMinimumCents ?? null));
+  const [budgetMaximum, setBudgetMaximum] = useState(dollars(initialDraft?.brief.budgetMaximumCents ?? null));
+  const [people, setPeople] = useState(initialDraft?.people ?? []);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [requestStatus, setRequestStatus] = useState(accessStatus);
+  const [committedEventId, setCommittedEventId] = useState(initialDraft?.committedEventId ?? null);
+  const [committedSlug, setCommittedSlug] = useState(initialDraft?.committedEventSlug ?? null);
+
+  useEffect(() => {
+    trackProductEvent("event_creation_viewed");
+    if (accessRequestedFromHomepage) trackProductEvent("event_creation_access_requested", { properties: { source: "homepage" } });
+  }, [accessRequestedFromHomepage]);
+
+  const brief = useMemo<EventBrief>(() => ({
+    ...(draft?.brief ?? { summary: null, budgetMinimumCents: null, budgetMaximumCents: null, currency: null, suggestedFirstMoves: [], unresolvedQuestion: null }),
+    goals: lines(goals), constraints: lines(constraints),
+    budgetMinimumCents: cents(budgetMinimum),
+    budgetMaximumCents: cents(budgetMaximum),
+    currency: budgetMinimum.trim() || budgetMaximum.trim() ? "USD" : null,
+  }), [budgetMaximum, budgetMinimum, constraints, draft?.brief, goals]);
+
+  function hydrate(next: EventCreationDraft) {
+    setDraft(next); setName(next.proposedName ?? ""); setLocation(next.locationName ?? ""); setStartsOn(next.startsOn ?? ""); setEndsOn(next.endsOn ?? "");
+    setGoals(joined(next.brief.goals)); setConstraints(joined(next.brief.constraints)); setPeople(next.people);
+    setBudgetMinimum(dollars(next.brief.budgetMinimumCents)); setBudgetMaximum(dollars(next.brief.budgetMaximumCents));
+  }
+
+  async function createDraft(body: object, analytics: "description" | "recent", startNow = false) {
+    if (busy) return;
+    setBusy(true); setError(null);
+    try {
+      const { draft: next } = await requestJson<{ draft: EventCreationDraft }>("/api/v1/event-creation-drafts", { method: "POST", body: JSON.stringify(body) });
+      hydrate(next); setStage("setup"); history.replaceState(null, "", `/new/?draft=${next.id}`);
+      trackProductEvent(analytics === "description" ? "event_description_submitted" : "recent_event_selected", { properties: { source: next.sourceKind, participantCount: next.people.length, interpretationSupported: next.supported } });
+      if (!next.supported) trackProductEvent("event_creation_blocked_unsupported_type", { properties: { source: next.sourceKind } });
+      // Only a new, supported, empty trip can skip setup. Reused people and their invitations always get reviewed.
+      if (startNow && next.sourceKind === "description" && next.supported && next.people.length === 0) {
+        setStage("review"); // A failed commit leaves this same saved draft available to retry, never another creation request.
+        await finishCreation(next, false);
+      }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Trip setup is unavailable."); } finally { setBusy(false); }
+  }
+
+  function createFromDescription(event: FormEvent) {
+    event.preventDefault();
+    if (!signedIn) { router.push(activation ? tripEntrySignInPath(activation.entryContext, activation.requestedDraftId) : "/sign-in?next=%2Fnew"); return; }
+    if (!allowed) return;
+    // With the free stage on, a name is enough: the trip's questions take over from setup.
+    const quickCreate = Boolean(activation) || (event.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "quick";
+    void createDraft({ sourceKind: "description", title, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, ...(activation ? { entryContext: activation.entryContext } : {}) }, "description", quickCreate);
+  }
+
+  async function requestAccess() {
+    if (busy) return;
+    setBusy(true); setError(null);
+    try {
+      const result = await requestJson<{ status: string }>("/api/v1/event-creation-access", { method: "POST" });
+      setRequestStatus(result.status);
+      trackProductEvent("event_creation_access_requested");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Access request not saved. Try again.");
+    } finally { setBusy(false); }
+  }
+
+  async function saveSetup(forceTravel = false) {
+    if (!draft || busy) return;
+    setBusy(true); setError(null);
+    try {
+      const { draft: next } = await requestJson<{ draft: EventCreationDraft }>(`/api/v1/event-creation-drafts/${draft.id}`, { method: "PATCH", body: JSON.stringify({ expectedVersion: draft.version, proposedName: name, locationName: location.trim() || null, startsOn: startsOn || null, endsOn: endsOn || null, brief, forceTravel }) });
+      hydrate(next); setStage(activation && next.sourceKind === "description" ? "review" : "people");
+      const correctedFieldCount = [
+        name !== draft.proposedName,
+        (location.trim() || null) !== draft.locationName,
+        (startsOn || null) !== draft.startsOn,
+        (endsOn || null) !== draft.endsOn,
+        joined(lines(goals)) !== joined(draft.brief.goals),
+        joined(lines(constraints)) !== joined(draft.brief.constraints),
+        cents(budgetMinimum) !== draft.brief.budgetMinimumCents,
+        cents(budgetMaximum) !== draft.brief.budgetMaximumCents,
+      ].filter(Boolean).length;
+      trackProductEvent("event_setup_reviewed", { properties: { source: next.sourceKind, hasDates: Boolean(next.startsOn), hasLocation: Boolean(next.locationName), correctedFieldCount, interpretationStatus: draft.interpretationStatus } });
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Check the trip details."); } finally { setBusy(false); }
+  }
+
+  function addPerson() {
+    setPeople((current) => [...current, { id: crypto.randomUUID(), personId: null, displayName: "", email: null, message: null, source: "description", included: true, needsContact: true }]);
+    trackProductEvent("event_person_added");
+  }
+  function updatePerson(id: string, update: { displayName?: string; email?: string | null; message?: string | null }) { setPeople((current) => current.map((person) => person.id === id ? { ...person, ...update } : person)); }
+  function removePerson(id: string) { setPeople((current) => current.filter((person) => person.id !== id)); trackProductEvent("event_person_removed"); }
+
+  async function savePeople() {
+    if (!draft || busy) return;
+    if (people.some((person) => !person.displayName.trim())) { setError("Add a name for each person, or remove the empty row."); return; }
+    setBusy(true); setError(null);
+    try {
+      const { draft: next } = await requestJson<{ draft: EventCreationDraft }>(`/api/v1/event-creation-drafts/${draft.id}/people`, { method: "PUT", body: JSON.stringify({ expectedVersion: draft.version, people: people.map((person) => ({ id: person.id, personId: person.personId, displayName: person.displayName, email: person.email?.trim() || null, message: person.message?.trim() || null, included: true })) }) });
+      hydrate(next); setStage("review");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Check the people you added."); } finally { setBusy(false); }
+  }
+
+  /** Activation: "Keep planning" makes the free private trip. People stay saved and nobody is contacted. */
+  async function keepPlanningPrivately() {
+    if (!draft || busy) return;
+    setBusy(true); setError(null);
+    try {
+      const { result } = await requestJson<{ result: { eventId: string } }>(`/api/v1/event-creation-drafts/${draft.id}/commit`, { method: "POST", body: JSON.stringify({ commandId: crypto.randomUUID(), expectedVersion: draft.version, privateOnly: true }) });
+      router.push(`${commonsPath(result.eventId)}?arrival=0`);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "The trip couldn’t be created."); setBusy(false); }
+  }
+
+  /** Activation, once paid: commit is idempotent on this draft, so a retry keeps one trip, one fee and these invitations. */
+  async function commitAndSend(targetDraft: EventCreationDraft) {
+    const { result } = await requestJson<{ result: { eventId: string; slug: string } }>(`/api/v1/event-creation-drafts/${targetDraft.id}/commit`, { method: "POST", body: JSON.stringify({ commandId: crypto.randomUUID(), expectedVersion: targetDraft.version }) });
+    setCommittedEventId(result.eventId); setCommittedSlug(result.slug);
+    const payload = await requestJson<{ result: unknown }>(`/api/v1/commons/${result.slug}/setup/send`, { method: "POST" });
+    return { deliveries: SendSetupInvitationsResultSchema.parse(payload.result).deliveries as FirstInviteDelivery[], slug: result.slug };
+  }
+
+  async function commit(sendInvitations: boolean) {
+    if (!draft || busy) return;
+    setBusy(true); setError(null);
+    await finishCreation(draft, sendInvitations);
+  }
+
+  async function finishCreation(targetDraft: EventCreationDraft, sendInvitations: boolean) {
+    let createdEventSlug = committedSlug;
+    try {
+      const { result } = await requestJson<{ result: { eventId: string; slug: string; unsentInvitationCount: number; peopleNeedingContact: string[]; coordinatorThreadId?: string | null } }>(`/api/v1/event-creation-drafts/${targetDraft.id}/commit`, { method: "POST", body: JSON.stringify({ commandId: crypto.randomUUID(), expectedVersion: targetDraft.version }) });
+      createdEventSlug = result.slug;
+      setCommittedEventId(result.eventId);
+      setCommittedSlug(result.slug);
+      if (!committedSlug) {
+        trackProductEvent("event_creation_committed", { properties: { source: targetDraft.sourceKind, participantCount: targetDraft.people.length, unsentInvitationCount: result.unsentInvitationCount, missingContactCount: result.peopleNeedingContact.length, sendInvitations } });
+      }
+      if (sendInvitations && result.unsentInvitationCount > 0) {
+        const payload = await requestJson<{ result: unknown }>(`/api/v1/commons/${result.slug}/setup/send`, { method: "POST" });
+        const deliveries = SendSetupInvitationsResultSchema.parse(payload.result).deliveries;
+        const failed = deliveries.filter((delivery) => delivery.deliveryState === "failed");
+        trackProductEvent("invitation_sent", { commonsSlug: result.slug, properties: { count: deliveries.length, sent: deliveries.length - failed.length, source: "event_creation" } });
+        if (failed.length) {
+          setError(`The trip was created, but ${failed.length === 1 ? "one invitation was" : `${failed.length} invitations were`} not sent. Try again, or open the trip and use People.`);
+          setBusy(false);
+          return;
+        }
+      }
+      const coordinatorLanding = result.coordinatorThreadId ? await tripOpensCoordinator(result.eventId) : false;
+      router.push(coordinatorLanding && result.coordinatorThreadId ? `/c/${result.eventId}/coordinator/?thread=${result.coordinatorThreadId}` : `${commonsPath(result.eventId)}?arrival=0`);
+    } catch (cause) {
+      setError(cause instanceof Error
+        ? createdEventSlug
+          ? sendInvitations ? `The trip was created, but invitations were not sent. ${cause.message}` : `The trip was created. Open it below. ${cause.message}`
+          : cause.message
+        : createdEventSlug
+          ? sendInvitations ? "The trip was created, but invitations were not sent. Try again, or open the trip and use People." : "The trip was created. Open it below."
+          : "The trip couldn’t be created.");
+      setBusy(false);
+    }
+  }
+
+  if (!signedIn) return <section className="event-entry-card"><span className="view-kicker">New trip</span><h1>What are you planning?</h1><p>Sign in to name a trip or start from one you planned before.</p><a className="form-submit" href={activation ? tripEntrySignInPath(activation.entryContext, activation.requestedDraftId) : "/sign-in?next=%2Fnew"}>Sign in to start</a></section>;
+  if (!allowed) return <section className="event-entry-card"><span className="view-kicker">Pilot access</span><h1>Trip creation is opening gradually.</h1><p>Your existing trips are still available. Request access and we’ll let you know when your account is ready.</p>{requestStatus === "requested" ? <div className="event-access-requested" role="status"><strong>Request received</strong><span>You can keep using your existing trips while we review it.</span></div> : <button className="form-submit" type="button" onClick={() => void requestAccess()} disabled={busy}>{busy ? "Sending…" : "Request access"}</button>}{error ? <p className="form-error" role="alert">{error}</p> : null}</section>;
+
+  if (activation?.draftLoadFailed && !draft) return <section className="event-entry-card" role="alert"><h1>We couldn’t open your saved trip.</h1><p>It may still be saved. Nothing was replaced.</p><div className="setup-actions"><Link className="button-secondary" href="/trips">Your trips</Link><button type="button" onClick={() => window.location.reload()}>Try again</button></div></section>;
+
+  if (stage === "entry") return <section className="event-entry-card"><span className="view-kicker">New trip</span><h1>What are you planning?</h1><p>{activation ? "Start with a name. You don’t need dates or a place yet." : "Start with a name, then add dates, places and people."}</p>
+    <form className="event-title-form" onSubmit={createFromDescription}><label className="field"><span>Trip name</span><input required maxLength={100} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Napa or Sonoma girls trip" /></label><button className="form-submit" disabled={busy || !title.trim()}>{busy ? "Starting…" : "Continue"}</button>{activation ? null : <button className="setup-open-private" type="submit" name="setup" value="quick" disabled={busy || !title.trim()}>Create with just a name</button>}<p className="field-hint">Only you can see it until you invite people.</p></form>
+    {initialRecentEvents.length ? <div className="recent-event-picker"><div className="event-section-heading"><h2>Or plan it again</h2><span>{initialRecentEvents.length} recent</span></div><div className="recent-event-list">{initialRecentEvents.map((event) => <button type="button" key={event.id} onClick={() => void createDraft({ sourceKind: "prior_event", sourceEventId: event.id, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }, "recent")} disabled={busy}><span><strong>{event.name}</strong><small>{event.locationName ?? "Place to be decided"} · {event.people.length} {event.people.length === 1 ? "person" : "people"}</small></span><em>Use this trip →</em></button>)}</div></div> : null}
+    {error ? <p className="form-error" role="alert">{error}</p> : null}</section>;
+
+  if (!draft) return null;
+  const readyInvitationCount = people.filter((person) => !person.needsContact).length;
+  return <div data-analytics-exclude={/^QA(?:\s|[—:-])/i.test(draft.proposedName ?? "") ? "true" : undefined} className="event-draft-flow"><Progress stage={stage} />
+    {stage === "setup" ? <section className="event-draft-card setup-panel"><span className="view-kicker">Your starting point</span><h1>Does this look right?</h1>
+      {!draft.supported ? <div className="event-support-note"><strong>This may not be a trip.</strong><p>Commons only plans trips so far. If this is one, continue and set it up yourself.</p></div> : null}
+      <div className="event-fields-grid"><label className="field field--wide"><span>Trip name</span><input value={name} onChange={(event) => setName(event.target.value)} maxLength={100} /></label><label className="field field--wide"><span>Place <small>Optional</small></span><input value={location} onChange={(event) => setLocation(event.target.value)} maxLength={120} placeholder="Add a city, region, or venue" /></label><label className="field"><span>Starts <small>Optional</small></span><input type="date" value={startsOn} onChange={(event) => setStartsOn(event.target.value)} /></label><label className="field"><span>Ends <small>Optional</small></span><input type="date" value={endsOn} onChange={(event) => setEndsOn(event.target.value)} /></label></div><details className="event-optional-details"><summary>Budget and preferences <small>Optional</small></summary><div className="event-fields-grid"><label className="field"><span>Budget from <small>Optional</small></span><input inputMode="decimal" value={budgetMinimum} onChange={(event) => setBudgetMinimum(event.target.value)} placeholder="$0" /></label><label className="field"><span>Budget to <small>Optional</small></span><input inputMode="decimal" value={budgetMaximum} onChange={(event) => setBudgetMaximum(event.target.value)} placeholder="$0" /></label><label className="field field--wide"><span>What would make this trip great? <small>Optional</small></span><textarea value={goals} onChange={(event) => setGoals(event.target.value)} placeholder={"A relaxed pace\nA house near the water\nTime together"} /></label><label className="field field--wide"><span>Anything we should plan around? <small>Optional</small></span><textarea value={constraints} onChange={(event) => setConstraints(event.target.value)} placeholder={"Dietary or accessibility needs\nNo long driving days\nA firm budget or schedule"} /></label></div></details>
+      <div className="setup-actions"><button className="secondary" type="button" onClick={() => setStage("entry")}>Back</button><button type="button" disabled={busy || !name.trim()} onClick={() => void saveSetup(!draft.supported)}>{busy ? "Saving…" : activation && draft.sourceKind === "description" ? "Review trip" : draft.supported ? "Continue to people" : "This is a trip, continue"}</button></div></section> : null}
+    {stage === "people" ? <section className="event-draft-card setup-panel"><span className="view-kicker">People</span><h1>Who’s part of it?</h1><p className="setup-lede">Add or remove people before you create the trip. No invitations are sent here.</p><div className="event-people-list">{people.map((person) => <div className="event-person-row" key={person.id}><label className="field"><span>Name</span><input value={person.displayName} onChange={(event) => updatePerson(person.id, { displayName: event.target.value })} /></label>{person.needsContact || !person.personId ? <label className="field"><span>Email <small>Optional</small></span><input type="email" value={person.email ?? ""} onChange={(event) => updatePerson(person.id, { email: event.target.value || null })} placeholder="name@example.com" /></label> : <div className="event-known-person"><span>Contact</span><strong>Ready to invite</strong><small>Already connected through a past event</small></div>}<button type="button" className="event-remove-person" onClick={() => removePerson(person.id)} aria-label={`Remove ${person.displayName || "person"}`}>Remove</button><label className="field event-person-message"><span>Invitation message <small>Optional</small></span><textarea value={person.message ?? ""} onChange={(event) => updatePerson(person.id, { message: event.target.value || null })} maxLength={500} placeholder="Add a quick personal note" /></label></div>)}</div><button type="button" className="add-participant" onClick={addPerson}>{people.length ? "＋ Add another person" : "＋ Add a person"}</button><div className="setup-actions"><button className="secondary" type="button" onClick={() => setStage("setup")}>Back</button><button type="button" disabled={busy} onClick={() => void savePeople()}>{busy ? "Saving…" : "Review trip"}</button></div></section> : null}
+    {stage === "review" ? <section className="event-draft-card setup-panel"><span className="view-kicker">Review</span><h1>Ready to create?</h1><p className="setup-lede">Review the trip and choose whether to invite people now.</p><div className="event-review-block"><h2>{draft.proposedName}</h2><p>{draft.locationName ?? "Place to be decided"} · {dateLabel(draft.startsOn, draft.endsOn)}</p>{draft.brief.budgetMinimumCents !== null || draft.brief.budgetMaximumCents !== null ? <p>Budget {new Intl.NumberFormat(undefined, { style: "currency", currency: draft.brief.currency ?? "USD", maximumFractionDigits: 0 }).format((draft.brief.budgetMinimumCents ?? draft.brief.budgetMaximumCents ?? 0) / 100)}{draft.brief.budgetMinimumCents !== null && draft.brief.budgetMaximumCents !== null ? `–${new Intl.NumberFormat(undefined, { style: "currency", currency: draft.brief.currency ?? "USD", maximumFractionDigits: 0 }).format(draft.brief.budgetMaximumCents / 100)}` : ""}</p> : null}</div>{draft.brief.goals.length || draft.brief.constraints.length ? <div className="event-review-columns">{draft.brief.goals.length ? <div><strong>What would make it great</strong><ul>{draft.brief.goals.map((goal) => <li key={goal}>{goal}</li>)}</ul></div> : null}{draft.brief.constraints.length ? <div><strong>Things to plan around</strong><ul>{draft.brief.constraints.map((constraint) => <li key={constraint}>{constraint}</li>)}</ul></div> : null}</div> : null}<div className="event-review-people"><div className="event-section-heading"><h2>People</h2><span>{people.length}</span></div>{people.length ? people.map((person) => <div key={person.id}><strong>{person.displayName}</strong><small>{person.needsContact ? "Contact details can be added later" : person.message ? "Invitation ready · Includes a message" : "Invitation ready"}</small></div>) : <p>No one added yet.</p>}</div>{coordinatorEnabled && !committedEventId ? <SetupCoordinator draft={draft} onChange={hydrate} onBusy={setBusy} disabled={busy} personalitiesEnabled={personalitiesEnabled} /> : null}{activation && draft.betaActivationRequired && people.length ? null : <div className="event-review-boundary"><strong>{readyInvitationCount ? `${readyInvitationCount} ${readyInvitationCount === 1 ? "invitation" : "invitations"} ready to send.` : "Nothing has been shared."}</strong><p>{readyInvitationCount ? "Creating and sending will email each person a private link. No invitations have been sent yet." : "The trip will stay private until you add and invite people."}</p></div>}{activation && draft.betaActivationRequired && people.length ? <FirstInviteFlow draftId={draft.id} tripSlug={null} people={people.filter(person => !person.needsContact).map(person => person.displayName)} checkout={activation.checkout}
+        keepPlanning={{ label: "Keep planning", onClick: () => void keepPlanningPrivately(), note: "Keep planning creates your private trip. Your people stay saved and no one is contacted." }}
+        send={() => commitAndSend(draft)} doneHref={slug => `/c/${slug}?arrival=0`}
+        retryDelivery={async (slug, invitationId) => { const { delivery } = await requestJson<{ delivery: { deliveryState?: string } }>(`/api/v1/commons/${slug}/invitations/${invitationId}/send`, { method: "POST" }); return delivery.deliveryState === "sent" ? "sent" : delivery.deliveryState === "queued" ? "queued" : "failed"; }} /> : committedEventId ? <div className="setup-actions"><a className="secondary" href={commonsPath(committedEventId)}>Open trip</a><button type="button" disabled={busy} onClick={() => void commit(true)}>{busy ? "Sending…" : "Try sending again"}</button></div> : <><div className="setup-actions"><button className="secondary" type="button" onClick={() => setStage("people")}>Back</button><button type="button" disabled={busy} onClick={() => void commit(readyInvitationCount > 0)}>{busy ? readyInvitationCount ? "Creating and sending…" : "Creating…" : readyInvitationCount ? `Create and send ${readyInvitationCount === 1 ? "invitation" : `${readyInvitationCount} invitations`}` : "Create private trip"}</button></div>{readyInvitationCount ? <button className="setup-open-private" type="button" onClick={() => void commit(false)} disabled={busy}>Create without sending</button> : null}</>}</section> : null}
+    {error ? <p className="form-error" role="alert">{error}</p> : null}</div>;
+}

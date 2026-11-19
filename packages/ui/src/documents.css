@@ -1,0 +1,15 @@
+/* Shared reading surfaces. Interaction and access remain with each document. */
+.cm-document-canvas { min-height: 100dvh; background: var(--cm-color-board); }
+.cm-document-page { padding: var(--cm-space-4) var(--cm-gutter-mobile) var(--cm-space-12); }
+.cm-document-paper { min-width: 0; width: 100%; max-width: var(--cm-document-page-width); margin-inline: auto; padding: var(--cm-document-padding); background: var(--cm-color-paper); border: 1px solid var(--cm-color-line); border-radius: var(--cm-radius-control); font-size: var(--cm-text-body); line-height: var(--cm-document-leading); overflow-wrap: anywhere; }
+.cm-document-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--cm-space-2) var(--cm-space-4); }
+.cm-document-quiet-action { display: inline-flex; align-items: center; justify-content: center; min-height: var(--cm-touch-target); padding: var(--cm-space-2) var(--cm-space-3); border: 0; border-radius: var(--cm-radius-compact); background: transparent; color: var(--cm-color-green); font: 550 var(--cm-text-utility)/1.4 var(--cm-font-interface); text-decoration: underline; text-underline-offset: .2em; cursor: pointer; }
+.cm-document-quiet-action:hover { background: var(--cm-color-green-wash); }
+.cm-document-quiet-action:focus-visible { outline: 3px solid var(--cm-color-focus); outline-offset: 2px; }
+.cm-document-panel { min-width: 0; background: var(--cm-color-paper); border: 1px solid var(--cm-color-line); border-radius: var(--cm-radius-control); }
+.cm-document-panel-header { padding: var(--cm-space-4) var(--cm-space-5); background: var(--cm-color-green-wash); border-radius: var(--cm-radius-control) var(--cm-radius-control) 0 0; }
+@media print {
+  .cm-document-canvas { min-height: 0; background: var(--cm-color-paper); }
+  .cm-document-page { padding: 0; }
+  .cm-document-paper { max-width: none; margin: 0; padding: 0; border: 0; border-radius: 0; }
+}

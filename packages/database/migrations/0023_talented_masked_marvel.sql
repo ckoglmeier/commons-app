@@ -1,0 +1,1 @@
+ALTER TABLE "event_creation_draft_people" ADD COLUMN "message" text;

@@ -1,0 +1,2 @@
+/** Static decorative mark; the readable wordmark survives blocked images. */
+export const emailBrandHtml = `<table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td width="38" height="38"><img src="https://www.commons.travel/brand/commons-mark.png" width="38" height="38" alt="" style="display:block;border:0;"></td><td style="padding-left:10px;color:#16372F;font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:500;letter-spacing:-.5px;">Commons</td></tr></table>`;

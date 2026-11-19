@@ -1,0 +1,29 @@
+.personality-review { color: var(--cm-color-ink); background: var(--cm-color-canvas); min-height: 100vh; }
+.personality-brand { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--cm-space-4); padding: var(--cm-space-5); border-bottom: 1px solid var(--cm-color-line); }
+.personality-brand svg { width: 140px; height: auto; }
+.personality-brand > span { font-size: 14px; color: var(--cm-color-mineral); }
+.personality-review main { max-width: 880px; margin: auto; padding: var(--cm-space-8) var(--cm-space-5); }
+.personality-review h1 { font-size: clamp(32px, 5vw, 44px); font-weight: 500; line-height: 1.15; letter-spacing: -0.025em; max-width: 640px; }
+.personality-review h2 { font-size: 26px; font-weight: 500; }
+.personality-review h3 { font-size: 18px; font-weight: 500; }
+.personality-review p { line-height: 1.6; }
+.personality-review main > section { margin-top: var(--cm-space-8); }
+.personality-actions { display: flex; flex-wrap: wrap; gap: var(--cm-space-3); margin-block: var(--cm-space-5); }
+.personality-review button, .personality-review summary { min-height: 44px; }
+.personality-review button[aria-pressed="true"] { background: var(--cm-color-green-wash); }
+.personality-review button:focus-visible, .personality-review input:focus-visible, .personality-review select:focus-visible, .personality-review textarea:focus-visible, .personality-review summary:focus-visible { outline: 3px solid var(--cm-color-ember); outline-offset: 2px; }
+.personality-brief { padding-block: var(--cm-space-4); margin-block: var(--cm-space-5); border-block: 1px solid var(--cm-color-line); }
+.personality-review summary { display: flex; align-items: center; cursor: pointer; text-decoration: underline; }
+.personality-samples, .personality-roster { border: 0; padding: 0; margin-block: var(--cm-space-6); display: grid; gap: var(--cm-space-4); min-width: 0; }
+.personality-review legend { margin-bottom: var(--cm-space-4); font-weight: 500; }
+.personality-sample { display: grid; gap: var(--cm-space-3); padding: var(--cm-space-5); border: 1px solid var(--cm-color-mineral); border-radius: var(--cm-radius-control); cursor: pointer; line-height: 1.6; }
+.personality-sample:has(input:checked) { background: var(--cm-color-green-wash); }
+.personality-choice { display: flex; align-items: center; flex-wrap: wrap; gap: var(--cm-space-3); min-height: 44px; }
+.personality-choice > span { font-size: 13px; }
+.personality-choice input { width: 20px; height: 20px; accent-color: var(--cm-color-green); margin: 0; }
+.personality-note { display: grid; gap: var(--cm-space-3); margin-block: var(--cm-space-5); }
+.personality-note textarea, .personality-note select { width: 100%; min-width: 0; font: inherit; font-size: 16px; padding: var(--cm-space-3); color: var(--cm-color-ink); background: var(--cm-color-paper); border: 1px solid var(--cm-color-mineral); border-radius: var(--cm-radius-compact); }
+.personality-selected { display: flex; gap: var(--cm-space-4); padding-block: var(--cm-space-5); }
+.personality-selected > svg { width: 24px; height: 24px; flex: 0 0 24px; margin-top: var(--cm-space-4); }
+.personality-footer { border-top: 1px solid var(--cm-color-line); padding-top: var(--cm-space-6); margin-top: var(--cm-space-8); }
+@media (min-width: 700px) { .personality-roster { grid-template-columns: 1fr 1fr; } }

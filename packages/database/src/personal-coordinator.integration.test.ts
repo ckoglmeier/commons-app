@@ -1,0 +1,58 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { eq, sql } from "drizzle-orm";
+import { createDatabase } from "./client";
+import { commons, people, memberships, personalCoordinatorTurns, processedCommands } from "./schema";
+import { beginPersonalCoordinatorTurn, finishPersonalCoordinatorTurn, personalCoordinatorHistory } from "./personal-coordinator-repository";
+const skip=process.env.COMMONS_RUN_DATABASE_TESTS!=="1",databaseUrl=process.env.TEST_DATABASE_URL;
+
+test("personal chat: owner/trip scope, exact idempotency, fencing, revocation, and browser denial",{skip},async()=>{
+  assert.ok(databaseUrl && new URL(databaseUrl).hostname==="127.0.0.1" && new URL(databaseUrl).pathname.endsWith("_test"));
+  const db=createDatabase(databaseUrl),a=randomUUID(),b=randomUUID(),owner=randomUUID(),other=randomUUID(),organizer=randomUUID();
+  await db.db.insert(people).values([{id:owner,displayName:"Personal traveler"},{id:other,displayName:"Other traveler"},{id:organizer,displayName:"Organizer"}]);
+  await db.db.insert(commons).values([{id:a,slug:`personal-${a}`,name:"A",timezone:"America/Los_Angeles",createdByPersonId:organizer},{id:b,slug:`personal-${b}`,name:"B",timezone:"America/Los_Angeles",createdByPersonId:organizer}]);
+  await db.db.insert(memberships).values([{commonsId:a,personId:owner,role:"member",status:"active"},{commonsId:a,personId:other,role:"member",status:"active"},{commonsId:a,personId:organizer,role:"organizer",status:"active"},{commonsId:b,personId:other,role:"member",status:"active"}]);
+  const options={databaseUrl,actorPersonId:owner},command={commandId:randomUUID(),text:"  Own PRIVATE question.\nPreserve exactly.  "};
+  try{
+    const [first,replay]=await Promise.all([beginPersonalCoordinatorTurn(a,command,options),beginPersonalCoordinatorTurn(a,command,options)]);
+    assert.equal(first.turn.id,replay.turn.id);assert.equal(Number(first.execute)+Number(replay.execute),1);
+    await assert.rejects(beginPersonalCoordinatorTurn(a,{...command,text:"Changed"},options));
+    await assert.rejects(beginPersonalCoordinatorTurn(b,command,options));
+    await assert.rejects(beginPersonalCoordinatorTurn(a,{...command,personId:other},options));
+    assert.deepEqual(await personalCoordinatorHistory(a,{...options,actorPersonId:other}),[]);
+    assert.deepEqual(await personalCoordinatorHistory(a,{...options,actorPersonId:organizer}),[],"organizer cannot read another person's chat");
+    await assert.rejects(finishPersonalCoordinatorTurn(a,{commandId:command.commandId,attempt:2,reply:"Stale worker"},options));
+    const saved=await finishPersonalCoordinatorTurn(a,{commandId:command.commandId,attempt:1,reply:"Saved facts only. Nothing changed."},options);
+    assert.equal(saved.userText,command.text);
+    assert.equal((await beginPersonalCoordinatorTurn(a,command,options)).execute,false);
+    assert.equal((await personalCoordinatorHistory(a,options))[0].reply,saved.reply);
+    const retry={commandId:randomUUID(),text:"A failing request"};
+    await beginPersonalCoordinatorTurn(a,retry,options);
+    await finishPersonalCoordinatorTurn(a,{commandId:retry.commandId,attempt:1,reply:null},options);
+    const resumed=await beginPersonalCoordinatorTurn(a,retry,options);assert.equal(resumed.attempt,2);
+    await assert.rejects(finishPersonalCoordinatorTurn(a,{commandId:retry.commandId,attempt:1,reply:"Late"},options));
+    await assert.rejects(db.db.transaction(async tx=>{await tx.execute(sql`set local role authenticated`);await tx.select().from(personalCoordinatorTurns);}), error => String((error as {cause?:{code?:string}}).cause?.code) === "42501", "direct browser SELECT is denied");
+    await db.db.transaction(async tx=>{await tx.execute(sql`grant select on personal_coordinator_turns to authenticated`);await tx.execute(sql`set local role authenticated`);assert.deepEqual(await tx.select().from(personalCoordinatorTurns),[],"RLS denies rows even if a SELECT grant is accidentally added");throw new Error("rollback temporary grant");}).catch(error=>assert.equal(error.message,"rollback temporary grant"));
+    const abandoned={commandId:randomUUID(),text:"Abandoned question"};
+    await beginPersonalCoordinatorTurn(a,abandoned,options);
+    const later={...options,now:new Date(Date.now()+120001)};
+    assert.equal((await personalCoordinatorHistory(a,later)).find(turn=>turn.commandId===abandoned.commandId)?.status,"failed");
+    await assert.rejects(finishPersonalCoordinatorTurn(a,{commandId:abandoned.commandId,attempt:1,reply:"Too late"},options));
+    assert.equal((await beginPersonalCoordinatorTurn(a,abandoned,later)).attempt,2);
+    for(let index=0;index<7;index++) await beginPersonalCoordinatorTurn(a,{commandId:randomUUID(),text:`Quota question ${index}`},options);
+    const slots = await db.db.select().from(processedCommands).where(eq(processedCommands.commonsId,a));
+    await db.db.insert(processedCommands).values(Array.from({length:100-slots.filter(row=>(row.result as {kind?:string}).kind==="poll_inference").length},()=>({commonsId:a,commandId:randomUUID(),result:{kind:"poll_inference",actorPersonId:owner}})));
+    await assert.rejects(beginPersonalCoordinatorTurn(a,{commandId:randomUUID(),text:"Over hourly quota"},options));
+    assert.equal((await beginPersonalCoordinatorTurn(a,command,options)).execute,false,"quota does not block exact completed replay");
+    await db.db.delete(processedCommands).where(eq(processedCommands.commonsId,a));
+    await finishPersonalCoordinatorTurn(a,{commandId:abandoned.commandId,attempt:2,reply:null},later);
+    assert.equal((await beginPersonalCoordinatorTurn(a,abandoned,later)).attempt,3);
+    await finishPersonalCoordinatorTurn(a,{commandId:abandoned.commandId,attempt:3,reply:null},later);
+    await assert.rejects(beginPersonalCoordinatorTurn(a,abandoned,later),"retries stop at three");
+    await db.db.update(memberships).set({status:"removed"}).where(eq(memberships.personId,owner));
+    await assert.rejects(personalCoordinatorHistory(a,options));
+    await assert.rejects(finishPersonalCoordinatorTurn(a,{commandId:retry.commandId,attempt:2,reply:"Revoked during inference"},options));
+    assert.equal((await db.db.select().from(personalCoordinatorTurns).where(eq(personalCoordinatorTurns.commandId,retry.commandId)))[0].reply,null);
+  }finally{await db.db.delete(commons).where(eq(commons.id,a));await db.db.delete(commons).where(eq(commons.id,b));for(const id of [owner,other,organizer])await db.db.delete(people).where(eq(people.id,id));await db.close();}
+});

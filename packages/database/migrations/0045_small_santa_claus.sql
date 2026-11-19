@@ -1,0 +1,1 @@
+ALTER TABLE "memberships" ADD COLUMN "shared_preference_keys" jsonb DEFAULT '[]'::jsonb NOT NULL;

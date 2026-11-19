@@ -1,0 +1,13 @@
+-- A new immutable feedback recipe; historical pins and operator recipes stay intact.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM workflow_templates WHERE key = 'itinerary' AND version = 2
+      AND status = 'active' AND authored_by = 'migration' AND save_fingerprint = 'seed:itinerary:2')
+      AND NOT EXISTS (SELECT 1 FROM workflow_templates WHERE key = 'itinerary' AND version > 2) THEN
+    UPDATE workflow_templates SET status = 'retired' WHERE key = 'itinerary' AND version = 2 AND status = 'active';
+    INSERT INTO workflow_templates (key, version, title, description, purpose, instructions, status, authored_by, save_command_id, save_fingerprint)
+    VALUES ('itinerary', 3, 'Build an itinerary for group input', 'Review the rough trip and collect suggestions and preferences before execution follow-through.', 'itinerary',
+      'Prepare one complete, paced rough itinerary in the existing Coordinator draft flow. Review belongs in Working material, with compact day headers, recommended local time windows and native carets. Saved dates, lodging, flight anchors and organizer corrections outrank imported suggestions. Unknown flight facts stay unknown; do not invent availability, hours, prices or route durations. Preserve supplied named stops, optional participation, intentional downtime and stable identities. The review has one feedback goal: does the rough trip feel good, what would people change, and which open choices need input? Include contextual stop choices, open meal suggestions, optional interests and general suggestions. No overall approval ballot. Do not generate operational checklists, assignable tasks, owner dropdowns, booking assignments or scheduling follow-through in this draft. Return tasks as an empty array; historical saved Tasks and receipts remain in their normal Task surface. Driver context and source imports stay secondary and private. Still to decide includes only choices relevant to group feedback. Provide concise participant-visible notes separately from private material. Primary next step: Review what the group will see, followed by the existing exact-version publication and share controls. Preferences, suggestions and interests never accept an assignment, confirm attendance or authorize booking. Task assignment is a separate explicit organizer conversation after feedback and direction are settled, using supported Task controls. Preserve prior published snapshots, responses and recipe pins. This recipe grants no booking, sending or automatic trip mutation authority.',
+      'active', 'migration', '97000000-0000-4000-8000-000000000007', 'seed:itinerary:3');
+  END IF;
+END $$;

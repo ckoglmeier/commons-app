@@ -1,0 +1,15 @@
+.document { max-width: 72ch; margin-inline: auto; color: var(--cm-color-ink); }
+.header { padding-block: 24px 32px; border-bottom: 1px solid var(--cm-color-line); }
+.header h1 { font-size: clamp(32px, 5vw, 44px); font-weight: 500; line-height: 1.15; }
+.metadata { color: var(--cm-color-mineral); font-size: 14px; line-height: 1.6; }
+.notice { margin-block: 24px; padding: 16px; background: var(--cm-color-board); line-height: 1.6; }
+.contents { margin-block: 24px 40px; }
+.contents h2 { font-size: 20px; font-weight: 500; }
+.contents ol { padding-left: 24px; }
+.contents a, .related a { display: inline-flex; align-items: center; min-height: 44px; color: var(--cm-color-green); text-decoration: underline; text-underline-offset: 3px; }
+.document a:focus-visible { outline: 3px solid var(--cm-color-ember); outline-offset: 2px; }
+.section { margin-block: 32px; scroll-margin-top: 24px; }
+.section h2 { font-size: 22px; font-weight: 500; line-height: 1.35; }
+.section p { font-size: 16px; line-height: 1.75; overflow-wrap: anywhere; }
+.related { display: flex; flex-wrap: wrap; gap: 8px 24px; border-top: 1px solid var(--cm-color-line); padding-block: 24px; }
+@media print { .contents, .related { display: none; } .document { max-width: none; } .section { break-inside: avoid; } }

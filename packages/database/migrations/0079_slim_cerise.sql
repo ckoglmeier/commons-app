@@ -1,0 +1,1 @@
+ALTER TABLE "trip_brain_reviews" ADD COLUMN "execution" jsonb;

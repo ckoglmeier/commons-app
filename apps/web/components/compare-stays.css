@@ -1,0 +1,23 @@
+.compare-stays { min-width: 0; color: var(--cm-color-ink); overflow-wrap: anywhere; font: 400 var(--cm-text-body)/1.55 var(--cm-font-interface); }
+.compare-stays h2 { font-size: var(--cm-text-document-title); font-weight: 500; }
+.compare-stays h3 { font-size: var(--cm-text-document-section); font-weight: 550; margin: 0; }
+.compare-stays-focus { display: grid; gap: var(--cm-space-2); margin-block: var(--cm-space-4); }
+.compare-stays-focus select { min-height: var(--cm-touch-target); max-width: 100%; min-width: 0; border: 1px solid var(--cm-color-control-border); border-radius: var(--cm-radius-control); padding: var(--cm-space-2); font: inherit; font-size: 16px; color: var(--cm-color-ink); background: var(--cm-color-paper); }
+.compare-stays-options { list-style: none; margin: 0; padding: 0; }
+.compare-stays-option { padding-block: var(--cm-space-5); border-top: 1px solid var(--cm-color-line); }
+.compare-stays-facts { display: grid; gap: var(--cm-space-3); margin-block: var(--cm-space-4); }
+.compare-stays-facts > div { min-width: 0; }
+.compare-stays-facts dt { font-size: var(--cm-text-utility); color: var(--cm-color-mineral); }
+.compare-stays-facts dd { margin: 0; }
+.compare-stays-facts dd p { margin: 0; }
+.compare-stays-notes { white-space: pre-wrap; }
+.compare-stays-unknowns summary, .compare-stays-option-actions label { min-height: var(--cm-touch-target); display: flex; align-items: center; gap: var(--cm-space-3); cursor: pointer; }
+.compare-stays-unknowns summary { display: list-item; padding-block: var(--cm-space-3); color: var(--cm-color-green); }
+.compare-stays-option-actions { display: flex; flex-wrap: wrap; gap: var(--cm-space-3); }
+.compare-stays-option-actions label { flex: 1 1 15rem; }
+.compare-stays-option-actions input { flex: 0 0 auto; width: 20px; height: 20px; accent-color: var(--cm-color-green); }
+.compare-stays-attention { border-left: 3px solid var(--cm-color-ember); background: var(--cm-color-ember-wash); padding: var(--cm-space-4); }
+.compare-stays-footer { border-top: 1px solid var(--cm-color-line); padding-block: var(--cm-space-4); }
+.compare-stays :is(select, input, summary, a, button):focus-visible { outline: 3px solid var(--cm-color-ember); outline-offset: 2px; }
+.compare-stays .cm-action { white-space: normal; }
+.coordinator-workspace .compare-stays a.cm-action--primary { color: var(--cm-color-paper); }

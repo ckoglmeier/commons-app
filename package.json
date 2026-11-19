@@ -1,0 +1,48 @@
+{
+  "name": "commons",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "services/*"
+  ],
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev": "npm run dev -w @commons/web",
+    "dev:web": "npm run dev -w @commons/web",
+    "build": "npm run build:production",
+    "build:production": "npm run build -w @commons/database && npm run build -w @commons/web",
+    "start": "npm run start -w @commons/web",
+    "test": "npm run test:production",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "lint:production": "npm run lint -w @commons/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test:production": "npm run test --workspaces --if-present",
+    "test:ci:core": "npm run test -w @commons/database -w @commons/domain",
+    "db:check": "npm run db:check -w @commons/database",
+    "db:generate": "npm run db:generate -w @commons/database",
+    "db:migrate": "npm run db:migrate -w @commons/database",
+    "db:seed:pilot": "npm run db:seed:pilot -w @commons/database",
+    "db:provision:demo-user": "npm run db:provision:demo-user -w @commons/database",
+    "db:provision:emails": "npm run db:provision:emails -w @commons/database"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.4",
+    "@next/eslint-plugin-next": "^16.3.3",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.4",
+    "eslint-plugin-jsx-a11y": "6.10.2",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "16.4.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.59.3",
+    "@openuidev/react-lang": "1.0.1"
+  },
+  "type": "module"
+}

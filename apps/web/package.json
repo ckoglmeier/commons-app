@@ -1,0 +1,47 @@
+{
+  "name": "@commons/web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint .",
+    "test": "COMMONS_COORDINATOR_ENABLED=true tsx --test --test-concurrency=1 components/*.test.ts lib/*.test.ts lib/beta/*.test.ts lib/email/*.test.ts lib/import/*.test.ts lib/marketing/*.test.ts lib/marketing/budget/*.test.ts lib/trip-activation/*.test.ts lib/trip-entry/*.test.ts lib/server/*.test.ts lib/server/lodging/*.test.ts lib/server/messaging/*.test.ts lib/supabase/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@assistant-ui/react": "0.15.23",
+    "@commons/contracts": "*",
+    "@commons/database": "*",
+    "@commons/domain": "*",
+    "@commons/ui": "*",
+    "@supabase/ssr": "^0.12.5",
+    "@supabase/supabase-js": "^2.112.4",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
+    "@vvo/tzdb": "^6.198.0",
+    "leaflet": "1.9.4",
+    "mammoth": "^1.12.1",
+    "next": "16.4.5",
+    "pdf-parse": "^1.1.1",
+    "posthog-js": "^1.434.14",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "sharp": "^0.35.4",
+    "tus-js-client": "^4.3.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.2.1",
+    "@types/leaflet": "1.9.21",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.4",
+    "tailwindcss": "4.2.1",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,175 @@
+import { randomUUID } from "node:crypto";
+import { and, count, eq, inArray, ne } from "drizzle-orm";
+import { z } from "zod";
+import { createDatabase } from "./client";
+import { CommandAccessError, type CommandTransaction } from "./event-command";
+import { isCommonsId } from "./commons-identifier";
+import { auditEvents, commons, expenses, memberships, moments, pollResponses, polls, people, eventCreationDrafts, tripActivationPayments } from "./schema";
+import { readTripInviteGate, TripActivationRequiredError } from "./trip-activation-repository";
+
+/*
+ * Two stages of one trip (docs/TRIP-STAGES-DIRECTION.md). A new-experience trip starts out getting to a decision and moves
+ * to "We're going" only when its organizer says so. Existing trips keep today's experience until an organizer turns this on. Poll answers never decide anything here: only `decideBigQuestion` does, and only an organizer can call it.
+ */
+
+export type TripStage = "deciding" | "going";
+export const BIG_QUESTION_IDS = ["where", "when", "who"] as const;
+export type BigQuestionId = (typeof BIG_QUESTION_IDS)[number];
+
+export function tripStage(trip: { newExperience: boolean; goingAt: Date | null }): TripStage {
+  return trip.newExperience && !trip.goingAt ? "deciding" : "going";
+}
+
+type Options = { databaseUrl?: string; actorPersonId: string };
+
+async function organizerTrip(tx: Pick<CommandTransaction, "select">, identifier: string, actorPersonId: string, lock = false) {
+  const query = tx.select({ id: commons.id, name: commons.name, locationName: commons.locationName, startsOn: commons.startsOn, endsOn: commons.endsOn, activationDraftId: commons.activationDraftId, newExperience: commons.newExperience, goingAt: commons.goingAt, bigQuestions: commons.bigQuestions, welcomeMessage: commons.welcomeMessage, role: memberships.role, status: memberships.status })
+    .from(commons).innerJoin(memberships, and(eq(memberships.commonsId, commons.id), eq(memberships.personId, actorPersonId)))
+    .where(isCommonsId(identifier) ? eq(commons.id, identifier) : eq(commons.slug, identifier));
+  const [trip] = await (lock ? query.for("update", { of: commons }) : query);
+  if (!trip || trip.role !== "organizer" || trip.status !== "active") throw new CommandAccessError();
+  return trip;
+}
+
+export type BigQuestionView = {
+  id: BigQuestionId;
+  decided: string | null;
+  poll: { id: string; publicId: string; title: string; open: boolean; answers: number } | null;
+};
+
+/** Organizer-only. Answers stay on the poll page; this is only how many there are. */
+export async function readBigQuestions(identifier: string, options: Options) {
+  const database = createDatabase(options.databaseUrl);
+  try {
+    const trip = await organizerTrip(database.db, identifier, options.actorPersonId);
+    const saved = trip.bigQuestions ?? {};
+    const pollIds = BIG_QUESTION_IDS.flatMap(id => saved[id]?.pollId ? [saved[id]!.pollId!] : []);
+    const rows = pollIds.length ? await database.db.select({ id: polls.id, publicId: polls.publicId, title: polls.title, status: polls.status }).from(polls).where(and(eq(polls.commonsId, trip.id), inArray(polls.id, pollIds))) : [];
+    const answers = pollIds.length ? await database.db.select({ pollId: pollResponses.pollId, total: count() }).from(pollResponses).where(inArray(pollResponses.pollId, pollIds)).groupBy(pollResponses.pollId) : [];
+    const dates = trip.startsOn && trip.endsOn ? (trip.startsOn === trip.endsOn ? trip.startsOn : `${trip.startsOn} – ${trip.endsOn}`) : null;
+    const decidedFor: Record<BigQuestionId, string | null> = { where: trip.locationName, when: dates, who: saved.who?.note ?? null };
+    const questions: BigQuestionView[] = BIG_QUESTION_IDS.map(id => {
+      const poll = rows.find(row => row.id === saved[id]?.pollId);
+      return { id, decided: decidedFor[id], poll: poll ? { id: poll.id, publicId: poll.publicId, title: poll.title, open: poll.status === "open", answers: Number(answers.find(row => row.pollId === poll.id)?.total ?? 0) } : null };
+    });
+    const [payment] = trip.activationDraftId ? await database.db.select({ status: tripActivationPayments.status }).from(tripActivationPayments).where(eq(tripActivationPayments.draftId, trip.activationDraftId)) : [];
+    const [owner] = trip.activationDraftId ? await database.db.select({ doNotCharge: people.doNotCharge }).from(eventCreationDrafts).innerJoin(people, eq(people.id, eventCreationDrafts.createdByPersonId)).where(eq(eventCreationDrafts.id, trip.activationDraftId)) : [];
+    return { stage: tripStage(trip), paid: payment?.status === "paid", upgrade: Boolean(trip.activationDraftId) && !owner?.doNotCharge, questions, welcome: trip.welcomeMessage, decideBy: saved.decideBy ?? null, roughCost: saved.roughCost ?? null };
+  } finally { await database.close(); }
+}
+
+const AttachSchema = z.object({ question: z.enum(BIG_QUESTION_IDS), pollId: z.string().uuid() }).strict();
+
+/** Which poll is asking a question. The newest poll wins, and earlier answers stay on their own poll. */
+export async function attachBigQuestionPoll(identifier: string, raw: unknown, options: Options) {
+  const input = AttachSchema.parse(raw), database = createDatabase(options.databaseUrl);
+  try {
+    await database.db.transaction(async tx => {
+      const trip = await organizerTrip(tx, identifier, options.actorPersonId, true);
+      const [poll] = await tx.select({ id: polls.id }).from(polls).where(and(eq(polls.id, input.pollId), eq(polls.commonsId, trip.id)));
+      if (!poll) throw new CommandAccessError();
+      const saved = trip.bigQuestions ?? {};
+      await tx.update(commons).set({ bigQuestions: { ...saved, [input.question]: { ...saved[input.question], pollId: input.pollId } }, updatedAt: new Date() }).where(eq(commons.id, trip.id));
+    });
+  } finally { await database.close(); }
+}
+
+const DecideSchema = z.discriminatedUnion("question", [
+  z.object({ commandId: z.string().uuid(), question: z.literal("where"), locationName: z.string().trim().min(1).max(120) }).strict(),
+  z.object({ commandId: z.string().uuid(), question: z.literal("when"), startsOn: z.string().date(), endsOn: z.string().date() }).strict().refine(value => value.endsOn >= value.startsOn, "The last day comes after the first."),
+  z.object({ commandId: z.string().uuid(), question: z.literal("who"), note: z.string().trim().min(1).max(500) }).strict(),
+]);
+
+/** The organizer's decision. "Who's in" is a note in their words: it isn't attendance or membership, and it invites nobody. */
+export async function decideBigQuestion(identifier: string, raw: unknown, options: Options) {
+  const input = DecideSchema.parse(raw), database = createDatabase(options.databaseUrl);
+  try {
+    await database.db.transaction(async tx => {
+      const trip = await organizerTrip(tx, identifier, options.actorPersonId, true);
+      const now = new Date(), saved = trip.bigQuestions ?? {};
+      await tx.update(commons).set({
+        ...(input.question === "where" ? { locationName: input.locationName } : input.question === "when" ? { startsOn: input.startsOn, endsOn: input.endsOn } : {}),
+        bigQuestions: { ...saved, [input.question]: { ...saved[input.question], decidedAt: now.toISOString(), ...(input.question === "who" ? { note: input.note } : {}) } },
+        updatedAt: now,
+      }).where(eq(commons.id, trip.id));
+      await tx.insert(auditEvents).values({ commonsId: trip.id, commandId: input.commandId, actorId: options.actorPersonId, actorType: "human", action: "trip.big_question_decided", resourceType: "commons", resourceId: trip.id, summary: `Decided ${input.question === "where" ? "where" : input.question === "when" ? "when" : "who’s in"} for this trip.` }).onConflictDoNothing();
+    });
+  } finally { await database.close(); }
+}
+
+const BriefSchema = z.object({ decideBy: z.string().date().nullable(), roughCost: z.string().trim().max(80).nullable() }).strict();
+
+/** The deadline and rough cost shown on this trip's polls. An organizer's estimate: it changes nothing in Money. */
+export async function saveTripBrief(identifier: string, raw: unknown, options: Options) {
+  const input = BriefSchema.parse(raw), database = createDatabase(options.databaseUrl);
+  try {
+    await database.db.transaction(async tx => {
+      const trip = await organizerTrip(tx, identifier, options.actorPersonId, true);
+      const { decideBy: _decideBy, roughCost: _roughCost, ...rest } = trip.bigQuestions ?? {};
+      void _decideBy; void _roughCost;
+      await tx.update(commons).set({ bigQuestions: { ...rest, ...(input.decideBy ? { decideBy: input.decideBy } : {}), ...(input.roughCost ? { roughCost: input.roughCost } : {}) }, updatedAt: new Date() }).where(eq(commons.id, trip.id));
+    });
+  } finally { await database.close(); }
+}
+
+const ExperienceSchema = z.object({ enabled: z.boolean() }).strict();
+
+/**
+ * The organizer's "New experience" setting. It changes presentation only: plans, costs, people and any trip fee stay exactly
+ * as they are, and turning it off hides nothing permanently. A trip that already has people, costs or photos is past deciding.
+ */
+export async function setTripExperience(identifier: string, raw: unknown, options: Options) {
+  const input = ExperienceSchema.parse(raw), database = createDatabase(options.databaseUrl);
+  try {
+    return await database.db.transaction(async tx => {
+      const trip = await organizerTrip(tx, identifier, options.actorPersonId, true);
+      const now = new Date();
+      const [others] = await tx.select({ total: count() }).from(memberships).where(and(eq(memberships.commonsId, trip.id), inArray(memberships.status, ["active", "invited"]), ne(memberships.personId, options.actorPersonId)));
+      // Gating is for trips still deciding. A trip with people, costs or photos already has them, and switching can't put them behind a gate.
+      const [spent] = await tx.select({ total: count() }).from(expenses).where(eq(expenses.commonsId, trip.id));
+      const [photos] = await tx.select({ total: count() }).from(moments).where(eq(moments.commonsId, trip.id));
+      const underway = Number(others?.total ?? 0) + Number(spent?.total ?? 0) + Number(photos?.total ?? 0) > 0;
+      const goingAt = input.enabled && !trip.goingAt && underway ? now : trip.goingAt;
+      await tx.update(commons).set({ newExperience: input.enabled, goingAt, updatedAt: now }).where(eq(commons.id, trip.id));
+      await tx.insert(auditEvents).values({ commonsId: trip.id, commandId: `trip-experience:${randomUUID()}`, actorId: options.actorPersonId, actorType: "human", action: "trip.experience_changed", resourceType: "commons", resourceId: trip.id, summary: input.enabled ? "Turned on the new experience." : "Turned off the new experience." });
+      return { newExperience: input.enabled };
+    });
+  } finally { await database.close(); }
+}
+
+/** Whether this trip is on the new experience. Unknown trips aren't. */
+export async function tripIsNewExperience(identifier: string, databaseUrl?: string) {
+  const database = createDatabase(databaseUrl);
+  try {
+    const [trip] = await database.db.select({ on: commons.newExperience }).from(commons).where(isCommonsId(identifier) ? eq(commons.id, identifier) : eq(commons.slug, identifier));
+    return Boolean(trip?.on);
+  } finally { await database.close(); }
+}
+
+/** "We're going." An explicit organizer action after the fee is paid. Repeating it changes nothing. */
+export async function markTripGoing(identifier: string, options: Options) {
+  const database = createDatabase(options.databaseUrl);
+  try {
+    return await database.db.transaction(async tx => {
+      const trip = await organizerTrip(tx, identifier, options.actorPersonId, true);
+      if (tripStage(trip) === "going") return { stage: "going" as const };
+      const gate = await readTripInviteGate(tx, trip.id, { lock: true });
+      if (!gate.mayInvite) throw new TripActivationRequiredError(gate.state);
+      const now = new Date();
+      await tx.update(commons).set({ goingAt: now, updatedAt: now }).where(eq(commons.id, trip.id));
+      await tx.insert(auditEvents).values({ commonsId: trip.id, commandId: `trip-going:${trip.id}`, actorId: options.actorPersonId, actorType: "human", action: "trip.going", resourceType: "commons", resourceId: trip.id, summary: `Said ${trip.name} is going ahead.` }).onConflictDoNothing();
+      return { stage: "going" as const };
+    });
+  } finally { await database.close(); }
+}
+
+/** AI poll help is part of the $20. Trips with no activation draft keep the help they have today. */
+export async function tripHasPaidHelp(identifier: string, databaseUrl?: string) {
+  const database = createDatabase(databaseUrl);
+  try {
+    const [trip] = await database.db.select({ id: commons.id }).from(commons).where(isCommonsId(identifier) ? eq(commons.id, identifier) : eq(commons.slug, identifier));
+    if (!trip) return false;
+    const gate = await readTripInviteGate(database.db, trip.id);
+    return gate.state === "exempt" || gate.state === "allowed";
+  } finally { await database.close(); }
+}

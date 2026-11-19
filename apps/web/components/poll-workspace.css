@@ -1,0 +1,92 @@
+/* Polls share the event action grammar; question controls stay local. */
+.poll-organizer-shell .poll-organizer-content { width: min(100%, 52rem); padding-top: var(--cm-page-top); }
+.poll-organizer-shell .poll-page-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--cm-space-4); margin-bottom: var(--cm-space-8); }
+.poll-organizer-shell .poll-page-heading > div { min-width: 0; flex: 1; }
+.poll-organizer-shell .poll-organizer-intro h1 { max-width: 24ch; overflow-wrap: anywhere; }
+.poll-organizer-shell :is(.poll-index-content, .fieldnotes-questions) > section { margin-top: var(--cm-space-8); }
+.poll-organizer-shell .poll-index-content h2, .poll-organizer-shell .fieldnotes-builder h2, .poll-organizer-shell .poll-responses > h2 { font: 500 var(--cm-text-section)/1.15 var(--cm-font-editorial); }
+.poll-organizer-shell .poll-index-empty { padding-block: var(--cm-space-8); border-top: 1px solid var(--cm-color-line); }
+.poll-organizer-shell .poll-index-empty p { margin-top: var(--cm-space-3); max-width: 36rem; color: var(--cm-color-mineral); }
+.poll-organizer-shell .poll-index-list a:focus-visible { outline: 3px solid var(--cm-color-focus); outline-offset: 2px; }
+.poll-organizer-shell .poll-index-list a:hover { background: var(--cm-color-secondary-hover); }
+.poll-organizer-shell .fieldnotes-questions { margin-block: var(--cm-space-8); }
+.poll-organizer-shell .fieldnotes-question-editor { padding: 0; border-top: 0; }
+.poll-organizer-shell .fieldnotes-field { margin-block: var(--cm-space-4); }
+.poll-organizer-shell .fieldnotes-option-editor { border-left: 0; padding: 0 0 var(--cm-space-3); margin-block: var(--cm-space-4); }
+.poll-organizer-shell .fieldnotes-option-editor .fieldnotes-field { margin-bottom: 0; }
+.poll-organizer-shell .fieldnotes-context summary { font-size: var(--cm-text-utility); }
+.poll-organizer-shell .poll-question-section__toggle { border-radius: 0; }
+.poll-organizer-shell .poll-question-section__toggle strong { font-size: var(--cm-text-heading); }
+.poll-organizer-shell .poll-question-section__toggle small { font-size: var(--cm-text-utility); }
+.poll-organizer-shell .poll-question-section__toggle > span:last-child { color: var(--cm-color-green); font-size: var(--cm-text-utility); flex-shrink: 0; white-space: nowrap; }
+.poll-organizer-shell .poll-question-section__toggle:hover { background: var(--cm-color-secondary-hover); }
+.poll-organizer-shell .poll-question-settings { margin-bottom: var(--cm-space-4); }
+.poll-question-picker > summary { width: fit-content; list-style: none; }
+.poll-question-picker > summary::-webkit-details-marker { display: none; }
+.poll-question-picker[open] > summary svg { transform: rotate(45deg); }
+.poll-question-types { display: grid; gap: var(--cm-space-2); margin-top: var(--cm-space-3); max-width: 24rem; }
+.poll-question-types .cm-action { justify-content: flex-start; }
+.poll-action-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--cm-space-2); margin-top: var(--cm-space-4); }
+.poll-editor-actions { justify-content: flex-end; margin-top: var(--cm-space-8); padding-top: var(--cm-space-6); border-top: 1px solid var(--cm-color-line); }
+.poll-organizer-shell .poll-draft-status .cm-action { font: 600 var(--cm-text-utility)/1.4 var(--cm-font-interface); }
+.poll-organizer-shell .poll-preview { padding-block: var(--cm-space-4); }
+.poll-organizer-shell .poll-preview p { margin-block: var(--cm-space-3); }
+.poll-organizer-shell .poll-preview__question { padding-block: var(--cm-space-5); }
+.poll-organizer-shell .poll-preview__question li { overflow-wrap: anywhere; }
+.poll-organizer-shell .poll-preview__question strong { font-size: var(--cm-text-heading); }
+.poll-organizer-shell .poll-preview__question p { white-space: normal; }
+.poll-share-controls { display: flex; flex-wrap: wrap; gap: var(--cm-space-3); align-items: center; }
+.poll-share-controls .fieldnotes-field { flex: 1 1 16rem; }
+.poll-delivery > .cm-action { margin: var(--cm-space-3) var(--cm-space-2) 0 0; }
+.poll-organizer-shell .poll-responses article { grid-template-columns: 1fr; }
+.poll-organizer-shell .poll-responses article p, .poll-organizer-shell .poll-responses article p span { font-size: var(--cm-text-utility); }
+.poll-organizer-shell .poll-responses article p span { font-weight: 600; }
+.poll-organizer-shell .event-attendance-list li { align-items: center; gap: var(--cm-space-3); }
+.poll-organizer-shell .event-attendance-list li > span { overflow-wrap: anywhere; min-width: 0; flex: 1 1 12rem; }
+.poll-organizer-shell :is(input, select, textarea, summary, button, a):focus-visible, .public-poll-body :is(input, select, textarea, summary, button, a):focus-visible { outline: 3px solid var(--cm-color-focus); outline-offset: 2px; }
+.poll-organizer-shell .fieldnotes-toolbar:has(> input) { min-height: var(--cm-touch-target); padding-block: var(--cm-space-2); }
+.poll-organizer-shell input[type="checkbox"], .public-poll-body input[type="checkbox"] { accent-color: var(--cm-color-ink); }
+.public-poll-body .poll-revise { display: inline-flex; align-items: center; justify-content: center; width: auto; min-height: var(--cm-action-height); padding: var(--cm-space-2) var(--cm-space-4); margin-top: var(--cm-space-4); }
+.public-poll-body .poll-revise:hover { background: var(--cm-color-secondary-hover); }
+.poll-availability-choices { display: grid; gap: var(--cm-space-2); }
+.public-poll-body .poll-availability-choices .poll-option { min-height: 4rem; padding: var(--cm-space-4); margin: 0; }
+.public-poll-body .poll-availability-choices .poll-option strong { font-size: var(--cm-text-body); line-height: 1.5; }
+.poll-availability-choices .poll-option-group { margin: 0; }
+.poll-help, .poll-change-review p { font-size: var(--cm-text-utility); line-height: 1.5; color: var(--cm-color-mineral); }
+.poll-calendar { max-width: 28rem; }
+.poll-calendar-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--cm-space-2); }
+.poll-calendar-heading label { min-width: 0; }
+.poll-calendar-heading input { width: 100%; min-width: 0; min-height: var(--cm-touch-target); padding: var(--cm-space-2); border: 1px solid var(--cm-color-control-border); border-radius: var(--cm-radius-compact); background: var(--cm-color-paper); font-size: 1rem; }
+.poll-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin-top: var(--cm-space-3); }
+.poll-calendar-grid > span { text-align: center; padding-block: var(--cm-space-2); font-size: var(--cm-text-utility); color: var(--cm-color-mineral); }
+.poll-organizer-shell .poll-calendar-grid button { position: relative; min-width: 0; border-radius: var(--cm-radius-compact); border-color: transparent; background: transparent; min-height: var(--cm-touch-target); padding: var(--cm-space-2) 0; font-size: var(--cm-text-utility); }
+.poll-result-option > div > strong { min-width: 0; overflow-wrap: anywhere; }
+.poll-result-option > div > span { flex-shrink: 0; }
+.poll-organizer-shell .poll-calendar-grid button[aria-pressed="true"] { background: var(--cm-color-ink); color: var(--cm-color-paper); }
+.poll-calendar-grid button > span { position: absolute; right: 3px; bottom: 2px; font-size: .625rem; }
+.poll-organizer-shell .poll-calendar-grid button:enabled:hover { outline: 1px solid var(--cm-color-green); outline-offset: -1px; }
+.poll-organizer-shell .poll-calendar-grid button:focus-visible { outline: 3px solid var(--cm-color-focus); outline-offset: 2px; z-index: 1; }
+.poll-selected-days { list-style: none; padding: 0; margin-top: var(--cm-space-4); }
+.poll-selected-days li { display: flex; align-items: center; justify-content: space-between; gap: var(--cm-space-2); border-bottom: 1px solid var(--cm-color-line); font-size: var(--cm-text-utility); }
+.poll-date-option { border: 0; border-top: 1px solid var(--cm-color-line); min-width: 0; margin-block: var(--cm-space-4); padding: var(--cm-space-3) 0; }
+.poll-date-option legend { font-size: var(--cm-text-utility); font-weight: 600; padding-right: var(--cm-space-3); }
+.poll-date-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--cm-space-3); }
+.poll-organizer-shell .poll-date-fields .fieldnotes-field { margin: 0; }
+.poll-change-review { padding: var(--cm-space-4); margin-block: var(--cm-space-4); border: 1px solid var(--cm-color-line); background: var(--cm-color-paper); border-radius: var(--cm-radius-control); }
+@media (min-width: 700px) {
+  .poll-date-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .poll-date-fields:has(> :nth-child(3)) { grid-template-columns: 2fr 1fr 1fr; }
+  .poll-organizer-shell .poll-responses article { grid-template-columns: 8rem minmax(0, 1fr); }
+}
+@media (max-width: 430px) { .poll-editor-actions > .cm-action { flex: 1 1 8rem; } }
+.poll-typed-answer__row { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--cm-space-2); margin-block: var(--cm-space-4); }
+.poll-typed-answer__row span { overflow-wrap: anywhere; }
+.poll-typed-answer__row :is(select, input) { width: 100%; min-width: 0; min-height: var(--cm-touch-target); padding: var(--cm-space-2) var(--cm-space-3); border: 1px solid var(--cm-color-control-border); border-radius: var(--cm-radius-compact); background: var(--cm-color-paper); font: inherit; font-size: 1rem; color: var(--cm-color-ink); }
+.poll-typed-answer__row :is(select, input):focus-visible { outline: 3px solid var(--cm-color-ember); outline-offset: 2px; }
+
+/* Poll framing help: one visible action at the top of the editor. */
+.poll-organizer-shell .poll-framing-help { margin-block: var(--cm-space-4); padding: var(--cm-space-4); border: 1px solid var(--cm-color-line); border-radius: var(--cm-radius-control); background: var(--cm-color-board); }
+.poll-organizer-shell .poll-framing-help .cm-action { min-height: var(--cm-touch-target); }
+.poll-organizer-shell .poll-framing-privacy { font-size: var(--cm-text-utility); color: var(--cm-color-mineral); }
+.poll-organizer-shell .poll-framing-suggestion { background: var(--cm-color-paper); padding-inline: var(--cm-space-4); }
+.poll-organizer-shell .poll-framing-change { margin-top: var(--cm-space-4); }

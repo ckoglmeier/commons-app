@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-EWLAcUvdmkjertOym4Q1MmifDn9w2",
+  "object": "chat.completion",
+  "created": 1791376582,
+  "model": "gpt-6.1-sol",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"reply\":\"I propose one select-all-that-work question using the three fictional options. This does not change the saved Synthetic Peak Lodge booking for Feb 12–15, 2027, which differs from the trip’s Nov 5–7, 2026 dates. An organizer can resolve that saved-record mismatch in Plan separately. Review the proposal before applying it.\",\"title\":\"Lodging preferences: three fictional options\",\"intro\":\"Please select every lodging option that would work for you. This poll gathers preferences only; it does not book rooms or commit anyone to a stay.\",\"message\":{\"heading\":\"Help narrow down our lodging options\",\"paragraphs\":[\"Please share which options work for you so we can narrow down the location and lodging style.\"]},\"questions\":[{\"kind\":\"choice\",\"prompt\":\"Which of these fictional lodging options would work for you? Select all that apply. The estimates assume six adults in three rooms for two nights; the king-only option involves sharing a bed with two adults per room.\",\"required\":true,\"selectionMode\":\"multiple\",\"options\":[{\"label\":\"QA Plaza Inn\",\"description\":\"Walkable, simple boutique. two queen beds. Est. USD $320/room/night; 3 rooms, 2 nights, 6 people: $1,920 group total; $320 per person. Fees unknown; not a quote. Rates are before '\",\"exclusive\":false,\"url\":null},{\"label\":\"QA Garden Resort\",\"description\":\"Pool/spa, short ride to plaza. two queen beds. Est. USD $480/room/night; 3 rooms, 2 nights, 6 people: $2,880 group total; $480 per person. Fees unknown; not a quote. Rates are b\",\"exclusive\":false,\"url\":null},{\"label\":\"QA Vineyard Retreat\",\"description\":\"Quiet countryside. king beds only. Est. USD $620/room/night; 3 rooms, 2 nights, 6 people: $3,720 group total; $620 per person. Fees unknown; not a quote. Rates are before taxes.\",\"exclusive\":false,\"url\":null}]}],\"sourceLinks\":[],\"threadSummary\":\"Discussion is leaning toward comparing three fictional lodging options for six adults, using estimated costs for three rooms and two nights. No lodging choice has been made.\",\"openQuestions\":[]}",
+        "refusal": null,
+        "annotations": []
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 5451,
+    "completion_tokens": 537,
+    "total_tokens": 5988,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 5448,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 54,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": null
+}

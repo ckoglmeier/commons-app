@@ -1,0 +1,134 @@
+.event-logistics-layout { display: grid; gap: var(--cm-space-8); }
+.event-logistics-main, .event-logistics-side { min-width: 0; }
+.event-people-inline { border-top: 1px solid var(--cm-color-line); margin-bottom: var(--cm-space-8); }
+.people-inline-section > h2 { min-height: var(--cm-touch-target); display: flex; align-items: center; margin: var(--cm-space-4) 0 var(--cm-space-3); font: 500 var(--cm-text-section)/1.15 var(--cm-font-editorial); }
+.people-inline-section .people-counts { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--cm-space-3) var(--cm-space-5); padding: 0; margin: 0; border: 0; }
+.people-inline-section .people-counts > span { display: inline-flex; gap: var(--cm-space-2); align-items: baseline; padding: 0; border: 0; }
+.people-inline-section .people-counts strong { font: 650 var(--cm-text-utility)/1.4 var(--cm-font-interface); }
+.people-inline-section .people-counts small { font: 500 var(--cm-text-utility)/1.4 var(--cm-font-interface); overflow: visible; white-space: normal; }
+.people-inline-section .people-row__summary strong { font: 650 var(--cm-text-heading)/1.3 var(--cm-font-interface); }
+.people-inline-section .people-row__summary small, .people-inline-section .people-row__summary strong em, .people-inline-section .people-status { font: 500 var(--cm-text-meta)/1.4 var(--cm-font-interface); }
+.people-inline-section .people-row__summary strong em { letter-spacing: normal; text-transform: none; }
+.people-inline-section .people-row { padding-block: var(--cm-space-3) var(--cm-space-5); }
+.people-inline-section .people-row__summary small { white-space: normal; overflow-wrap: anywhere; }
+.people-inline-section .people-row__details { padding-left: 0; }
+.people-inline-section .people-row__summary strong em { display: block; margin-left: 0; }
+.people-inline-section .people-trip-settings { margin-top: var(--cm-space-6); }
+.person-travel { display: grid; gap: var(--cm-space-4); min-width: 0; }
+.person-travel-leg { min-width: 0; }
+.person-travel-leg h4 { margin: 0 0 var(--cm-space-2); color: var(--cm-color-mineral); font-size: var(--cm-text-meta); font-weight: 600; }
+.person-travel-record { overflow-wrap: anywhere; }
+.person-travel-record > summary { position: relative; min-height: var(--cm-touch-target); display: grid; gap: var(--cm-space-2); padding-right: var(--cm-space-5); cursor: pointer; list-style: none; }
+.person-travel-record > summary::-webkit-details-marker { display: none; }
+.person-travel-record > summary::after { content: "+"; position: absolute; right: 0; top: 0; color: var(--cm-color-green); }
+.person-travel-record[open] > summary::after { content: "−"; }
+.person-travel-record > summary:focus-visible { outline: 3px solid var(--cm-color-focus); outline-offset: 2px; }
+.person-travel-record + .person-travel-record { margin-top: var(--cm-space-4); }
+.person-travel-record > summary strong { font: 600 var(--cm-text-body)/1.4 var(--cm-font-interface); }
+.person-travel-record > summary span { font: 430 var(--cm-text-body)/1.5 var(--cm-font-interface); font-variant-numeric: tabular-nums; }
+.person-travel-record > summary small { color: var(--cm-color-mineral); font-size: var(--cm-text-meta); }
+.person-travel-record > button { justify-self: start; padding-inline: 0; text-align: left; }
+.person-travel-evidence summary { min-height: var(--cm-touch-target); display: flex; align-items: center; cursor: pointer; font-size: var(--cm-text-meta); color: var(--cm-color-green); font-weight: 650; }
+.person-travel-evidence summary::after { content: "+"; margin-left: var(--cm-space-2); }
+.person-travel-evidence[open] summary::after { content: "−"; }
+.person-travel-evidence p { margin-block: var(--cm-space-2); }
+.person-travel-evidence a { min-height: var(--cm-touch-target); display: inline-flex; align-items: center; color: var(--cm-color-green); }
+.person-travel-evidence summary:focus-visible { outline: 3px solid var(--cm-color-focus); outline-offset: 2px; }
+.person-travel-add, .person-travel > .event-inline-editor { grid-column: 1 / -1; }
+.event-inline-editor { min-width: 0; padding: var(--cm-space-4); margin-block: var(--cm-space-3); background: var(--cm-color-paper); border: 1px solid var(--cm-color-line); border-radius: var(--cm-radius-control); }
+.event-inline-editor .sheet { width: 100%; max-width: none; max-height: none; padding: 0; overflow: visible; border-radius: 0; box-shadow: none; background: transparent; z-index: auto; }
+.event-inline-editor .sheet-handle, .event-inline-editor .sheet > h2, .event-inline-editor .sheet > .sheet-summary, .event-inline-editor .sheet > .sheet-footnote { display: none; }
+.event-inline-editor .sheet-header { margin-bottom: var(--cm-space-4); }
+.event-inline-editor .sheet-header > button { width: auto; min-width: var(--cm-touch-target); padding-inline: var(--cm-space-3); border-radius: var(--cm-radius-control); font-size: var(--cm-text-meta); }
+.event-inline-editor .travel-plan-list, .event-inline-editor .travel-sheet-empty { display: none; }
+.event-inline-editor input:not([type="checkbox"]):not([type="radio"]), .event-inline-editor select, .event-inline-editor textarea { max-width: 100%; min-width: 0; font-size: 1rem; }
+.event-inline-editor .field-pair, .event-inline-editor .travel-form-grid { grid-template-columns: minmax(0, 1fr); }
+.event-inline-editor .travel-kind-toggle { margin-bottom: var(--cm-space-4); }
+@media (min-width: 768px) {
+  .person-travel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .event-logistics-main .event-inline-editor .field-pair, .event-logistics-main .event-inline-editor .travel-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.event-logistics-section { padding-block: var(--cm-space-4) var(--cm-space-6); border-top: 1px solid var(--cm-color-line); }
+.event-logistics-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--cm-space-3); flex-wrap: wrap; margin-bottom: var(--cm-space-3); }
+.event-logistics-heading { min-height: var(--cm-touch-target); }
+.event-logistics-heading h3, .event-logistics-private h3 { margin: 0; font: 500 var(--cm-text-section)/1.15 var(--cm-font-editorial); }
+.event-logistics-heading button, .event-logistics-heading a, .event-preferences-link { min-height: var(--cm-touch-target); display: inline-flex; align-items: center; gap: var(--cm-space-2); padding: var(--cm-space-2) 0; background: transparent; border: 0; color: var(--cm-color-green); font-size: var(--cm-text-meta); font-weight: 700; text-decoration: none; }
+.event-logistics-heading .cm-action { padding: var(--cm-space-2) var(--cm-space-3); border: 1px solid var(--cm-color-line); background: var(--cm-color-paper); font-size: var(--cm-text-utility); }
+.event-logistics-heading svg, .event-related-links svg, .event-stay-record summary > svg, .event-logistics-private svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+.event-basics-list { margin: 0; font: 430 var(--cm-text-body)/1.5 var(--cm-font-interface); }
+.event-basics-list > div { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: var(--cm-space-3); padding-block: var(--cm-space-3); }
+.event-basics-list dt { color: var(--cm-color-mineral); }
+.event-basics-list dd { margin: 0; overflow-wrap: anywhere; }
+.event-stay-record + .event-stay-record, .event-rental-record + .event-rental-record { border-top: 1px solid var(--cm-color-line); }
+.event-stay-record { padding-bottom: var(--cm-space-5); }
+.event-stay-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--cm-space-2); align-items: start; }
+.event-stay-details { min-width: 0; }
+.event-stay-edit { min-width: var(--cm-touch-target); min-height: var(--cm-touch-target); margin-top: var(--cm-space-2); padding: var(--cm-space-2); border: 0; background: transparent; color: var(--cm-color-green); font: 600 var(--cm-text-utility)/1.4 var(--cm-font-interface); }
+.event-stay-edit:focus-visible, .stay-address-actions :focus-visible { outline: 3px solid var(--cm-color-focus); outline-offset: 2px; }
+.event-stay-address { margin: 0 0 var(--cm-space-3); overflow-wrap: anywhere; font: 430 var(--cm-text-body)/1.5 var(--cm-font-interface); }
+.stay-address-actions { display: flex; flex-wrap: wrap; gap: var(--cm-space-2); }
+.stay-address-actions > button, .stay-address-actions > a { flex: 1 1 auto; min-height: var(--cm-touch-target); padding: var(--cm-space-2) var(--cm-space-3); display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--cm-color-line); border-radius: var(--cm-radius-control); color: var(--cm-color-ink); background: transparent; text-decoration: none; font: 600 var(--cm-text-utility)/1.4 var(--cm-font-interface); }
+.event-stay-record summary { min-height: var(--cm-touch-target); display: flex; align-items: center; justify-content: space-between; gap: var(--cm-space-4); padding-block: var(--cm-space-4); cursor: pointer; list-style: none; }
+.event-stay-record summary::-webkit-details-marker { display: none; }
+.event-stay-record summary:focus-visible { outline: 3px solid var(--cm-color-focus); outline-offset: 2px; }
+.event-stay-record summary strong, .event-stay-record summary small { display: block; }
+.event-stay-record summary strong { font: 600 var(--cm-text-body)/1.4 var(--cm-font-interface); }
+.event-stay-record summary small { margin-top: var(--cm-space-2); color: var(--cm-color-mineral); font: 500 var(--cm-text-meta)/1.4 var(--cm-font-interface); }
+.event-stay-details[open] summary > svg { transform: rotate(90deg); }
+.event-stay-content { padding-bottom: var(--cm-space-4); }
+.event-stay-content p, .event-rental-record p, .event-people-names { margin: 0 0 var(--cm-space-3); overflow-wrap: anywhere; }
+.event-related-links { display: flex; align-items: center; flex-wrap: wrap; gap: var(--cm-space-3); }
+.event-related-links > a, .event-related-links > button { min-height: var(--cm-touch-target); display: inline-flex; align-items: center; justify-content: center; gap: var(--cm-space-2); padding: var(--cm-space-2) var(--cm-space-4); border: 1px solid var(--cm-color-line); border-radius: var(--cm-radius-control); color: var(--cm-color-ink); background: transparent; font-size: var(--cm-text-meta); font-weight: 700; text-decoration: none; }
+.plan-related-links { margin-bottom: var(--cm-space-6); }
+.event-logistics-add { padding-block: var(--cm-space-4); border-top: 1px solid var(--cm-color-line); }
+.event-travel-coverage { display: grid; gap: var(--cm-space-4); }
+.event-travel-coverage p { margin: 0; }
+.event-travel-coverage strong, .event-travel-coverage span { display: block; }
+.event-travel-coverage span { margin-top: var(--cm-space-2); }
+.event-logistics-note, .event-rental-record small { font-size: var(--cm-text-meta); color: var(--cm-color-mineral); }
+.event-rental-record { padding-block: var(--cm-space-4); }
+.event-logistics-private { padding: var(--cm-space-5); background: var(--cm-color-paper); border: 1px solid var(--cm-color-line); border-radius: var(--cm-radius-control); }
+.event-logistics-private h3 { display: flex; align-items: center; gap: var(--cm-space-2); margin-bottom: var(--cm-space-3); }
+.event-logistics-private a, .event-logistics-private button { width: 100%; min-height: var(--cm-touch-target); padding-block: var(--cm-space-3); display: flex; align-items: center; justify-content: space-between; gap: var(--cm-space-3); border: 0; border-top: 1px solid var(--cm-color-line); background: transparent; color: var(--cm-color-ink); text-align: left; text-decoration: none; overflow-wrap: anywhere; }
+@media (min-width: 1100px) {
+  .event-logistics-view { width: min(100%, 72rem); }
+  .event-logistics-layout { grid-template-columns: minmax(0, 1.8fr) minmax(14rem, 1fr); gap: var(--cm-space-10); }
+  .event-logistics-main { grid-column: 1; grid-row: 1; }
+  .event-logistics-side { grid-column: 2; grid-row: 1; }
+}
+.event-logistics-intro { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--cm-space-4); }
+.event-logistics-intro > div:first-child { min-width: 0; }
+.event-logistics-main > details > summary { min-height: var(--cm-touch-target); padding: .75rem 0; cursor: pointer; }
+.logistics-add { position: relative; flex-shrink: 0; }
+.logistics-add-trigger { display: inline-flex; align-items: center; gap: var(--cm-space-2); min-height: var(--cm-touch-target); padding: var(--cm-space-2) var(--cm-space-4); border: 1px solid var(--cm-color-ink); border-radius: var(--cm-radius-control); background: var(--cm-color-ink); color: var(--cm-color-paper); font-size: var(--cm-text-utility); font-weight: 650; }
+.logistics-add-trigger svg { width: 1rem; height: 1rem; }
+.logistics-add-trigger[aria-disabled="true"] { opacity: .6; cursor: default; }
+.logistics-add-options { position: absolute; top: calc(100% + var(--cm-space-2)); left: 0; z-index: 2; width: min(13rem, calc(100vw - 2 * var(--cm-space-5))); overflow-y: auto; overscroll-behavior: contain; padding: var(--cm-space-2); background: var(--cm-color-paper); border: 1px solid var(--cm-color-line); border-radius: var(--cm-radius-control); box-shadow: var(--cm-shadow-elevated); }
+.logistics-add-options button { display: block; width: 100%; min-height: var(--cm-touch-target); padding: var(--cm-space-3); text-align: left; border: 0; border-radius: var(--cm-radius-compact); background: transparent; color: var(--cm-color-ink); font-size: var(--cm-text-body); }
+.logistics-add-options button > span, .logistics-add-options button > small { display: block; }
+.logistics-add-options button > span { font-size: var(--cm-text-utility); font-weight: 600; }
+.logistics-add-options button > small, .logistics-add-options > p { font-size: var(--cm-text-utility); line-height: 1.45; color: var(--cm-color-mineral); }
+.logistics-add-options > p { padding: var(--cm-space-3); margin: 0; }
+.logistics-add-options button:hover { background: var(--cm-color-green-wash); }
+.logistics-add button:focus-visible { outline: 3px solid var(--cm-color-focus); outline-offset: 2px; }
+
+/* Bounded, type-specific entry: one title, then the fields for that record. */
+.sheet.logistics-editor-sheet { width: min(100%, 40rem); }
+.logistics-editor-sheet .logistics-editor-header { margin-bottom: var(--cm-space-4); }
+.logistics-editor-sheet .logistics-editor-header > div { min-width: 0; }
+.logistics-editor-sheet .logistics-editor-header > button { flex-shrink: 0; }
+.logistics-editor-sheet .logistics-editor-header h2 { max-width: none; margin: 0; font: 500 var(--cm-text-section)/1.15 var(--cm-font-editorial); letter-spacing: normal; }
+.event-inline-editor .logistics-editor-header h2 { font: 650 var(--cm-text-heading)/1.3 var(--cm-font-interface); }
+.logistics-editor-sheet .stay-editor-form, .logistics-editor-sheet .travel-plan-form { margin-top: var(--cm-space-4); padding-top: 0; border-top: 0; }
+.logistics-editor-sheet .field-pair, .logistics-editor-sheet .travel-form-grid { min-width: 0; grid-template-columns: minmax(0, 1fr); }
+.logistics-editor-sheet .field { min-width: 0; }
+.logistics-editor-sheet .field > span:not(.money-input), .logistics-editor-sheet fieldset > legend { font: 600 var(--cm-text-utility)/1.4 var(--cm-font-interface); }
+.logistics-editor-sheet .field > span small, .logistics-editor-sheet fieldset > legend small { font: 500 var(--cm-text-meta)/1.4 var(--cm-font-interface); }
+.logistics-editor-sheet input:not([type="checkbox"]):not([type="radio"]), .logistics-editor-sheet select, .logistics-editor-sheet textarea { min-width: 0; max-width: 100%; min-height: var(--cm-touch-target); font-size: 1rem; }
+.logistics-editor-sheet .stay-travelers strong, .logistics-editor-sheet .travelers-field label { font: 600 var(--cm-text-utility)/1.4 var(--cm-font-interface); }
+.logistics-editor-sheet .stay-travelers small, .logistics-editor-sheet .travel-private-note small, .logistics-editor-sheet .travel-sharing small { font: 500 var(--cm-text-meta)/1.4 var(--cm-font-interface); }
+.logistics-editor-owner { margin: 0 0 var(--cm-space-4); color: var(--cm-color-mineral); font: 500 var(--cm-text-utility)/1.4 var(--cm-font-interface); }
+@media (min-width: 640px) {
+  .logistics-editor-sheet .field-pair, .logistics-editor-sheet .travel-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .event-logistics-side .event-inline-editor .field-pair { grid-template-columns: minmax(0, 1fr); }
+}

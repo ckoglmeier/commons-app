@@ -1,0 +1,1 @@
+ALTER TABLE "coordinator_sources" ADD COLUMN "removed_at" timestamp with time zone;

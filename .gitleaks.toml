@@ -1,0 +1,11 @@
+# gitleaks configuration: the default rules, plus an allowlist of synthetic values used in tests.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic test values, not secrets"
+regexes = [
+  '''abcdef123456''',
+  '''synthetic-cron-secret-0001''',
+  '''winery-decision-v1''',
+]

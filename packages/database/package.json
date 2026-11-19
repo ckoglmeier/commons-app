@@ -1,0 +1,37 @@
+{
+  "name": "@commons/database",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --import tsx --test --test-concurrency=1 src/**/*.test.ts",
+    "db:check": "drizzle-kit check --config drizzle.config.ts",
+    "db:generate": "drizzle-kit generate --config drizzle.config.ts",
+    "db:migrate": "tsx src/migrate.ts",
+    "db:migration:rehearse": "tsx src/migration-rehearsal.ts",
+    "db:schema:audit": "tsx src/schema-audit.ts",
+    "db:test:bootstrap": "tsx src/test-database-bootstrap.ts",
+    "db:seed:pilot": "tsx src/seed-pilot.ts",
+    "db:provision:demo-user": "tsx src/provision-demo-user.ts",
+    "db:provision:emails": "tsx src/provision-participant-emails.ts",
+    "db:recovery:rehearse": "tsx src/recovery-rehearsal.ts"
+  },
+  "dependencies": {
+    "@commons/contracts": "*",
+    "@commons/domain": "*",
+    "drizzle-orm": "0.45.2",
+    "postgres": "^3.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.19",
+    "drizzle-kit": "0.31.10",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3"
+  }
+}

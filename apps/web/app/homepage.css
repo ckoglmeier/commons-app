@@ -1,0 +1,91 @@
+/* Homepage composition is intentionally quieter than the operational app. */
+/* Beat the shared .trips-shell spacing regardless of stylesheet load order. */
+.trips-shell.public-trips-shell { padding-bottom: 0; }
+.public-trips-shell .global-nav { background: var(--cm-color-canvas); backdrop-filter: none; }
+.public-trips-shell .homepage-brand { max-width: 100%; flex-wrap: wrap; column-gap: var(--cm-space-2); row-gap: var(--cm-space-3); padding-block: var(--cm-space-1); }
+.public-trips-shell .homepage-brand > .homepage-brand__beta { width: auto; height: auto; padding: var(--cm-space-1) var(--cm-space-2); position: relative; top: -.3rem; align-self: flex-start; display: inline-block; border: 0; border-radius: var(--cm-radius-compact); background: var(--cm-color-coral); color: var(--cm-color-ink); font-size: var(--cm-text-meta); font-weight: 600; line-height: 1.35; letter-spacing: .02em; transform: rotate(-12deg); }
+.public-trips-shell .public-header-actions a { min-height: var(--cm-touch-target); padding-inline: var(--cm-space-2); font-size: var(--cm-text-utility); font-weight: 550; }
+.public-trips-shell .public-header-actions a:last-child:not(.profile-avatar) { background: transparent; color: var(--cm-color-ink); }
+.public-trips-shell .public-header-actions a:hover { text-decoration: underline; text-underline-offset: .25em; }
+.homepage-scene { position: relative; isolation: isolate; }
+.public-trips-shell .public-trips-content { width: 100%; margin: 0; padding: var(--cm-space-12) var(--cm-gutter-mobile) 0; }
+.public-trips-shell .public-trips-hero { grid-template-columns: minmax(0, 1fr); gap: var(--cm-space-6); padding: 0; }
+.public-trips-shell .public-trips-hero h1 { font-family: var(--cm-font-interface); font-size: clamp(1.4rem, 7.3vw, 2.9rem); font-weight: 500; line-height: 1.14; letter-spacing: -.035em; }
+.public-trips-shell .public-trips-hero h1 > span { white-space: normal; }
+.public-trips-shell .public-trips-hero h1 > span:first-child { width: fit-content; position: relative; }
+.public-trips-shell .public-trips-hero h1 > span:first-child::after { content: ""; width: 42%; height: .08em; position: absolute; bottom: -.035em; left: 0; background: var(--cm-color-coral); }
+.public-trips-shell .public-trips-pitch { max-width: 30rem; padding: 0; }
+.public-trips-shell .public-trips-pitch p { color: var(--cm-color-ink); font-size: 1rem; line-height: 1.6; font-weight: 400; }
+.homepage-invitation { max-width: 25rem; margin-top: var(--cm-space-8); }
+.homepage-primary { min-height: 3.25rem; padding: var(--cm-space-3) var(--cm-space-6); display: flex; align-items: center; justify-content: center; border: 1px solid var(--cm-color-ink); border-radius: var(--cm-radius-compact); background: var(--cm-color-ink); color: var(--cm-color-paper); font-size: 1rem; font-weight: 600; text-decoration: none; transition: transform var(--cm-duration-fast) var(--cm-ease-standard); }
+.homepage-primary:hover { background: var(--cm-color-action-hover); }
+.homepage-primary:active { background: var(--cm-color-action-pressed); transform: translateY(1px); }
+.homepage-invitation p { margin: var(--cm-space-2) 0 0; color: var(--cm-color-mineral); font-size: var(--cm-text-utility); line-height: 1.5; }
+.homepage-sample, .homepage-beta a { min-height: var(--cm-touch-target); display: inline-flex; align-items: center; gap: var(--cm-space-2); color: var(--cm-color-green); font-size: var(--cm-text-body); font-weight: 500; text-decoration: underline; text-underline-offset: .25em; }
+.homepage-sample { margin-top: var(--cm-space-3); }
+.homepage-sample:hover, .homepage-beta a:hover { color: var(--cm-color-ink); text-decoration-thickness: 2px; }
+.public-trips-content .homepage-beta { margin-top: var(--cm-space-8); padding: 0; border: 0; }
+.homepage-beta p { margin: var(--cm-space-1) 0 0; color: var(--cm-color-ink); font-size: var(--cm-text-body); line-height: 1.6; }
+/* Keep the beach group in the stacked crop, not below a tall blank sky area. */
+.homepage-coast {
+  /* Broader fog on phones, ending above the family as the crop widens.
+     These black values control mask alpha, not the visible color palette. */
+  --homepage-fog-depth: clamp(var(--cm-space-12), calc(12rem - 20vw), 6rem);
+  width: 100%; max-width: 44rem; height: clamp(12rem, 26dvh, 16rem);
+  margin: var(--cm-space-2) 0 0 auto; position: relative; z-index: -1;
+  pointer-events: none; background: var(--cm-color-canvas);
+  mask-image: linear-gradient(to bottom,
+    transparent,
+    rgb(0 0 0 / 4%) calc(var(--homepage-fog-depth) * .18),
+    rgb(0 0 0 / 24%) calc(var(--homepage-fog-depth) * .4),
+    rgb(0 0 0 / 60%) calc(var(--homepage-fog-depth) * .64),
+    rgb(0 0 0 / 90%) calc(var(--homepage-fog-depth) * .84),
+    black var(--homepage-fog-depth));
+}
+.homepage-coast img { object-fit: cover; object-position: right bottom; }
+@media (min-width: 768px) {
+  .public-trips-shell .public-trips-content { padding: var(--cm-space-16) var(--cm-space-12) 0; }
+  .public-trips-shell .public-trips-hero h1 { font-size: clamp(2.6rem, 4.15vw, 4rem); }
+  .public-trips-shell .public-trips-pitch { max-width: 28rem; }
+  .public-trips-shell .public-trips-pitch p { font-size: 1.125rem; }
+  .homepage-invitation { max-width: 22rem; }
+}
+@media (min-width: 1100px) {
+  .homepage-scene { min-height: calc(100dvh - var(--cm-header-height)); }
+  .public-trips-shell .global-nav { padding-inline: var(--cm-space-16); }
+  .public-trips-shell .public-trips-content { padding: var(--cm-space-16); }
+  .public-trips-shell .public-trips-pitch { max-width: min(30rem, 42vw); }
+  .homepage-beta { max-width: min(32rem, 42vw); }
+  .homepage-coast { max-width: none; height: auto; margin: 0; position: absolute; inset: 0; mask-image: linear-gradient(to right, transparent, black 65%); }
+  /* A taller text layout must not enlarge and crop the family into the copy. */
+  .homepage-coast img { object-fit: contain; object-position: right bottom; }
+}
+@media (prefers-reduced-motion: reduce) { .homepage-primary:active { transform: none; } }
+
+/* Participant questions: organizer task block and traveler answer page. Controls reuse cm-action and workspace-task-form. */
+.pq-section { display: grid; gap: var(--cm-space-3); margin-block: var(--cm-space-3); }
+.pq-question, .pq-answer { display: grid; gap: var(--cm-space-2); min-width: 0; overflow-wrap: anywhere; }
+.pq-question { padding-top: var(--cm-space-3); border-top: 1px solid var(--cm-color-line); }
+.pq-answer blockquote, .pq-ask { margin: 0; padding-left: var(--cm-space-3); border-left: 3px solid var(--cm-color-line); }
+.pq-answer-page { display: grid; gap: var(--cm-space-3); min-width: 0; overflow-wrap: anywhere; }
+.pq-form { display: grid; gap: var(--cm-space-2); }
+.pq-form textarea, .pq-form input, .pq-form select { width: 100%; max-width: 100%; min-height: var(--cm-touch-target); font: inherit; font-size: 16px; }
+.pq-form textarea:focus-visible, .pq-form input:focus-visible, .pq-form select:focus-visible { outline: 3px solid var(--cm-color-focus); outline-offset: 2px; }
+
+.trips-own-trip { margin: 0 0 var(--cm-space-6); }
+.trips-own-trip a { min-height: var(--cm-touch-target); display: inline-flex; align-items: center; color: var(--cm-color-green); font-size: var(--cm-text-body); font-weight: 500; text-decoration: underline; text-underline-offset: .25em; }
+.trips-own-trip a:hover { color: var(--cm-color-ink); text-decoration-thickness: 2px; }
+.poll-own-trip { margin: var(--cm-space-6) 0 0; }
+.poll-own-trip a { min-height: var(--cm-touch-target); display: inline-flex; align-items: center; color: var(--cm-color-green); font-size: var(--cm-text-body); font-weight: 500; text-decoration: underline; text-underline-offset: .25em; }
+
+/* Quiet operational link (Support and your data). */
+.homepage-support { margin: var(--cm-space-4) 0 0; font-size: var(--cm-text-meta); }
+.homepage-support a { display: inline-flex; min-height: var(--cm-touch-target); align-items: center; color: var(--cm-color-green); }
+
+/* With the marketing footer, stacked artwork ends the hero naturally.
+   The standalone homepage still retains its viewport-height canvas. */
+@media (max-width: 1099px) {
+  .trips-shell.public-trips-shell:has(+ footer[aria-label="Explore Commons"]) {
+    min-height: 0;
+  }
+}

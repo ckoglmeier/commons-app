@@ -1,0 +1,33 @@
+/* The full Commons wordmark and Bird A share one calm, accessible lockup. */
+body strong.cm-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: .375em;
+  color: var(--cm-color-ink);
+  font-family: var(--cm-font-interface);
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -.035em;
+  white-space: nowrap;
+}
+body strong.cm-wordmark > svg {
+  width: 1.45em;
+  height: 1.45em;
+  flex: none;
+  margin: 0;
+}
+strong.cm-wordmark > span { display: block; }
+/* Flex-wrap keeps account/sign-in actions reachable when text is enlarged. */
+.global-nav.global-nav--index { display: flex; flex-wrap: wrap; justify-content: space-between; padding-block: var(--cm-space-2); }
+.global-nav.global-nav--index > .workspace-actions { margin-left: auto; }
+@media (max-width: 767px) {
+  body .global-nav { display: flex; flex-wrap: wrap; justify-content: space-between; padding-block: var(--cm-space-2); }
+  .global-nav > .workspace-actions { margin-left: auto; }
+}
+/* Arrival already owns a controlled Ink image scrim. */
+.trip-arrival__brand, .invite-arrival__brand {
+  padding: 0;
+  background: transparent;
+}
+.trip-arrival__brand strong.cm-wordmark, .invite-arrival__brand strong.cm-wordmark { color: var(--cm-color-paper); }

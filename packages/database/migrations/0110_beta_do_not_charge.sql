@@ -1,0 +1,1 @@
+ALTER TABLE "people" ADD COLUMN "do_not_charge" boolean DEFAULT true NOT NULL;

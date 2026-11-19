@@ -1,0 +1,198 @@
+/* Persistent trip shell: rail at 1100px and wider, compact header with a Menu dialog below.
+   Everything is scoped to .trip-shell / .trip-identity / .trip-shell-page. Tokens: --cm-shell-*, --cm-document-max (packages/ui/src/tokens.css). */
+
+.trip-shell { min-height: 100dvh; background: var(--cm-color-canvas); color: var(--cm-color-ink); }
+
+/* Compact header (< 1100px) */
+.trip-shell__compact { height: var(--cm-shell-compact-header-height); padding: 0 var(--cm-gutter-mobile); position: sticky; z-index: 30; top: 0; display: flex; align-items: center; gap: var(--cm-space-3); border-bottom: 1px solid var(--cm-color-line); background: var(--cm-color-paper); }
+.trip-shell__brand { min-height: var(--cm-touch-target); display: inline-flex; align-items: center; flex: 0 0 auto; color: var(--cm-color-ink); text-decoration: none; }
+.trip-shell__brand[aria-disabled="true"], .trip-shell__trips[aria-disabled="true"] { opacity: .6; pointer-events: none; }
+.trip-shell__compact-name { min-width: 0; margin: 0; flex: 1 1 auto; overflow: hidden; color: var(--cm-color-mineral); font-size: var(--cm-text-utility); font-weight: 650; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.trip-shell__menu-button { min-width: var(--cm-touch-target); min-height: var(--cm-touch-target); padding: 0 var(--cm-space-3); flex: 0 0 auto; display: inline-flex; align-items: center; gap: var(--cm-space-2); border: 1px solid var(--cm-color-line); border-radius: var(--cm-radius-control); background: var(--cm-color-paper); color: var(--cm-color-ink); font: inherit; font-size: var(--cm-text-utility); font-weight: 650; cursor: pointer; }
+.trip-shell__menu-button svg { width: 1.25rem; height: 1.25rem; }
+.trip-shell__menu-button:hover { background: var(--cm-color-green-wash); }
+.trip-shell__menu-button:disabled { opacity: .6; cursor: default; }
+
+/* Rail (>= 1100px) */
+.trip-shell__rail { display: none; }
+
+/* Content */
+.trip-shell__content { min-width: 0; outline: none; }
+.trip-shell__content:focus-visible { outline: 3px solid var(--cm-color-focus); outline-offset: -3px; }
+
+/* Fill mode: a fixed-height app surface; the workspace manages its own scrolling. Short viewports keep a floor so the page scrolls instead of trapping content. */
+.trip-shell[data-fill] .trip-shell__content { height: max(calc(100dvh - var(--cm-shell-compact-header-height)), 20rem); overflow: hidden; display: flex; flex-direction: column; }
+.trip-shell[data-fill] .trip-shell__content > * { flex: 1 1 auto; min-height: 0; min-width: 0; }
+
+/* Page content wrapper for Trip, Plan, Money and Photos */
+.trip-shell-page { width: 100%; max-width: var(--cm-content-max); margin-inline: auto; padding: var(--cm-space-5) var(--cm-gutter-mobile) max(var(--cm-space-12), env(safe-area-inset-bottom)); box-sizing: border-box; }
+.trip-shell-page--document { max-width: var(--cm-document-max); }
+.trip-shell .workspace { width: 100%; min-width: 0; min-height: 0; padding: 0; grid-column: auto; grid-row: auto; background: transparent; }
+.trip-shell .workspace-scroll { max-width: none; margin: 0; padding: 0; overflow: visible; height: auto; }
+.trip-shell .workspace-scroll > .product-view, .trip-shell-page .product-view { width: 100%; max-width: none; margin: 0; padding: 0 0 var(--cm-space-12); }
+.trip-shell .home-dashboard, .trip-shell .product-view.home-dashboard { height: auto; overflow: visible; }
+
+/* Trip is a page, not independent scrolling dashboard panels. Keep Add menus unclipped. */
+.trip-shell .home-dashboard__rail, .trip-shell .home-dashboard .home-dashboard__shortcuts { overflow: visible; }
+
+/* Trip identity (rail and Menu) */
+.trip-identity { min-width: 0; display: grid; gap: var(--cm-space-3); }
+.trip-identity__media { width: 100%; max-height: 11rem; position: relative; overflow: hidden; aspect-ratio: var(--cm-trip-cover-fallback-ratio); border-radius: var(--cm-radius-control); background: var(--cm-color-ink); }
+.trip-identity__media .cover-sketch { position: absolute; inset: 0; }
+.trip-identity__photo { object-fit: contain; }
+.trip-identity__text { min-width: 0; display: grid; gap: var(--cm-space-1); }
+.trip-identity__name { margin: 0; color: var(--cm-color-ink); font-size: 1.125rem; font-weight: 700; line-height: 1.25; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.trip-identity__meta { margin: 0; color: var(--cm-color-mineral); font-size: var(--cm-text-utility); line-height: 1.4; overflow-wrap: anywhere; }
+.trip-identity__demo { justify-self: start; padding: 0 var(--cm-space-2); border-radius: 999px; background: var(--cm-color-ember-wash); color: var(--cm-color-ember); font-size: var(--cm-text-meta); font-weight: 750; letter-spacing: .04em; }
+.trip-identity__row { min-width: 0; display: flex; align-items: center; gap: var(--cm-space-1); }
+.trip-identity__people { min-width: 0; min-height: var(--cm-touch-target); padding: 0 var(--cm-space-2); margin-left: calc(var(--cm-space-2) * -1); flex: 1 1 auto; display: flex; align-items: center; gap: var(--cm-space-2); border: 0; border-radius: var(--cm-radius-control); background: transparent; color: var(--cm-color-green); font: inherit; font-size: var(--cm-text-utility); font-weight: 650; text-align: left; cursor: pointer; }
+.trip-identity__people--static { color: var(--cm-color-mineral); cursor: default; }
+.trip-identity__people > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trip-identity__people > svg { width: 1rem; height: 1rem; flex: 0 0 auto; margin-left: auto; }
+button.trip-identity__people:hover { background: var(--cm-color-green-wash); }
+.trip-identity .participant-stack span { width: 1.75rem; height: 1.75rem; }
+.trip-identity__options-toggle { width: var(--cm-touch-target); height: var(--cm-touch-target); flex: 0 0 auto; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--cm-color-mineral); cursor: pointer; }
+.trip-identity__options-toggle svg { width: 1.25rem; height: 1.25rem; }
+.trip-identity__options-toggle:hover, .trip-identity__options-toggle[aria-expanded="true"] { background: var(--cm-color-green-wash); color: var(--cm-color-ink); }
+.trip-identity__options { display: grid; gap: var(--cm-space-1); padding: var(--cm-space-1); border: 1px solid var(--cm-color-line); border-radius: var(--cm-radius-control); background: var(--cm-color-paper); }
+.trip-identity__options button, .trip-identity__options a { width: 100%; min-height: var(--cm-touch-target); padding: 0 var(--cm-space-3); display: flex; align-items: center; border: 0; border-radius: .65rem; background: transparent; color: var(--cm-color-ink); font: inherit; font-size: var(--cm-text-utility); font-weight: 650; text-align: left; text-decoration: none; cursor: pointer; }
+.trip-identity__options button:hover, .trip-identity__options a:hover { background: var(--cm-color-green-wash); }
+.trip-identity__conversation, .trip-identity__walkthrough { width: 100%; min-height: var(--cm-touch-target); padding: var(--cm-space-2) var(--cm-space-3); display: flex; align-items: center; gap: var(--cm-space-3); border: 1px solid var(--cm-color-line); border-radius: var(--cm-radius-control); background: var(--cm-color-paper); color: var(--cm-color-ink); font: inherit; text-align: left; cursor: pointer; }
+.trip-identity__conversation:hover, .trip-identity__walkthrough:hover { background: var(--cm-color-green-wash); }
+.trip-identity__conversation > svg, .trip-identity__walkthrough svg { width: 1.125rem; height: 1.125rem; flex: 0 0 auto; color: var(--cm-color-green); }
+.trip-identity__walkthrough > span:first-child { width: 1.125rem; height: 1.125rem; flex: 0 0 auto; }
+.trip-identity__conversation strong, .trip-identity__walkthrough strong { display: block; font-size: var(--cm-text-utility); }
+.trip-identity__conversation small, .trip-identity__walkthrough small { display: block; color: var(--cm-color-mineral); font-size: var(--cm-text-meta); }
+
+/* Destination links (rail and Menu share the same links) */
+.trip-shell__nav { display: grid; gap: var(--cm-space-1); }
+.trip-shell__nav a { min-height: var(--cm-touch-target); padding: 0 var(--cm-space-3); display: flex; align-items: center; gap: var(--cm-space-3); border-radius: .75rem; color: var(--cm-color-mineral); font-size: var(--cm-text-utility); font-weight: 650; text-decoration: none; }
+.trip-shell__nav svg { width: 1.125rem; height: 1.125rem; flex: 0 0 auto; }
+.trip-shell__nav a:hover { background: var(--cm-color-green-wash); color: var(--cm-color-ink); }
+.trip-shell__nav a:active { background: var(--cm-color-secondary-pressed); }
+.trip-shell__nav a[aria-current="page"] { background: var(--cm-color-green-wash); color: var(--cm-color-ink); box-shadow: inset 3px 0 0 var(--cm-color-green); }
+.trip-shell__trips, .trip-shell__sign-in { min-height: var(--cm-touch-target); padding: 0 var(--cm-space-3); display: flex; align-items: center; gap: var(--cm-space-3); border-radius: .75rem; color: var(--cm-color-mineral); font-size: var(--cm-text-utility); font-weight: 600; text-decoration: none; }
+.trip-shell__trips svg { width: 1rem; height: 1rem; }
+.trip-shell__trips:hover, .trip-shell__sign-in:hover { background: var(--cm-color-green-wash); color: var(--cm-color-ink); }
+.trip-shell__sign-in { color: var(--cm-color-ink); border: 1px solid var(--cm-color-line); font-weight: 650; }
+
+/* Menu dialog */
+.trip-shell__menu { box-sizing: border-box; width: min(100% - 2rem, 28rem); max-height: calc(100dvh - 2rem); margin: auto; padding: var(--cm-space-5); border: 1px solid var(--cm-color-line); border-radius: 1.25rem; background: var(--cm-color-paper); color: var(--cm-color-ink); overflow-y: auto; overscroll-behavior: contain; }
+.trip-shell__menu[open] { display: grid; gap: var(--cm-space-4); }
+.trip-shell__menu::backdrop { background: rgb(22 55 47 / 40%); }
+.trip-shell__menu-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--cm-space-3); }
+.trip-shell__menu-heading h2 { margin: 0; font-size: 1.25rem; }
+.trip-shell__menu-trips { border-top: 1px solid var(--cm-color-line); padding-top: var(--cm-space-2); }
+.trip-shell__menu-account { display: grid; gap: var(--cm-space-2); padding-top: var(--cm-space-3); border-top: 1px solid var(--cm-color-line); }
+.trip-shell__menu-account h3 { margin: 0; display: flex; align-items: baseline; gap: var(--cm-space-2); font-size: 1rem; }
+.trip-shell__menu-account h3 small { color: var(--cm-color-mineral); font-size: var(--cm-text-utility); font-weight: 500; }
+.trip-shell__menu-account nav a { min-height: var(--cm-touch-target); padding: 0 var(--cm-space-3); display: flex; align-items: center; border-radius: .75rem; color: var(--cm-color-ink); font-size: 1rem; text-decoration: none; }
+.trip-shell__menu-account nav a:hover { background: var(--cm-color-green-wash); }
+/* In the Menu, destinations come first and the trip identity stays compact. */
+.trip-shell__menu .trip-identity__media { display: none; }
+.trip-shell__menu .trip-identity { margin-top: var(--cm-space-4); padding-top: var(--cm-space-4); border-top: 1px solid var(--cm-color-line); }
+.trip-shell__menu .trip-shell__nav a { font-size: 1rem; }
+
+/* Account at the rail foot: human initials, name and role, distinct from the Commons bird */
+.account-menu--rail { width: 100%; }
+.account-menu__rail-trigger { width: 100%; min-height: var(--cm-touch-target); padding: var(--cm-space-1) var(--cm-space-2); display: flex; align-items: center; gap: var(--cm-space-3); border: 0; border-radius: .75rem; background: transparent; color: var(--cm-color-ink); font: inherit; text-align: left; cursor: pointer; }
+.account-menu__rail-trigger:hover, .account-menu__rail-trigger[aria-expanded="true"] { background: var(--cm-color-green-wash); }
+.account-menu__initials { width: 2.25rem; height: 2.25rem; flex: 0 0 auto; display: grid; place-items: center; border: 2px solid var(--cm-color-line); border-radius: 50%; background: var(--cm-color-paper); color: var(--cm-color-green); font-size: var(--cm-text-micro); font-weight: 750; }
+.account-menu__who { min-width: 0; display: grid; line-height: 1.25; }
+.account-menu__who strong { overflow: hidden; font-size: var(--cm-text-utility); font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.account-menu__who small { color: var(--cm-color-mineral); font-size: var(--cm-text-meta); }
+.account-menu--rail .account-menu__popover { width: 100%; top: auto; right: auto; bottom: calc(100% + .35rem); left: 0; }
+.account-menu--rail .account-menu__popover::before { top: auto; bottom: -.38rem; right: auto; left: 1.25rem; transform: rotate(225deg); }
+
+@media (min-width: 1100px) {
+  /* The rail is fixed, not sticky: a modal scroll lock (body overflow hidden) makes the body a scroll container, which strands sticky elements at the page top. */
+  .trip-shell { padding-left: var(--cm-shell-rail-width); }
+  .trip-shell > .skip-link { position: fixed; }
+  .trip-shell__compact, .trip-shell__menu { display: none !important; }
+  .trip-shell__rail { width: var(--cm-shell-rail-width); height: 100dvh; min-height: 0; position: fixed; z-index: 20; top: 0; left: 0; box-sizing: border-box; display: flex; flex-direction: column; border-right: 1px solid var(--cm-color-line); background: var(--cm-color-paper); }
+  .trip-shell__rail-scroll { min-height: 0; padding: var(--cm-space-4) var(--cm-space-3) var(--cm-space-3); flex: 1 1 auto; display: grid; align-content: start; gap: var(--cm-space-4); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+  .trip-shell__rail .trip-shell__brand { padding-left: var(--cm-space-2); justify-self: start; }
+  .trip-shell__foot { padding: var(--cm-space-2) var(--cm-space-3) var(--cm-space-3); display: grid; gap: var(--cm-space-1); border-top: 1px solid var(--cm-color-line); }
+  .trip-shell__content { min-height: 100dvh; }
+  .trip-shell[data-fill] .trip-shell__content { height: max(100dvh, 22rem); min-height: 0; }
+  .trip-shell-page { padding: var(--cm-space-8) var(--cm-space-8) var(--cm-space-12); }
+}
+
+@media (min-width: 768px) and (max-width: 1099.98px) {
+  .trip-shell-page { padding-inline: var(--cm-space-8); }
+}
+
+/* Short rails: tighten so the account foot stays reachable */
+@media (min-width: 1100px) and (max-height: 40rem) {
+  .trip-shell__rail-scroll { gap: var(--cm-space-2); padding-top: var(--cm-space-2); }
+  .trip-identity__media { max-height: 5rem; }
+}
+
+@media (max-width: 1099.98px) {
+  .trip-shell__rail { display: none !important; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .trip-shell__nav a, .trip-shell__menu-button, .trip-identity__people, .account-menu__rail-trigger { transition: background var(--cm-duration-fast) var(--cm-ease-standard), color var(--cm-duration-fast) var(--cm-ease-standard); }
+}
+
+@media print {
+  .trip-shell__compact, .trip-shell__rail, .trip-shell__menu, .trip-shell > .skip-link { display: none !important; }
+  .trip-shell { display: block; }
+  .trip-shell[data-fill] .trip-shell__content { height: auto; overflow: visible; }
+}
+
+/* Lead integration: the Coordinator fill chain, Plan's two sections with the Map action, and the View in Plan receipt. */
+.trip-shell-fill { display: flex; flex-direction: column; min-height: 0; }
+.trip-shell-fill > :not([hidden]) { flex: 1 1 auto; min-height: 0; min-width: 0; display: flex; flex-direction: column; }
+.trip-shell-fill > :not([hidden]) > * { flex: 1 1 auto; min-height: 0; }
+.plan-sections-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--cm-space-2) var(--cm-space-4); border-bottom: 1px solid var(--cm-color-line); padding-bottom: var(--cm-space-3); margin-bottom: var(--cm-space-6); }
+.plan-sections-bar .plan-sections { border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
+.plan-sections-bar .plan-map-action { display: inline-flex; align-items: center; gap: var(--cm-space-2); min-height: var(--cm-touch-target); text-decoration: none; }
+.plan-sections-bar .plan-map-action svg { width: 1.125rem; height: 1.125rem; }
+.plan-sections-bar .plan-map-action[aria-current] { background: var(--cm-color-green-wash); }
+.trip-travel-stays-view > .product-view { padding: 0; }
+.trip-travel-stays-view > .product-view + .product-view { margin-top: var(--cm-space-8); }
+.plan-receipt { position: fixed; z-index: 150; left: 50%; bottom: calc(var(--cm-space-6) + env(safe-area-inset-bottom)); transform: translateX(-50%); box-sizing: border-box; width: min(calc(100% - 2 * var(--cm-gutter-mobile)), 34rem); display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--cm-space-2) var(--cm-space-3); padding: var(--cm-space-3) var(--cm-space-4); border-radius: var(--cm-radius-control); background: var(--cm-color-ink); color: var(--cm-color-paper); box-shadow: var(--cm-shadow-elevated); }
+.plan-receipt > svg { width: 1.25rem; height: 1.25rem; }
+.plan-receipt p { margin: 0; display: grid; gap: 2px; font-size: var(--cm-text-utility); }
+.plan-receipt p span { color: var(--cm-color-on-ink-secondary); }
+.plan-receipt-actions { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: var(--cm-space-2); }
+.plan-receipt .cm-action { min-height: var(--cm-touch-target); color: var(--cm-color-paper); border-color: var(--cm-color-on-ink-secondary); background: transparent; }
+.plan-receipt .cm-action--quiet { border-color: transparent; }
+.plan-receipt .cm-action:focus-visible { outline: 3px solid var(--cm-color-paper); outline-offset: 2px; }
+@media (min-width: 1100px) { .plan-receipt { left: calc(50% + var(--cm-shell-rail-width) / 2); } }
+@media print { .plan-receipt { display: none; } }
+.context-return { margin: 0 0 var(--cm-space-4); }
+.context-return a { display: inline-flex; align-items: center; gap: var(--cm-space-1); min-height: var(--cm-touch-target); color: var(--cm-color-green); font-weight: 600; }
+.context-return svg { width: 1.125rem; height: 1.125rem; }
+/* The rail is narrow: smaller overlapping avatars and no chevron keep "N travelers" readable beside Trip options. */
+.trip-shell__rail .trip-identity .participant-stack span { width: 1.375rem; height: 1.375rem; margin-left: -0.375rem; border-width: 1.5px; font-size: 0.5rem; }
+.trip-shell__rail .trip-identity__people { gap: var(--cm-space-2); padding-inline: var(--cm-space-1); margin-left: calc(var(--cm-space-1) * -1); font-size: var(--cm-text-utility); }
+.trip-shell__rail .trip-identity__people > svg { display: none; }
+
+/* Dark rail (desktop only; the compact header and Menu stay light). Popovers opened from it keep their own light surfaces. */
+@media (min-width: 1100px) {
+  .trip-shell__rail { border-right: 0; background: var(--cm-shell-rail-surface); color: var(--cm-shell-rail-text); }
+  .trip-shell__rail .trip-shell__brand, .trip-shell__rail .trip-identity__name { color: var(--cm-shell-rail-text); }
+  .trip-shell__rail .trip-identity__meta, .trip-shell__rail .trip-identity__people--static { color: var(--cm-shell-rail-text-secondary); }
+  .trip-shell__rail .trip-identity__media { box-shadow: 0 0 0 1px var(--cm-shell-rail-line); }
+  .trip-shell__rail .trip-identity__people, .trip-shell__rail .trip-identity__options-toggle { color: var(--cm-shell-rail-text); }
+  .trip-shell__rail button.trip-identity__people:hover, .trip-shell__rail .trip-identity__options-toggle:hover, .trip-shell__rail .trip-identity__options-toggle[aria-expanded="true"] { background: var(--cm-shell-rail-hover); color: var(--cm-shell-rail-text); }
+  .trip-shell__rail .trip-identity .participant-stack span { border-color: var(--cm-shell-rail-surface); }
+  .trip-shell__rail .trip-identity__conversation, .trip-shell__rail .trip-identity__walkthrough { border-color: var(--cm-shell-rail-line); background: transparent; color: var(--cm-shell-rail-text); }
+  .trip-shell__rail .trip-identity__conversation:hover, .trip-shell__rail .trip-identity__walkthrough:hover { background: var(--cm-shell-rail-hover); }
+  .trip-shell__rail .trip-identity__conversation > svg, .trip-shell__rail .trip-identity__walkthrough svg { color: var(--cm-shell-rail-text-secondary); }
+  .trip-shell__rail .trip-identity__conversation small, .trip-shell__rail .trip-identity__walkthrough small { color: var(--cm-shell-rail-text-secondary); }
+  .trip-shell__rail .trip-shell__nav a, .trip-shell__rail .trip-shell__trips, .trip-shell__rail .trip-shell__sign-in { color: var(--cm-shell-rail-text-secondary); }
+  .trip-shell__rail .trip-shell__nav a:hover, .trip-shell__rail .trip-shell__trips:hover, .trip-shell__rail .trip-shell__sign-in:hover { background: var(--cm-shell-rail-hover); color: var(--cm-shell-rail-text); }
+  .trip-shell__rail .trip-shell__nav a:active { background: var(--cm-shell-rail-active); }
+  .trip-shell__rail .trip-shell__nav a[aria-current="page"] { background: var(--cm-shell-rail-active); color: var(--cm-shell-rail-text); box-shadow: inset 3px 0 0 var(--cm-shell-rail-text); }
+  .trip-shell__rail .trip-shell__foot { border-top-color: var(--cm-shell-rail-line); }
+  .trip-shell__rail .account-menu__rail-trigger { color: var(--cm-shell-rail-text); }
+  .trip-shell__rail .account-menu__who small { color: var(--cm-shell-rail-text-secondary); }
+  .trip-shell__rail .account-menu__initials { border-color: var(--cm-shell-rail-line); }
+  .trip-shell__rail .account-menu__rail-trigger:hover, .trip-shell__rail .account-menu__rail-trigger[aria-expanded="true"] { background: var(--cm-shell-rail-hover); }
+  .trip-shell__rail :focus-visible { outline: 3px solid var(--cm-shell-rail-focus); outline-offset: 2px; }
+  .trip-shell__rail .trip-identity__options :focus-visible, .trip-shell__rail .account-menu__popover :focus-visible { outline-color: var(--cm-color-focus); }
+}

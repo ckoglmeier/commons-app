@@ -1,0 +1,1 @@
+ALTER TABLE "coordinator_turns" ADD COLUMN "workspace" jsonb;

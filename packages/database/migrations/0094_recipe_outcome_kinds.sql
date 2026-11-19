@@ -1,0 +1,2 @@
+ALTER TABLE "recipe_outcomes" DROP CONSTRAINT "recipe_outcomes_kind";--> statement-breakpoint
+ALTER TABLE "recipe_outcomes" ADD CONSTRAINT "recipe_outcomes_kind" CHECK ("recipe_outcomes"."kind" in ('dates_location','attendance','lodging'));

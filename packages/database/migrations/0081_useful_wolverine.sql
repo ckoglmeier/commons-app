@@ -1,0 +1,1 @@
+ALTER TABLE "itinerary_items" ADD COLUMN "scheduled_date" date;

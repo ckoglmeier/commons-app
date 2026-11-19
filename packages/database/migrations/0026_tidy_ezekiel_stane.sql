@@ -1,0 +1,1 @@
+ALTER TABLE "itinerary_items" ADD COLUMN "expected_cost_basis" text DEFAULT 'total' NOT NULL;

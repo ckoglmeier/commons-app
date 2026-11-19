@@ -1,0 +1,1 @@
+ALTER TABLE "beta_organizer_invites" ADD COLUMN "message" text DEFAULT '' NOT NULL;

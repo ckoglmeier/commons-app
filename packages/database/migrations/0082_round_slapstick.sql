@@ -1,0 +1,2 @@
+DROP INDEX "travel_plans_commons_person_kind_unique";--> statement-breakpoint
+CREATE UNIQUE INDEX "travel_plans_commons_person_kind_unique" ON "travel_plans" USING btree ("commons_id","person_id","kind") WHERE "travel_plans"."kind" in ('arrival', 'departure');

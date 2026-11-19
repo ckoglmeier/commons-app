@@ -1,0 +1,1 @@
+ALTER TABLE "moments" ADD COLUMN "date_status" text DEFAULT 'confirmed' NOT NULL;

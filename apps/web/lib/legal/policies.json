@@ -1,0 +1,104 @@
+{
+  "terms": {
+    "title": "Terms of Use",
+    "sections": [
+      [
+        "About these terms",
+        "{owner} runs this copy of Commons, an open source group trip planner. These Terms of Use govern your use of this copy. You must agree to them to create an account. {contactSentence}"
+      ],
+      [
+        "Who can use this copy",
+        "You must be at least 18 years old and able to enter a binding agreement to hold an account. Keep your sign-in link and email account secure and provide accurate account information. {owner} decides who may create an account here."
+      ],
+      [
+        "Children traveling with the group",
+        "An authorized adult may keep a non-login participant record for a child for trip planning. A participant record is not an independent account. Provide only information needed for the trip and get any required parent or guardian permission."
+      ],
+      [
+        "What Commons does",
+        "Commons helps people collect group input, organize plans and record shared expenses. It is not a travel agent, tour operator, emergency service or payment service. Recording a reservation or reimbursement does not book travel or move money."
+      ],
+      [
+        "Your plans and shared expenses",
+        "Check dates, prices and booking conditions with the relevant provider before relying on them. Organizers and travelers are responsible for their own decisions and arrangements. Expense balances reflect what people entered and the splits they chose."
+      ],
+      [
+        "Suggestions and examples",
+        "Optional writing help, templates and budget estimates may be incomplete or wrong. Review them before using them. They are not supplier quotes or confirmed arrangements."
+      ],
+      [
+        "Your content and sharing",
+        "You keep your rights in what you add. You allow {owner} to host, process and show it only as needed to run this copy for you and the people you share a trip with. You must have the right to share information about others."
+      ],
+      [
+        "Acceptable use",
+        "Do not use Commons unlawfully, impersonate others, harass people, share content you have no right to share, bypass access controls or interfere with the service. {owner} may restrict access or remove content to address violations or security threats."
+      ],
+      [
+        "Open source software",
+        "Commons is open source software provided under the MIT License, as is and without warranty. {owner} is responsible for this copy, not the Commons contributors."
+      ],
+      [
+        "Availability and liability",
+        "To the fullest extent the law allows, this copy is provided as available and as is, and {owner} is not liable for indirect or consequential losses. Mandatory consumer rights are unaffected."
+      ],
+      [
+        "Ending use and changes",
+        "You may stop using this copy and ask {owner} to delete your account. {owner} may change these terms and will give notice of material changes where the law requires."
+      ],
+      [
+        "Governing law",
+        "{jurisdictionSentence}"
+      ],
+      [
+        "Contact",
+        "{contactSentence}"
+      ]
+    ]
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "sections": [
+      [
+        "Who is responsible",
+        "{owner} runs this copy of Commons and is responsible for the personal information it holds. {contactSentence}"
+      ],
+      [
+        "Information this copy holds",
+        "Account and contact details you provide, trip plans, participant records, poll answers, shared expenses, uploaded photos and messages. Other organizers or travelers may add information about you to a trip. Technical records needed to run and protect the service, such as sign-in and delivery records, are kept too."
+      ],
+      [
+        "How it is used",
+        "To provide accounts and trip features, share records with the people on a trip, send the emails and messages you asked for, and protect the service. It is not sold or used for advertising."
+      ],
+      [
+        "Shared trips",
+        "Information you add to a trip is visible to that trip's people according to each feature's permissions. Link polls can be opened by anyone with the link, so share those links carefully."
+      ],
+      [
+        "Children's participant records",
+        "Account holders must be 18 or older. Adults may add non-login records for children they are authorized to represent. Provide only what the trip needs."
+      ],
+      [
+        "Optional services",
+        "This copy may use services chosen by {owner}, such as hosting, a database, email delivery, text messaging, product analytics or an AI provider for optional writing help. Each receives only what it needs for its job. Analytics and AI help are off unless {owner} turns them on."
+      ],
+      [
+        "Cookies",
+        "Cookies and browser storage keep you signed in and remember settings. If {owner} turns on product analytics, Do Not Track and Global Privacy Control are respected."
+      ],
+      [
+        "How long information is kept",
+        "Trips stay until an organizer or {owner} deletes them. Some shared records, such as expenses involving other travelers, may need to remain after one person leaves."
+      ],
+      [
+        "Your choices and rights",
+        "Depending on where you live, you may have rights to access, correct or delete your information. {contactSentence}"
+      ],
+      [
+        "Security and changes",
+        "Access controls protect information, but no system is perfectly secure. {owner} will give notice of material changes to this policy where the law requires."
+      ]
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "generatedOn": "2026-10-14",
+  "cities": 171228,
+  "airports": 7918,
+  "jsonBytes": 31619072,
+  "compressedBytes": 8846409,
+  "sha256": "e9e5bbe8b18e1bcdd0e28a0c10a9e78bffcbf04f1ea17cb4147d4a62951fc0b3",
+  "sources": [
+    {
+      "url": "https://download.geonames.org/export/dump/cities1000.zip",
+      "sha256": "9e70c809e62b33199ebcb703ab0a27fa8a864cc06460bdfa6b60e23b88b9101b",
+      "license": "CC BY 4.0"
+    },
+    {
+      "url": "https://download.geonames.org/export/dump/admin1CodesASCII.txt",
+      "sha256": "1da92a6323a5fec3176f3f743bf4cf4040fd56a876da55e46fbca23c863aa60a",
+      "license": "CC BY 4.0"
+    },
+    {
+      "url": "https://download.geonames.org/export/dump/admin2Codes.txt",
+      "sha256": "0dbb9988fa9388021efe026ed16de0b89f56314f2dfd0abb4a51e17b8c55f29f",
+      "license": "CC BY 4.0"
+    },
+    {
+      "url": "https://github.com/mwgg/Airports",
+      "revision": "a89e4e0dda9d9878337e2da190ebe1ef1d6af705",
+      "sha256": "a7754cbe722ea21f0f9ab1ef07f4f07ee1e85b9cc99191ebde0b49fabb3c149a",
+      "license": "MIT"
+    }
+  ]
+}

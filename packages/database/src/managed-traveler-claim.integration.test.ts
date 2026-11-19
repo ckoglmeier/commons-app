@@ -1,0 +1,63 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {randomUUID} from "node:crypto";
+import {eq, inArray} from "drizzle-orm";
+import {createDatabase} from "./client";
+import {commons, people, memberships, invitations} from "./schema";
+import {addCommonsPerson, inviteManagedTraveler, getCommonsInvitationLink, claimCommonsInvitation, findOrClaimPersonForAuthIdentity, findPersonIdForAuthUser, revokeCommonsInvitation, updateCommonsPendingInvitation, rotateCommonsInvitationLink, getCommonsInvitationPreview} from "./onboarding-repository";
+import {getManagedTravelerProfile, updateManagedTravelerProfile} from "./profile-repository";
+
+test("managed invitation preserves identity and attendance; verified acceptance ends management", {skip: process.env.COMMONS_RUN_DATABASE_TESTS !== "1"}, async () => {
+  const url = process.env.TEST_DATABASE_URL!;
+  assert.ok(["127.0.0.1", "localhost", "[::1]"].includes(new URL(url).hostname));
+  const db = createDatabase(url), owner = randomUUID(), trip = randomUUID(), stranger = randomUUID(), auth = randomUUID();
+  const options = {databaseUrl: url, actorPersonId: owner};
+  const ids: string[] = [owner, stranger];
+  const secondTrip = randomUUID();
+  const email = `${auth}@example.test`;
+  try {
+    await db.db.insert(people).values([{id: owner, displayName: "Organizer", authUserId: owner}, {id: stranger, displayName: "Other account", authUserId: stranger}]);
+    await db.db.insert(commons).values({id: trip, slug: trip, name: "Managed claim test", createdByPersonId: owner, timezone: "America/Denver"});
+    await db.db.insert(memberships).values({commonsId: trip, personId: owner, role: "organizer", status: "active"});
+    const added = await addCommonsPerson(trip, {displayName: "Sam", accessMode: "managed", email: null}, options);
+    const person = added.personId!; ids.push(person);
+    await db.db.update(memberships).set({attendanceState: "attending", attendanceDates: "2026-12-20/2026-12-23"}).where(eq(memberships.personId, person));
+    await updateManagedTravelerProfile(trip, person, owner, {dietaryPreferences: "Vegetarian"}, url);
+    await assert.rejects(inviteManagedTraveler(trip, person, {displayName: "Sam", email}, {...options, actorPersonId: stranger}));
+    await db.db.insert(commons).values({id: secondTrip, slug: secondTrip, name: "Other synthetic trip", createdByPersonId: owner, timezone: "America/Denver"});
+    const [otherMembership] = await db.db.insert(memberships).values({commonsId: secondTrip, personId: person, role: "member", status: "active", accessMode: "managed", managedByPersonIds: [owner]}).returning({id: memberships.id});
+    await assert.rejects(inviteManagedTraveler(trip, person, {displayName: "Sam", email}, options), /more than one trip/);
+    await db.db.delete(memberships).where(eq(memberships.id, otherMembership.id));
+    const prepared = await inviteManagedTraveler(trip, person, {displayName: "Sam", email}, options);
+    assert.equal((await inviteManagedTraveler(trip, person, {displayName: "Sam", email}, options)).invitationId, prepared.invitationId);
+    const first = await getCommonsInvitationLink(trip, prepared.invitationId, options);
+    assert.equal((await getCommonsInvitationPreview(first.token, url))?.managedTraveler, true);
+    assert.equal(await findOrClaimPersonForAuthIdentity({authUserId: auth, email, displayName: "Sam"}, url), null);
+    assert.equal(await findPersonIdForAuthUser(auth, url), null, "sign-in alone grants no access");
+    await assert.rejects(claimCommonsInvitation(first.token, {authUserId: auth, email: "wrong@example.test"}, url));
+    await assert.rejects(claimCommonsInvitation(first.token, {authUserId: stranger, email}, url), /different participant profile/);
+    await revokeCommonsInvitation(trip, prepared.invitationId, options);
+    await assert.rejects(claimCommonsInvitation(first.token, {authUserId: auth, email}, url));
+    assert.equal((await db.db.select().from(memberships).where(eq(memberships.personId, person)))[0].status, "active");
+    const next = await inviteManagedTraveler(trip, person, {displayName: "Sam", email}, options);
+    const revisedEmail = `revised-${email}`;
+    await updateCommonsPendingInvitation(trip, next.invitationId, {displayName: "Sam", email: revisedEmail, message: null}, options);
+    assert.equal(await findOrClaimPersonForAuthIdentity({authUserId: auth, email: revisedEmail, displayName: "Sam"}, url), null);
+    const link = await rotateCommonsInvitationLink(trip, next.invitationId, options);
+    const identity = {authUserId: auth, email: revisedEmail};
+    await Promise.all([claimCommonsInvitation(link.token, identity, url), claimCommonsInvitation(link.token, identity, url)]);
+    assert.equal(await findPersonIdForAuthUser(auth, url), person);
+    const [member] = await db.db.select().from(memberships).where(eq(memberships.personId, person));
+    assert.equal(member.accessMode, "account"); assert.equal(member.attendanceState, "attending");
+    assert.equal(member.attendanceDates, "2026-12-20/2026-12-23"); assert.equal(member.managedByPersonIds, null);
+    await assert.rejects(getManagedTravelerProfile(trip, person, owner, url));
+    await assert.rejects(updateManagedTravelerProfile(trip, person, owner, {dietaryPreferences: "Changed"}, url));
+    const own = await getManagedTravelerProfile(trip, person, person, url);
+    assert.equal(own?.dietaryPreferences, "Vegetarian"); assert.equal(own?.suppliedBy.dietaryPreferences?.personId, owner);
+    assert.equal((await db.db.select().from(memberships).where(eq(memberships.commonsId, trip))).length, 2);
+    assert.equal((await db.db.select().from(invitations).where(eq(invitations.id, next.invitationId)))[0].status, "accepted");
+  } finally {
+    await db.db.delete(commons).where(inArray(commons.id, [trip, secondTrip]));
+    await db.db.delete(people).where(inArray(people.id, ids)); await db.close();
+  }
+});

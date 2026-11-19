@@ -1,0 +1,161 @@
+%PDF-1.4
+%“Œ‹ž ReportLab Generated PDF document (opensource)
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/Contents 8 0 R /MediaBox [ 0 0 612 792 ] /Parent 7 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+5 0 obj
+<<
+/PageMode /UseNone /Pages 7 0 R /Type /Catalog
+>>
+endobj
+6 0 obj
+<<
+/Author (anonymous) /CreationDate (D:20260903181039-06'00') /Creator (anonymous) /Keywords () /ModDate (D:20260903181039-06'00') /Producer (ReportLab PDF Library - \(opensource\)) 
+  /Subject (unspecified) /Title (untitled) /Trapped /False
+>>
+endobj
+7 0 obj
+<<
+/Count 1 /Kids [ 4 0 R ] /Type /Pages
+>>
+endobj
+8 0 obj
+<<
+/Length 2284
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+.070588 .247059 .207843 rg
+n 0 704 612 88 re f*
+1 1 1 rg
+BT /F2 9 Tf 10.8 TL ET
+BT 1 0 0 1 48 754 Tm (FLIGHT RECEIPT) Tj T* ET
+BT /F2 22 Tf 26.4 TL ET
+BT 1 0 0 1 48 726 Tm (United Airlines itinerary) Tj T* ET
+.905882 .945098 .929412 rg
+n
+50 646 m
+562 646 l
+565.3168 646 568 648.6832 568 652 c
+568 668 l
+568 671.3168 565.3168 674 562 674 c
+50 674 l
+46.6832 674 44 671.3168 44 668 c
+44 652 l
+44 648.6832 46.6832 646 50 646 c
+h
+f*
+.070588 .247059 .207843 rg
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 56 656 Tm (BOOKING) Tj T* ET
+BT /F1 11 Tf 13.2 TL ET
+.345098 .419608 .4 rg
+BT 1 0 0 1 56 626 Tm (Airline: United Airlines) Tj T* ET
+.345098 .419608 .4 rg
+BT 1 0 0 1 56 606 Tm (Confirmation number ZX9QPL) Tj T* ET
+.345098 .419608 .4 rg
+BT 1 0 0 1 56 586 Tm (Trip total $850.00) Tj T* ET
+.847059 .847059 .807843 RG
+n 48 573 m 564 573 l S
+.905882 .945098 .929412 rg
+n
+50 528 m
+562 528 l
+565.3168 528 568 530.6832 568 534 c
+568 550 l
+568 553.3168 565.3168 556 562 556 c
+50 556 l
+46.6832 556 44 553.3168 44 550 c
+44 534 l
+44 530.6832 46.6832 528 50 528 c
+h
+f*
+.070588 .247059 .207843 rg
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 56 538 Tm (FLIGHT 1 - UA 1480) Tj T* ET
+BT /F1 11 Tf 13.2 TL ET
+.345098 .419608 .4 rg
+BT 1 0 0 1 56 508 Tm (Denver, CO \(DEN\) to Santa Ana, CA \(SNA\)) Tj T* ET
+.345098 .419608 .4 rg
+BT 1 0 0 1 56 488 Tm (Saturday, Mar 20, 2027) Tj T* ET
+.345098 .419608 .4 rg
+BT 1 0 0 1 56 468 Tm (8:35 a.m. - 10:25 a.m.) Tj T* ET
+.847059 .847059 .807843 RG
+n 48 455 m 564 455 l S
+.905882 .945098 .929412 rg
+n
+50 410 m
+562 410 l
+565.3168 410 568 412.6832 568 416 c
+568 432 l
+568 435.3168 565.3168 438 562 438 c
+50 438 l
+46.6832 438 44 435.3168 44 432 c
+44 416 l
+44 412.6832 46.6832 410 50 410 c
+h
+f*
+.070588 .247059 .207843 rg
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 56 420 Tm (FLIGHT 2 - UA 221) Tj T* ET
+BT /F1 11 Tf 13.2 TL ET
+.345098 .419608 .4 rg
+BT 1 0 0 1 56 390 Tm (Santa Ana, CA \(SNA\) to Denver, CO \(DEN\)) Tj T* ET
+.345098 .419608 .4 rg
+BT 1 0 0 1 56 370 Tm (Friday, Mar 26, 2027) Tj T* ET
+.345098 .419608 .4 rg
+BT 1 0 0 1 56 350 Tm (3:40 p.m. - 6:55 p.m.) Tj T* ET
+.847059 .847059 .807843 RG
+n 48 337 m 564 337 l S
+.345098 .419608 .4 rg
+BT /F1 8 Tf 9.6 TL ET
+BT 1 0 0 1 48 36 Tm (Anonymized Commons test fixture - not a real reservation) Tj T* ET
+ 
+endstream
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000061 00000 n 
+0000000102 00000 n 
+0000000209 00000 n 
+0000000321 00000 n 
+0000000514 00000 n 
+0000000582 00000 n 
+0000000843 00000 n 
+0000000902 00000 n 
+trailer
+<<
+/ID 
+[<10ed86d8873b0af5581c681627c1560d><10ed86d8873b0af5581c681627c1560d>]
+% ReportLab generated PDF document -- digest (opensource)
+
+/Info 6 0 R
+/Root 5 0 R
+/Size 9
+>>
+startxref
+3237
+%%EOF

@@ -1,0 +1,70 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { registerHooks, createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
+import { join } from "node:path";
+import { createDatabase, memberships, people } from "@commons/database";
+import { and, eq } from "drizzle-orm";
+import { registerComponentImportStubs } from "../test-support/hook-harness";
+import { seedSyntheticTrip, testDatabaseUrl, databaseTestsEnabled } from "./coordinator-route-harness";
+registerComponentImportStubs();
+const fixturePath = join(__dirname, "../test-support/group-auth-fixture.cjs"), fixture = createRequire(import.meta.url)(fixturePath);
+registerHooks({ resolve(specifier, context, next) {
+  if (specifier === "@/lib/supabase/server" || specifier === "@/lib/supabase/admin") return { url: pathToFileURL(fixturePath).href, format: "commonjs", shortCircuit: true };
+  return next(specifier, context);
+} });
+const request = (path: string, body: unknown, origin = "http://localhost") => new Request(`http://localhost${path}`, { method: "POST", headers: { "content-type": "application/json", origin }, body: JSON.stringify(body) });
+
+test("group routes enforce fresh verified pilot identity, recipient auth, explicit scope and preserved auth return", { skip: !databaseTestsEnabled }, async () => {
+  const trip = await seedSyntheticTrip(), saved = { ...process.env }, db = createDatabase(testDatabaseUrl()), joinedIds: string[] = [];
+  const user = (id: string, name = "Verified traveler", confirmed = true) => ({ id, email: `${id}@example.com`, email_confirmed_at: confirmed ? new Date().toISOString() : null, user_metadata: { first_name: name } });
+  Object.assign(process.env, { DATABASE_URL: testDatabaseUrl(), NEXT_PUBLIC_SUPABASE_URL: "http://localhost:9999", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "test-key", COMMONS_GROUP_INVITATIONS_ENABLED: "false", COMMONS_GROUP_INVITATIONS_PILOT_ENABLED: "true", COMMONS_RECIPES_PILOT_EMAILS: `${trip.organizerId}@example.com`, COMMONS_RECIPES_PILOT_TRIP_IDS: trip.eventId, COMMONS_INVITATION_TOKEN_KEY: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" });
+  const management = await import("../../app/api/v1/commons/[slug]/group-invitation/route"), joining = await import("../../app/api/v1/group-invitations/[token]/join/route"), page = await import("../../app/group-join/[token]/page"), service = await import("./group-invitations");
+  const context = { params: Promise.resolve({ slug: trip.eventId }) }, create = { commandId: crypto.randomUUID(), action: "create", expectedVersion: 0, scopeAccepted: true, expiresInDays: 14 };
+  try {
+    fixture.setUser(user(trip.organizerId), true);
+    assert.equal((await management.POST(request("/manage", create), context)).status, 401, "valid stale claims cannot replace a provider-rejected session");
+    fixture.setUser(user(trip.organizerId, "Casey", false));
+    assert.equal((await management.POST(request("/manage", create), context)).status, 401);
+    assert.deepEqual(await (await management.GET(new Request("http://localhost/manage"), context)).json(), { enabled: false });
+    fixture.setUser(user(trip.coOrganizerId));
+    assert.equal((await management.POST(request("/manage", create), context)).status, 404, "another account cannot inherit the trip pilot");
+    fixture.setUser(user(trip.organizerId));
+    assert.equal((await management.POST(request("/manage", create, "https://other.example"), context)).status, 403);
+    const made = await management.POST(request("/manage", create), context); assert.equal(made.status, 200, await made.clone().text());
+    const link = (await made.json()).invitation, token = link.token, preview = (await service.publicGroupInvitationPreview(token))!;
+    assert.equal(preview.tripName, "Synthetic Breckenridge weekend"); assert.equal("startsOn" in preview, false); assert.equal("coverImageUrl" in preview, false);
+    const originalAllowlist = process.env.COMMONS_RECIPES_PILOT_EMAILS;
+    process.env.COMMONS_RECIPES_PILOT_EMAILS = `${trip.coOrganizerId}@example.com`;
+    assert.equal(await service.publicGroupInvitationPreview(token), null, "a creator removed from the pilot cannot keep admitting travelers");
+    process.env.COMMONS_RECIPES_PILOT_EMAILS = originalAllowlist;
+    fixture.setVerifiedEmail(trip.organizerId, null);
+    assert.equal(await service.publicGroupInvitationPreview(token), null, "provider verification loss fails closed");
+    fixture.setVerifiedEmail(trip.organizerId, `${trip.organizerId}@example.com`);
+    const destination = `/group-join/${token}/`;
+    const newId = crypto.randomUUID(); fixture.setUser(user(newId, ""));
+    await assert.rejects(page.default({ params: Promise.resolve({ token }) }), error => String((error as { digest?: string }).digest).includes("/account/create?") && String((error as { digest?: string }).digest).includes(encodeURIComponent(destination)));
+    fixture.setUser(null);
+    assert.equal((await joining.POST(request("/join", { commandId: crypto.randomUUID(), tripId: trip.eventId, linkId: link.id, version: link.version }), { params: Promise.resolve({ token }) })).status, 401);
+    fixture.setUser(user(newId));
+    const body = { commandId: crypto.randomUUID(), tripId: trip.eventId, linkId: link.id, version: link.version };
+    const result = await joining.POST(request("/join", body), { params: Promise.resolve({ token }) }); assert.equal(result.status, 200, await result.clone().text());
+    assert.equal((await result.json()).destination, `/c/${trip.eventId}/`);
+    const [person] = await db.db.select().from(people).where(eq(people.authUserId, newId)); joinedIds.push(person.id);
+    assert.equal((await db.db.select().from(memberships).where(and(eq(memberships.commonsId, trip.eventId), eq(memberships.personId, person.id))))[0].role, "member");
+    const managementDenied = await management.GET(new Request("http://localhost/manage"), context); assert.equal((await managementDenied.json()).enabled, false);
+    fixture.setUser(user(trip.coOrganizerId));
+    const revoke = { commandId: crypto.randomUUID(), action: "revoke", expectedVersion: link.version };
+    assert.equal((await management.POST(request("/manage", revoke), context)).status, 404, "revocation follows the same scoped management policy");
+    fixture.setUser(user(trip.organizerId));
+    assert.equal((await management.POST(request("/manage", revoke), context)).status, 200);
+    assert.equal(await service.publicGroupInvitationPreview(token), null);
+    fixture.setUser(user(newId));
+    assert.equal((await joining.POST(request("/join", body), { params: Promise.resolve({ token }) })).status, 409, "revoke during authentication prevents join/replay");
+    assert.equal((await db.db.select().from(memberships).where(and(eq(memberships.commonsId, trip.eventId), eq(memberships.personId, person.id))))[0].status, "active");
+    assert.equal(service.groupInvitationTripEnabled(crypto.randomUUID()), false);
+  } finally {
+    fixture.setUser(null); for (const key of Object.keys(process.env)) if (!(key in saved)) delete process.env[key]; Object.assign(process.env, saved);
+    await trip.cleanup(); if (joinedIds.length) for (const id of joinedIds) await db.db.delete(people).where(eq(people.id, id)); await db.close();
+  }
+});

@@ -1,0 +1,1 @@
+ALTER TABLE "traveler_profiles" ADD COLUMN "daily_digest_enabled" boolean DEFAULT true NOT NULL;

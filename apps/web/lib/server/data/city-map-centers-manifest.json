@@ -1,0 +1,10 @@
+{
+  "generatedOn": "2026-10-14",
+  "cities": 171228,
+  "source": {
+    "url": "https://download.geonames.org/export/dump/cities1000.zip",
+    "sha256": "9e70c809e62b33199ebcb703ab0a27fa8a864cc06460bdfa6b60e23b88b9101b",
+    "license": "CC BY 4.0"
+  },
+  "sha256": "2e8d1fa25b15b8808c32c8c051e6c9c346e0a8c5374350ce8e17e3496ec8265b"
+}

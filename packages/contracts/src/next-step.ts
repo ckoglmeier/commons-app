@@ -1,0 +1,4 @@
+import { z } from "zod";
+/** The same recommendation boundary for Home, Coordinator and future messaging. Never a command or permission grant. */
+export const NextStepDescriptorSchema=z.object({id:z.string(),scope:z.object({tripId:z.string().uuid(),personId:z.string().nullable(),audience:z.enum(["person","organizers"])}).strict(),reason:z.string(),evidence:z.array(z.object({id:z.string(),version:z.string()}).strict()).max(12),eligibility:z.enum(["actionable","waiting","unavailable","completed"]),target:z.object({kind:z.enum(["travel","task_brief","task","brain_review"]),id:z.string().nullable()}).strict(),capability:z.object({action:z.enum(["enter_arrival","resume_review","start_task","open_task","await_processing"]),available:z.boolean(),reason:z.string().nullable()}).strict(),completion:z.enum(["usable_saved_arrival","goal_deliverable","review_disposition"])}).strict();
+export type NextStepDescriptor=z.infer<typeof NextStepDescriptorSchema>;

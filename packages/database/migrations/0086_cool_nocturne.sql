@@ -1,0 +1,2 @@
+ALTER TABLE "trip_tasks" ADD COLUMN "brain_finding_key" text;--> statement-breakpoint
+CREATE UNIQUE INDEX "trip_tasks_brain_finding_unique" ON "trip_tasks" USING btree ("commons_id","brain_finding_key") WHERE "trip_tasks"."brain_finding_key" IS NOT NULL;

@@ -1,0 +1,155 @@
+:root {
+  color-scheme: light;
+
+  /* Quiet travel journal: scoped to trip workspaces. */
+  --cm-journal-canvas: #dce3d5;
+  --cm-journal-paper: #fffdf5;
+  --cm-journal-aged-paper: #f1e8d5;
+  --cm-journal-line: #bdc7b6;
+  --cm-journal-secondary: #50604e;
+
+  /* Brand and surface */
+  --cm-color-ink: #16372f;
+  --cm-color-green: #2e6758;
+  --cm-color-mineral: #5e6c67;
+  --cm-color-canvas: #ffffff;
+  --cm-color-sand: var(--cm-color-canvas);
+  --cm-color-paper: #ffffff;
+  --cm-color-board: #f7f6f2;
+  --cm-color-line: #dce4e0;
+  --cm-color-coral: #e8a099;
+  --cm-color-coral-wash: #faece9;
+  --cm-color-ember: #a64132;
+  --cm-color-green-wash: #e4ece8;
+  --cm-color-ember-wash: #f4e4df;
+  --cm-color-on-ink-secondary: #b8d5c8;
+  --cm-color-overlay: rgb(11 33 27 / 72%);
+  --cm-color-photo-caption: rgb(22 55 47 / 82%);
+
+  /* Semantic color */
+  --cm-color-surface: var(--cm-color-paper);
+  --cm-color-text: var(--cm-color-ink);
+  --cm-color-text-secondary: var(--cm-color-mineral);
+  --cm-color-action: var(--cm-color-ink);
+  --cm-color-action-secondary: var(--cm-color-green);
+  --cm-color-focus: var(--cm-color-ember);
+  --cm-color-attention: var(--cm-color-ember);
+  --cm-color-attention-surface: var(--cm-color-ember-wash);
+  --cm-color-shared-surface: var(--cm-color-green-wash);
+  --cm-color-control-border: var(--cm-color-mineral);
+  --cm-color-action-hover: var(--cm-color-green);
+  --cm-color-action-pressed: #102b24;
+  --cm-color-secondary-hover: var(--cm-color-green-wash);
+  --cm-color-secondary-pressed: #d3e1da;
+
+  /* Type */
+  --cm-font-interface: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif;
+  --cm-font-editorial: var(--cm-font-interface);
+  --cm-font-code: var(--font-geist-mono), ui-monospace, monospace;
+  --cm-text-trip: clamp(2.75rem, 8vw, 4.75rem);
+  --cm-text-page: clamp(2rem, 5vw, 2.75rem);
+  --cm-text-section: 1.5rem;
+  --cm-text-document-title: 1.25rem;
+  --cm-text-document-section: 1.0625rem;
+  --cm-document-leading: 1.55;
+  --cm-document-measure: 68ch;
+  --cm-document-page-width: 56rem;
+  --cm-document-padding: clamp(1rem, 3vw, 2rem);
+  --cm-text-conversation-title: clamp(1.125rem, 2vw, 1.25rem);
+  --cm-text-heading: 1rem;
+  --cm-text-body: 0.9375rem;
+  --cm-text-utility: 0.875rem;
+  --cm-text-meta: 0.75rem;
+  --cm-text-micro: 0.75rem;
+
+  /* Space */
+  --cm-space-1: 0.25rem;
+  --cm-space-2: 0.5rem;
+  --cm-space-3: 0.75rem;
+  --cm-space-4: 1rem;
+  --cm-space-5: 1.25rem;
+  --cm-space-6: 1.5rem;
+  --cm-space-8: 2rem;
+  --cm-space-10: 2.5rem;
+  --cm-space-12: 3rem;
+  --cm-space-16: 4rem;
+  --cm-space-20: 5rem;
+
+  /* Shape and depth */
+  --cm-radius-compact: 0.625rem;
+  --cm-radius-control: 1rem;
+  --cm-radius-focal: 1.5rem;
+  --cm-radius-sheet: 1.75rem;
+  --cm-radius-pill: 999px;
+  --cm-shadow-elevated: 0 14px 36px rgb(22 55 47 / 12%);
+
+  /* Working panels: one quiet language for status, forms, notes and confirmations in the coordinator. A rule and a board wash; ember only when the
+     organizer is needed, green only for a finished result. Never a second border or a nested card. */
+  --cm-panel-surface: var(--cm-color-board);
+  --cm-panel-line: var(--cm-color-line);
+  --cm-panel-radius: var(--cm-radius-compact);
+  --cm-panel-attention-surface: var(--cm-color-ember-wash);
+  --cm-panel-attention-line: var(--cm-color-ember);
+  --cm-panel-done-surface: var(--cm-color-green-wash);
+  --cm-panel-done-line: var(--cm-color-green);
+
+  /* Motion */
+  --cm-duration-fast: 160ms;
+  --cm-duration-standard: 220ms;
+  --cm-duration-sheet: 420ms;
+  --cm-ease-standard: cubic-bezier(0.22, 0.75, 0.25, 1);
+  --cm-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Layout */
+  --cm-gutter-mobile: clamp(1rem, 4.5vw, 1.25rem);
+  --cm-content-max: 80rem;
+  /* Trip map: the map pane and its list side by side on wide surfaces. */
+  --cm-map-pane-min: 24rem;
+  --cm-map-list-min: 18rem;
+  --cm-map-height: clamp(20rem, 55vh, 32rem);
+  --cm-touch-target: 2.75rem;
+  --cm-action-height: 3rem;
+  --cm-header-height: 4.75rem;
+  --cm-page-top: clamp(2.5rem, 5vw, 4rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --cm-duration-fast: 0ms;
+    --cm-duration-standard: 0ms;
+    --cm-duration-sheet: 0ms;
+  }
+}
+
+/* Trip navigation shell: identity stays stable across shared-state and work views. */
+:root {
+  --cm-trip-rail-width: 240px;
+  --cm-trip-cover-rail-width: 19rem;
+  --cm-trip-cover-fallback-ratio: 16 / 9;
+  --cm-trip-identity-space: 20px;
+  --cm-trip-identity-size: 80px;
+}
+
+/* Persistent trip rail and flexible workspace. The rail appears at 1100px and wider;
+   Work and conversation sit side by side only when both minimums and the divider fit the content area. */
+:root {
+  --cm-shell-rail-width: 14rem;
+  --cm-shell-compact-header-height: 3.75rem;
+  --cm-workspace-work-min: 25rem;
+  --cm-workspace-conversation-min: 22.5rem;
+  --cm-workspace-conversation-max: 46rem;
+  --cm-workspace-divider-width: 0.75rem;
+  --cm-workspace-work-default-share: 56%;
+  --cm-document-max: 52rem;
+}
+
+/* The rail is a dark band so navigation reads apart from the work beside it. Text on it is light; the active row is a lighter wash. */
+:root {
+  --cm-shell-rail-surface: var(--cm-color-ink);
+  --cm-shell-rail-text: var(--cm-color-paper);
+  --cm-shell-rail-text-secondary: var(--cm-color-on-ink-secondary);
+  --cm-shell-rail-hover: rgb(255 255 255 / 8%);
+  --cm-shell-rail-active: rgb(255 255 255 / 14%);
+  --cm-shell-rail-line: rgb(255 255 255 / 14%);
+  --cm-shell-rail-focus: var(--cm-color-paper);
+}

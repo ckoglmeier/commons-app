@@ -1,0 +1,244 @@
+.itinerary-document { border: 1px solid var(--cm-color-line); border-radius: 16px; background: var(--cm-color-paper); color: var(--cm-color-ink); overflow: hidden; }
+.itinerary-document > header, .itinerary-day, .itinerary-other { padding: 20px; }
+.itinerary-document h2, .itinerary-document h3 { margin: 0 0 16px; }
+.itinerary-document h2, .itinerary-conversation h2, .itinerary-share-dialog h2, .itinerary-feedback-results h2 { font-size: var(--cm-text-section); font-weight: 500; line-height: 1.25; }
+.itinerary-document h3, .itinerary-feedback-results h3 { font-size: var(--cm-text-heading); font-weight: 550; line-height: 1.4; }
+.itinerary-document label, .itinerary-import label, .itinerary-conversation label { display: grid; gap: 8px; margin-bottom: 16px; }
+.itinerary-document input:not([type=checkbox]), .itinerary-document textarea, .itinerary-document select, .itinerary-import textarea, .itinerary-conversation input, .itinerary-conversation textarea { width: 100%; min-width: 0; font: inherit; font-size: 16px; padding: 12px; color: var(--cm-color-ink); background: var(--cm-color-paper); border: 1px solid var(--cm-color-mineral); border-radius: 10px; box-sizing: border-box; }
+.itinerary-day { border-top: 1px solid var(--cm-color-line); }
+.itinerary-stop { border-top: 1px solid var(--cm-color-line); }
+.itinerary-stop summary { display: grid; grid-template-columns: minmax(60px, 100px) minmax(0, 1fr) 20px; gap: 12px; align-items: center; min-height: 56px; padding: 12px 0; cursor: pointer; list-style: none; overflow-wrap: anywhere; }
+.itinerary-stop summary::-webkit-details-marker { display: none; }
+.itinerary-stop[open] .itinerary-caret { transform: rotate(90deg); }
+.itinerary-stop-details { padding: 8px 0 20px; }
+.itinerary-stop-details p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.itinerary-time { font-size: 14px; font-variant-numeric: tabular-nums; }
+.itinerary-timeline { min-width: 0; margin-block: var(--cm-space-4); }
+.itinerary-timeline .itinerary-day { margin: 0; padding: var(--cm-space-4) 0 0; }
+.itinerary-timeline h4 { margin: 0 0 var(--cm-space-3); font-size: var(--cm-text-heading); font-weight: 550; }
+.itinerary-timeline-row { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--cm-color-line); }
+.itinerary-timeline-row[data-selectable=true] { grid-template-columns: 44px minmax(0, 1fr); }
+.itinerary-timeline .itinerary-stop { min-width: 0; border-top: 0; }
+.itinerary-timeline .itinerary-stop > summary { padding-block: var(--cm-space-3); }
+.itinerary-timeline .itinerary-stop > summary:focus-visible { outline: 3px solid var(--cm-color-ember); outline-offset: 2px; }
+.itinerary-timeline-selection { padding-top: var(--cm-space-2); }
+.itinerary-timeline-selection label { display: flex; justify-content: center; min-height: 44px; margin: 0; }
+.itinerary-row-title { min-width: 0; }
+.itinerary-row-title small { display: inline; margin-left: var(--cm-space-2); color: var(--cm-color-mineral); font-size: var(--cm-text-utility); }
+.itinerary-caret { color: var(--cm-color-green); font-size: 24px; }
+.itinerary-item-edit { display: grid; gap: var(--cm-space-3); }
+@media (max-width: 600px) {
+  .itinerary-timeline .itinerary-stop > summary { grid-template-columns: 76px minmax(0, 1fr) 16px; gap: var(--cm-space-2); }
+}
+.itinerary-confirmed { display: block; color: var(--cm-color-green); }
+.itinerary-document .itinerary-status { display: flex; align-items: center; min-height: 44px; }
+.itinerary-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; }
+.itinerary-organizer-actions summary { min-height: 44px; align-content: center; cursor: pointer; }
+.itinerary-organizer-actions fieldset label { display: flex; align-items: center; min-height: 44px; gap: 8px; }
+.itinerary-organizer-actions :focus-visible { outline: 3px solid var(--cm-color-ember); outline-offset: 2px; }
+.itinerary-interest { padding: 16px 0; border-top: 1px solid var(--cm-color-line); }
+.itinerary-actions [aria-pressed=true], .itinerary-decision[aria-pressed=true] { background: var(--cm-color-green-wash); border-color: var(--cm-color-green); }
+.itinerary-participant { width: min(1280px, 100%); margin: 0 auto; padding: 20px; box-sizing: border-box; }
+.itinerary-participant > header { margin-bottom: var(--cm-space-6); }
+.itinerary-participant h1 { margin: var(--cm-space-2) 0 0; font-size: var(--cm-text-page); font-weight: 500; line-height: 1.15; }
+.itinerary-conversation h2 { margin: 0 0 var(--cm-space-3); }
+.itinerary-participant-columns { display: grid; gap: 24px; }
+.itinerary-participant-identity { display: grid; gap: var(--cm-space-2); margin-bottom: var(--cm-space-4); }
+.itinerary-participant-identity label { display: grid; gap: var(--cm-space-2); }
+.itinerary-participant-identity input { width: min(100%, 24rem); min-height: var(--cm-touch-target); font: inherit; font-size: 16px; padding: var(--cm-space-3); border: 1px solid var(--cm-color-control-border); border-radius: var(--cm-radius-control); background: var(--cm-color-paper); color: var(--cm-color-ink); }
+.itinerary-participant-identity p { margin: 0; }
+.itinerary-conversation { min-width: 0; }
+.itinerary-decisions { display: grid; gap: 12px; margin: 20px 0; }
+.itinerary-decision { justify-content: flex-start; font-weight: 500; text-align: left; white-space: normal; line-height: 1.5; }
+.itinerary-chat-log { margin: 24px 0; }
+.itinerary-chat-message { padding: 16px 0; border-top: 1px solid var(--cm-color-line); white-space: pre-wrap; overflow-wrap: anywhere; }
+.itinerary-chat-message small { display: block; color: var(--cm-color-mineral); }
+.itinerary-feedback-results { min-width: 0; }
+.itinerary-feedback-results section { margin: 24px 0; }
+.itinerary-feedback-results li { margin-bottom: 12px; overflow-wrap: anywhere; }
+.itinerary-mobile-switch { display: flex; gap: 12px; margin-bottom: 20px; }
+.itinerary-participant [data-mobile-hidden=true] { display: none; }
+.itinerary-share-dialog { width: min(600px, calc(100% - 32px)); max-height: calc(100dvh - 32px); padding: 24px; border: 1px solid var(--cm-color-line); border-radius: 20px; color: var(--cm-color-ink); background: var(--cm-color-paper); }
+.itinerary-share-dialog::backdrop { background: rgb(22 55 47 / 35%); }
+.itinerary-share-dialog .itinerary-share-url { overflow-wrap: anywhere; }
+.itinerary-share-dialog h2 { margin-top: 0; }
+.itinerary-review-task { margin: 12px 16px; display: grid; gap: 4px; }
+.itinerary-conversation-card { margin: 20px 0; padding: 16px; border: 1px solid var(--cm-color-line); border-radius: 12px; }
+.itinerary-document :focus-visible, .itinerary-participant :focus-visible, .itinerary-share-dialog :focus-visible { outline: 3px solid var(--cm-color-ember); outline-offset: 2px; }
+@media (min-width: 900px) { .itinerary-participant-columns { grid-template-columns: minmax(0, 1.4fr) minmax(300px, .8fr); align-items: start; } .itinerary-mobile-switch { display: none; } .itinerary-participant [data-mobile-hidden=true] { display: block; } }
+@media (prefers-reduced-motion: reduce) { .itinerary-caret { transition: none; } }
+.itinerary-organizer-actions fieldset { margin: 1rem 0 0; min-width: 0; }
+.itinerary-organizer-actions fieldset label { display: flex; align-items: center; gap: .75rem; min-height: var(--cm-touch-target); padding: .5rem 0; }
+.itinerary-organizer-actions input[type="radio"] { width: 1.25rem; height: 1.25rem; min-height: 0; flex: 0 0 1.25rem; margin: 0; accent-color: var(--cm-color-accent); }
+
+.itinerary-import summary { min-height: var(--cm-touch-target); align-content: center; cursor: pointer; }
+.itinerary-import summary:focus-visible { outline: 3px solid var(--cm-color-ember); outline-offset: 2px; }
+
+.itinerary-task-assignment { display: grid; gap: var(--cm-space-3); padding-block: var(--cm-space-4); border-top: 1px solid var(--cm-color-line); }
+.workspace-itinerary .itinerary-task-choice { display: flex; align-items: center; gap: var(--cm-space-3); min-height: var(--cm-touch-target); }
+.itinerary-vote-proposal h5 { font-size: var(--cm-text-body); font-weight: 550; margin: var(--cm-space-4) 0 var(--cm-space-2); }
+.itinerary-choice-options { display: grid; gap: var(--cm-space-2); }
+.itinerary-choice-options button { justify-content: start; text-align: left; white-space: normal; min-height: var(--cm-touch-target); }
+.itinerary-choice-option { display: grid; gap: var(--cm-space-1); }
+.itinerary-choice-option .review-caption { margin: 0; }
+.itinerary-choice-options [aria-pressed=true] { background: var(--cm-color-green-wash); border-color: var(--cm-color-green); }
+.itinerary-group-review { border-top: 1px solid var(--cm-color-line); padding-block: var(--cm-space-4); }
+
+/* Work keeps compact rows; shared outlines read as a message without disclosures. */
+.itinerary-inline-title, .workspace-trip-fields .itinerary-inline-title { min-height: 44px; min-width: 0; width: 100%; border-color: transparent; background: transparent; padding: var(--cm-space-1); font: inherit; color: inherit; }
+.itinerary-inline-title:hover { border-color: var(--cm-color-mineral); }
+.itinerary-message > p, .itinerary-outline-stop p { white-space: pre-wrap; }
+.itinerary-message { max-width: var(--cm-document-measure); font-size: var(--cm-text-body); }
+.itinerary-message-questions { list-style: none; padding-left: 0; }
+.itinerary-message-questions .cm-action { max-width: 100%; justify-content: flex-start; text-align: left; white-space: normal; }
+.itinerary-outline-stop { padding-block: var(--cm-space-3); border-bottom: 1px solid var(--cm-color-line); }
+.itinerary-outline-stop > p { margin-block: var(--cm-space-2); }
+.itinerary-outline-stop > .itinerary-time { display: inline-block; margin-right: var(--cm-space-2); }
+.itinerary-outline-stop .itinerary-piece-feedback { margin-block: var(--cm-space-2); }
+.itinerary-add-stop { margin-block: var(--cm-space-2); }
+
+.itinerary-message textarea.itinerary-editable-prose { display: block; width: 100%; min-height: 44px; padding: var(--cm-space-1); resize: none; overflow: hidden; border: 1px solid transparent; border-radius: var(--cm-space-2); color: inherit; background: transparent; font: inherit; line-height: inherit; }
+.itinerary-message textarea.itinerary-editable-prose:hover { border-color: var(--cm-color-control-border); }
+.itinerary-message textarea.itinerary-editable-prose:focus-visible { outline: 3px solid var(--cm-color-ember); outline-offset: 2px; border-color: var(--cm-color-control-border); }
+.itinerary-message .itinerary-outline-stop > p:has(.itinerary-editable-prose) { margin: 0; }
+.itinerary-message .itinerary-outline-stop > p:first-child textarea.itinerary-editable-prose { font-weight: 550; }
+
+.itinerary-section-handle { flex: 0 0 44px; width: 44px; padding: var(--cm-space-2); cursor: grab; touch-action: none; }
+.itinerary-section-handle:active { cursor: grabbing; }
+.itinerary-day[data-drop-target="true"] { outline: 3px solid var(--cm-color-green); outline-offset: 2px; }
+
+.itinerary-message .itinerary-outline-list { margin-block: var(--cm-space-2); padding-left: 0; }
+.itinerary-message .itinerary-outline-stop { display: block; list-style: none; padding-block: var(--cm-space-1); border: 0; }
+.itinerary-message .itinerary-outline-stop > p { margin-block: var(--cm-space-1); }
+
+.itinerary-message .itinerary-document { border: 0; border-radius: 0; background: transparent; }
+.itinerary-message .itinerary-day, .itinerary-message .itinerary-other { padding: var(--cm-space-3) 0; border-top: 0; }
+.itinerary-message { line-height: var(--cm-document-leading); }
+
+/* Operational documents use a quieter title scale and compact grouping. */
+.itinerary-message > h2 { font-size: var(--cm-text-document-title); font-weight: 500; line-height: 1.3; margin-block: var(--cm-space-3) var(--cm-space-2); }
+.itinerary-message .itinerary-document h3 { margin-bottom: var(--cm-space-2); }
+.itinerary-message .itinerary-interest { padding-block: var(--cm-space-3); }
+.workspace-work .itinerary-document > header { padding: var(--cm-space-4); }
+.workspace-work .itinerary-document :is(input:not([type=checkbox]), textarea:not(.itinerary-editable-prose), select) { min-height: var(--cm-touch-target); padding: var(--cm-space-2); }
+
+/* One reading rhythm across editable prose and the participant projection. */
+.itinerary-message > p { margin-block: var(--cm-space-2) var(--cm-space-4); }
+.itinerary-message .itinerary-document h3 { font-size: var(--cm-text-document-section); font-weight: 600; line-height: 1.4; }
+.itinerary-message .itinerary-day > p { margin-block: 0 var(--cm-space-2); }
+.itinerary-message .itinerary-day + .itinerary-day { margin-top: var(--cm-space-2); }
+.itinerary-message .itinerary-outline-stop + .itinerary-outline-stop { margin-top: var(--cm-space-2); }
+.itinerary-message .itinerary-outline-stop > p:first-child { font-weight: 550; }
+.itinerary-message .itinerary-outline-stop > p:first-child > strong, .itinerary-message .itinerary-interest > strong { font-weight: 550; }
+.itinerary-message .itinerary-outline-stop > p:not(:first-child) { font-weight: 400; }
+.itinerary-message-questions { margin-block: var(--cm-space-4); }
+.itinerary-message-questions > li + li { margin-top: var(--cm-space-2); }
+.itinerary-message .itinerary-piece-feedback, .itinerary-message .itinerary-outline-stop > section { padding-left: var(--cm-space-3); border-left: 2px solid var(--cm-color-line); }
+.itinerary-message .itinerary-piece-feedback h4, .itinerary-message .itinerary-outline-stop > section h4 { font-size: var(--cm-text-body); font-weight: 550; margin-block: var(--cm-space-2); }
+.itinerary-group-review > h4 { margin: 0 0 var(--cm-space-2); font-size: var(--cm-text-document-section); font-weight: 550; }
+.itinerary-group-review > p { max-width: var(--cm-document-measure); margin: 0 0 var(--cm-space-3); font-size: var(--cm-text-utility); line-height: 1.5; color: var(--cm-color-mineral); }
+.itinerary-group-review > .cm-action { margin-bottom: var(--cm-space-3); }
+.itinerary-group-review [aria-label="Participant preview"] { margin-block: var(--cm-space-4); padding: var(--cm-space-4); border: 1px solid var(--cm-color-line); border-radius: var(--cm-radius-control); background: var(--cm-color-paper); }
+.itinerary-organizer-actions > p { font-size: var(--cm-text-utility); line-height: 1.5; margin-block: var(--cm-space-2); }
+.itinerary-organizer-actions fieldset { padding: var(--cm-space-3); }
+@media (max-width: 600px) {
+  .itinerary-message textarea.itinerary-editable-prose { font-size: max(16px, 1em); }
+  .itinerary-group-review [aria-label="Participant preview"] { padding: var(--cm-space-3); }
+}
+
+/* Piece feedback remains in reading order at every width. */
+.itinerary-participant--pieces [data-mobile-hidden=true] { display: block; }
+.itinerary-participant--pieces .itinerary-mobile-switch { display: none; }
+.itinerary-participant--pieces .itinerary-conversation { scroll-margin-top: 24px; }
+
+/* One compact contextual comment action per row, with full-size hit targets. */
+.itinerary-message .itinerary-outline-stop--commentable { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--cm-space-3); position: relative; }
+.itinerary-outline-stop--commentable > p { grid-column: 1; }
+.itinerary-outline-stop--commentable > p:not(:first-child) { grid-column: 1 / -1; }
+.itinerary-outline-stop--commentable > .itinerary-comment-control { grid-column: 2; grid-row: 1; align-self: start; }
+.itinerary-outline-stop--commentable > section { grid-column: 1 / -1; }
+.itinerary-comment-control { min-height: var(--cm-touch-target); gap: var(--cm-space-1); padding-inline: var(--cm-space-2); font-size: var(--cm-text-utility); white-space: nowrap; }
+.itinerary-comment-count { background: var(--cm-color-green-wash); color: var(--cm-color-ink); border-radius: var(--cm-radius-control); padding-inline: var(--cm-space-1); }
+.itinerary-publish-confirmation fieldset { min-width: 0; }
+.itinerary-publish-confirmation label { display: flex; gap: var(--cm-space-2); align-items: center; min-height: var(--cm-touch-target); }
+.itinerary-publish-confirmation { margin: auto; box-sizing: border-box; }
+.itinerary-publish-confirmation input[type="radio"] { width: 1.25rem; height: 1.25rem; min-height: 0; flex: 0 0 1.25rem; margin: 0; accent-color: var(--cm-color-green); }
+
+/* A shared message with one personal comments panel, rather than a survey. */
+.itinerary-participant-frame { background: var(--cm-color-board); min-height: calc(100dvh - var(--cm-header-height)); }
+.itinerary-participant--pieces { padding: var(--cm-space-6); }
+.itinerary-participant--pieces > header { margin-bottom: var(--cm-space-3); }
+.itinerary-participant--pieces .itinerary-participant-identity { font-size: var(--cm-text-utility); line-height: 1.5; max-width: var(--cm-document-measure); }
+.itinerary-participant--pieces .itinerary-participant-document,
+.itinerary-participant--pieces .itinerary-conversation { background: var(--cm-color-paper); border: 1px solid var(--cm-color-line); border-radius: var(--cm-radius-control); min-width: 0; }
+.itinerary-participant--pieces .itinerary-participant-document { padding: var(--cm-space-6); }
+.itinerary-participant--pieces .itinerary-message > h2 { margin-top: 0; }
+.itinerary-participant--pieces .itinerary-conversation { margin: 0; display: flex; flex-direction: column; scroll-margin-top: calc(var(--cm-header-height) + var(--cm-touch-target) + var(--cm-space-4)); }
+.itinerary-participant--pieces .itinerary-feedback-header { flex: none; padding: var(--cm-space-4) var(--cm-space-5); background: var(--cm-color-green-wash); border-radius: var(--cm-radius-control) var(--cm-radius-control) 0 0; }
+.itinerary-participant--pieces .itinerary-feedback-header h2 { font-size: var(--cm-text-document-title); margin: 0 0 var(--cm-space-1); }
+.itinerary-participant--pieces .itinerary-feedback-header p { margin: 0; font-size: var(--cm-text-utility); line-height: 1.5; }
+.itinerary-participant--pieces .itinerary-chat-log { flex: 0 1 auto; min-height: 0; overflow-y: auto; margin: 0; padding-inline: var(--cm-space-5); }
+.itinerary-participant--pieces .itinerary-chat-message:first-child { border-top: 0; }
+.itinerary-participant--pieces .itinerary-chat-message strong { font-size: var(--cm-text-utility); font-weight: 550; }
+.itinerary-participant--pieces .itinerary-chat-message p { margin: var(--cm-space-2) 0 0; }
+.itinerary-participant--pieces .itinerary-conversation form { flex: none; min-width: 0; padding: var(--cm-space-4) var(--cm-space-5) var(--cm-space-5); }
+.itinerary-participant--pieces .itinerary-conversation form label { margin-bottom: var(--cm-space-2); font-size: var(--cm-text-utility); }
+.itinerary-comment-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cm-space-2); }
+.itinerary-comment-actions > .cm-action--primary { margin-left: auto; }
+.itinerary-participant--pieces :is(.itinerary-comment-control, .itinerary-general-comment) { color: var(--cm-color-green); background: transparent; border-color: transparent; }
+.itinerary-participant--pieces :is(.itinerary-comment-control, .itinerary-general-comment):hover { background: var(--cm-color-green-wash); }
+.itinerary-participant--pieces .itinerary-general-comment { text-decoration: underline; text-underline-offset: .2em; }
+.itinerary-participant--pieces .itinerary-comment-label { display: none; }
+.itinerary-participant--pieces .itinerary-comment-control { min-width: var(--cm-touch-target); padding-inline: var(--cm-space-2); font-size: var(--cm-text-body); }
+.itinerary-participant--pieces .itinerary-comment-count { font-size: var(--cm-text-utility); }
+.itinerary-participant--pieces .itinerary-outline-stop--commentable { align-items: center; }
+.itinerary-participant--pieces .itinerary-outline-stop--commentable > p:first-child { margin-block: 0; }
+.itinerary-participant--pieces .itinerary-outline-stop--commentable > .itinerary-comment-control { align-self: center; }
+@media (min-width: 900px) and (min-height: 650px) {
+  .itinerary-participant--pieces .itinerary-conversation { position: sticky; top: calc(var(--cm-header-height) + var(--cm-touch-target) + var(--cm-space-4)); max-height: calc(100dvh - var(--cm-header-height) - var(--cm-touch-target) - var(--cm-space-8)); }
+}
+@media (max-width: 600px) {
+  .itinerary-participant--pieces { padding: var(--cm-space-4); }
+  .itinerary-participant--pieces .itinerary-participant-document { padding: var(--cm-space-3); }
+  .itinerary-participant--pieces .itinerary-outline-stop--commentable > p:first-child { grid-column: 1 / -1; }
+  .itinerary-participant--pieces .itinerary-outline-stop--commentable > .itinerary-comment-control { grid-column: 1; grid-row: auto; justify-self: start; margin-left: calc(-1 * var(--cm-space-2)); }
+  .itinerary-participant--pieces .itinerary-feedback-header { padding-inline: var(--cm-space-4); }
+  .itinerary-participant--pieces .itinerary-chat-log { padding-inline: var(--cm-space-4); }
+  .itinerary-participant--pieces .itinerary-conversation form { padding-inline: var(--cm-space-4); }
+}
+
+/* Itinerary export and reviewed re-import (itinerary-portability-panel.tsx). */
+.itinerary-portability { margin-top: var(--cm-space-6); padding-top: var(--cm-space-4); border-top: 1px solid var(--cm-color-line); }
+.itinerary-portability > summary { min-height: var(--cm-touch-target); display: flex; align-items: center; color: var(--cm-color-ink); font-weight: 550; cursor: pointer; }
+.itinerary-portability h4 { margin: var(--cm-space-4) 0 var(--cm-space-1); font-size: var(--cm-text-body); font-weight: 550; }
+.itinerary-portability__text { display: grid; gap: var(--cm-space-2); margin-block: var(--cm-space-2); font-size: var(--cm-text-utility); }
+.itinerary-portability__text textarea { width: 100%; min-width: 0; font-size: 16px; font-family: var(--cm-font-mono, ui-monospace, monospace); }
+.itinerary-portability__file { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
+.itinerary-portability__file input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.itinerary-portability__file:focus-within { outline: 3px solid var(--cm-color-ember); outline-offset: 2px; }
+.itinerary-import-review { margin-top: var(--cm-space-4); }
+.itinerary-import-review h4:focus-visible, .itinerary-import-receipt p:focus-visible { outline: 3px solid var(--cm-color-ember); outline-offset: 2px; }
+.itinerary-import-review fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.itinerary-import-review__notice { padding: var(--cm-space-3); border-left: 2px solid var(--cm-color-ember); background: var(--cm-color-ember-wash); color: var(--cm-color-ink); font-size: var(--cm-text-utility); }
+.itinerary-import-changes { margin: var(--cm-space-2) 0; padding: 0; list-style: none; }
+.itinerary-import-changes > li { padding: var(--cm-space-3) 0; border-top: 1px solid var(--cm-color-line); min-width: 0; }
+.itinerary-import-changes label { min-height: var(--cm-touch-target); display: flex; align-items: center; gap: var(--cm-space-3); overflow-wrap: anywhere; }
+.itinerary-import-changes input[type="checkbox"] { width: 1.25rem; height: 1.25rem; flex: 0 0 auto; accent-color: var(--cm-color-ink); }
+.itinerary-import-changes p { margin: var(--cm-space-1) 0 0 calc(1.25rem + var(--cm-space-3)); white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--cm-text-utility); }
+.itinerary-import-changes__before { color: var(--cm-color-mineral); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--cm-color-mineral) 60%, transparent); }
+.itinerary-import-changes li[data-kind="add"] .itinerary-import-changes__after, .itinerary-import-changes li[data-kind="edit"] .itinerary-import-changes__after { color: var(--cm-color-ink); }
+.itinerary-import-changes li[data-blocked] label { color: var(--cm-color-mineral); }
+.itinerary-import-receipt p { margin: 0; }
+
+/* Organizer shortlist: rows separated by rules, not cards. */
+.itinerary-shortlist { margin: 0; padding: 0; list-style: none; }
+.itinerary-shortlist-row { padding-block: var(--cm-space-4); border-top: 1px solid var(--cm-color-line); }
+.itinerary-shortlist-label { margin: 0; font-weight: 500; }
+.itinerary-shortlist-check { display: flex; align-items: center; gap: var(--cm-space-2); min-height: var(--cm-touch-target); }
+
+/* Plan review lanes: additions, updates and tasks are separate approvals. */
+.itinerary-review-lane { margin-top: var(--cm-space-6); padding-top: var(--cm-space-4); border-top: 1px solid var(--cm-color-line); display: grid; gap: var(--cm-space-3); }
+.itinerary-review-lane h4 { margin: 0; font-size: var(--cm-text-document-section); font-weight: 500; }
+.itinerary-review-lane select, .itinerary-review-lane input:not([type=checkbox]) { min-height: var(--cm-touch-target); font-size: var(--cm-text-heading); }
+.itinerary-review-lane label { display: grid; gap: var(--cm-space-1); }
+.itinerary-review-choices label:has(> input[type=checkbox]) { display: flex; align-items: center; gap: var(--cm-space-2); min-height: var(--cm-touch-target); }

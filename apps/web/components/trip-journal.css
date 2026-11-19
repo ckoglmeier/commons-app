@@ -1,0 +1,73 @@
+/* Approved quiet journal. Keep decoration away from controls, maps and photos. */
+.trip-shell {
+  --cm-color-canvas: var(--cm-journal-canvas);
+  --cm-color-board: var(--cm-journal-canvas);
+  --cm-color-paper: var(--cm-journal-paper);
+  --cm-color-line: var(--cm-journal-line);
+  --cm-color-mineral: var(--cm-journal-secondary);
+  --cm-color-green-wash: color-mix(in srgb, var(--cm-journal-canvas) 55%, var(--cm-journal-paper));
+  --cm-color-shared-surface: var(--cm-color-green-wash);
+  background: var(--cm-journal-canvas);
+}
+.trip-shell__content, .trip-shell-page:has(> .trip-letter), .trip-shell .trip-letter { background: transparent; }
+.trip-shell .trip-letter__paper { border: 0; border-radius: 0; box-shadow: none; background: var(--cm-journal-paper); padding: clamp(20px, 3vw, 36px); }
+.trip-letter__cover { display: block; width: 100%; height: auto; max-height: 320px; aspect-ratio: auto; object-fit: contain; border-radius: 0; margin-bottom: var(--cm-space-3); }
+.trip-letter__paper[data-aged] { background: var(--cm-journal-aged-paper); }
+.trip-letter__paper[data-aged] .trip-letter__cover { filter: saturate(.75) sepia(.08); }
+.trip-shell .trip-letter__needs, .trip-shell .trip-letter__tools, .trip-shell .trip-letter__todos,
+.trip-shell .home-dashboard__shortcuts, .trip-shell .money-plan-column, .trip-shell .expected-cost-panel { background: transparent; box-shadow: none; border-radius: 0; }
+.trip-shell .trip-letter__side { background: transparent; }
+.trip-shell .trip-letter__name { font-weight: 500; }
+.trip-shell .trip-letter__photo { border-radius: 0; }
+.trip-shell .event-page-header { background: transparent; }
+.trip-shell .money-currency-section, .trip-shell .plan-view { background: transparent; }
+.trip-shell .trip-letter__paper { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23796943' filter='url(%23n)' opacity='.035' d='M0 0h180v180H0z'/%3E%3C/svg%3E"); }
+@media (max-width: 699px) { .trip-shell .trip-letter__paper { padding: var(--cm-space-5); } }
+.trip-shell .empty-day, .trip-shell .moments-start { background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+.trip-shell .moment-card { box-shadow: none; border-radius: 0; }
+.trip-shell .moment-card__open img { border-radius: 0; }
+/* The unchanged bird/wordmark must inherit the existing inverse rail color. */
+.trip-shell__brand .cm-wordmark { color: inherit; }
+
+/* Populated trips need paper beneath operational content, not only the letter. */
+.trip-shell .money-currency-section,
+.trip-shell .plan-day-content,
+.trip-shell .plan-ideas,
+.trip-shell .event-logistics-section {
+  background: var(--cm-journal-paper);
+  padding: clamp(16px, 2.5vw, 32px);
+  border-radius: 0;
+  box-shadow: none;
+}
+.trip-shell .plan-idea-card { background: var(--cm-journal-paper); border-radius: 0; }
+.trip-shell .money-budget-editor { padding-top: 16px; }
+.trip-shell .money-budget-editor > summary { margin-bottom: 16px; }
+.forecast-saved-context { display: flex; flex-wrap: wrap; gap: 16px 32px; margin-bottom: 24px; }
+.forecast-saved-context > span { display: grid; gap: 4px; color: var(--cm-color-mineral); }
+.forecast-saved-context strong { color: var(--cm-color-ink); font-size: var(--cm-text-document-title); font-variant-numeric: tabular-nums; font-weight: 500; }
+.trip-shell .moment-card { background: var(--cm-journal-paper); }
+.trip-shell .moment-card::after { display: none; }
+.trip-shell .moment-card__open { display: flex; flex-direction: column; }
+.trip-shell .moment-card__open img { flex: 1; min-height: 0; width: 100%; }
+.trip-shell .moment-card__open > div:not(.moment-card__image) { position: static; padding: 12px 16px; color: var(--cm-color-ink); }
+.trip-shell .moment-card span, .trip-shell .moment-card small { color: var(--cm-color-mineral); }
+
+.trip-shell .moment-card__open > .moment-card__image { position: relative; inset: auto; padding: 0; width: 100%; flex: 1; min-height: 180px; }
+
+.day-strip__current { display: contents; }
+.day-strip__outside { flex: 0 0 auto; }
+.day-strip__outside > summary { min-height: 44px; padding: 12px; cursor: pointer; font-size: var(--cm-text-utility); }
+.day-strip__outside > div { display: flex; gap: 4px; }
+@media (min-width: 1100px) { .day-strip__outside > div { flex-direction: column; } }
+
+@media (max-width: 1099px) { .day-strip__outside { grid-column: 1 / -1; } }
+.trip-shell .money-summary > div { background: transparent; border-radius: 0; border-top: 1px solid var(--cm-color-line); }
+/* Let captions determine their height instead of clipping them to mosaic rows. */
+.trip-shell .moments-grid--archive { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; }
+.trip-shell .moments-grid--archive .moment-card { grid-column: auto; grid-row: auto; aspect-ratio: auto; min-height: 0; }
+.trip-shell .moments-grid--count-1 { grid-template-columns: minmax(0, 40rem); }
+.trip-shell .moment-card__open > .moment-card__image { flex: none; min-height: 0; aspect-ratio: 3 / 2; }
+@media (max-width: 699px) { .trip-shell .moments-grid--archive { grid-template-columns: minmax(0, 1fr); } }
+.trip-shell .balance-panel { box-shadow: none; }
+.trip-shell .money-currency-heading { justify-content: flex-end; }
+.trip-shell .money-currency-heading:has(.money-currency-label) { justify-content: space-between; }

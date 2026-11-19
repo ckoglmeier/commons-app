@@ -1,0 +1,185 @@
+name: Commons CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+
+# Keep only the newest verification for a PR/branch; never spend minutes on
+# commits that have already been superseded.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.scope.outputs.code }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - run: node --test scripts/ci-scope.test.mjs scripts/ci-test-split.test.mjs
+      - name: Detect documentation-only changes
+        id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/ci-scope.mjs
+
+  tests:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    # Database, domain and harness tests, plus the schema, migration and recipe
+    # gates. The web tests run beside this in web-tests; every gate stays on.
+    timeout-minutes: 25
+    services:
+      postgres:
+        # The ECR mirror hit its data limit on independent runners. Keep the
+        # same official PostgreSQL version and all gates; use its primary registry.
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: commons_test
+          POSTGRES_DB: commons_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d commons_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.22.2
+          cache: npm
+
+      - run: npm ci
+      - name: Migrate disposable integration database
+        run: npm run db:test:bootstrap -w @commons/database && npm run db:migrate -w @commons/database
+        env:
+          DATABASE_DIRECT_URL: postgresql://postgres:commons_test@127.0.0.1:5432/commons_test
+      - name: Fingerprint canonical database schema
+        env:
+          COMMONS_SCHEMA_AUDIT_EXPECT_CANONICAL: "true"
+          DATABASE_DIRECT_URL: postgresql://postgres:commons_test@127.0.0.1:5432/commons_test
+        run: npm run db:schema:audit -w @commons/database
+      # Everything `npm test` runs except the web workspace, which web-tests
+      # runs as slices. scripts/ci-test-split.test.mjs fails if a workspace
+      # with tests is in neither.
+      - name: Run database, domain and harness tests
+        run: npm run test:ci:core
+        env:
+          COMMONS_RUN_DATABASE_TESTS: "1"
+          TEST_DATABASE_URL: postgresql://postgres:commons_test@127.0.0.1:5432/commons_test
+          COMMONS_INVITATION_TOKEN_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      - name: Rehearse migration baseline and rollback
+        run: npm run db:migration:rehearse -w @commons/database
+        env:
+          COMMONS_RUN_DATABASE_TESTS: "1"
+          DATABASE_DIRECT_URL: postgresql://postgres:commons_test@127.0.0.1:5432/commons_test
+      - name: Evaluate workflow routes with synthetic providers only
+        run: npm run qa:workflows
+        env:
+          COMMONS_COORDINATOR_ENABLED: "true"
+          COMMONS_RUN_DATABASE_TESTS: "1"
+          TEST_DATABASE_URL: postgresql://postgres:commons_test@127.0.0.1:5432/commons_test
+
+  # The web tests take about 13 minutes one at a time. They share a database
+  # within a run, so each slice gets its own and the slices run side by side.
+  web-tests:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: commons_test
+          POSTGRES_DB: commons_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d commons_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.22.2
+          cache: npm
+      - run: npm ci
+      - name: Migrate disposable integration database
+        run: npm run db:test:bootstrap -w @commons/database && npm run db:migrate -w @commons/database
+        env:
+          DATABASE_DIRECT_URL: postgresql://postgres:commons_test@127.0.0.1:5432/commons_test
+      - name: Run web tests, slice ${{ matrix.shard }} of 6
+        run: node scripts/ci-web-test-shard.mjs ${{ matrix.shard }}/6
+        env:
+          COMMONS_RUN_DATABASE_TESTS: "1"
+          TEST_DATABASE_URL: postgresql://postgres:commons_test@127.0.0.1:5432/commons_test
+          COMMONS_INVITATION_TOKEN_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+
+  checks:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.22.2
+          cache: npm
+      - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: apps/web/.next/cache
+          key: ${{ runner.os }}-node24-next-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-node24-next-${{ hashFiles('package-lock.json') }}-
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run typecheck
+      - run: npm run lint:production
+      - run: npm run db:check
+      - run: npm run build
+
+  # Preserve the existing required status even when expensive jobs are skipped.
+  verify:
+    needs: [changes, tests, web-tests, checks]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all applicable checks
+        env:
+          SCOPE_RESULT: ${{ needs.changes.result }}
+          CODE: ${{ needs.changes.outputs.code }}
+          TESTS: ${{ needs.tests.result }}
+          WEB_TESTS: ${{ needs.web-tests.result }}
+          CHECKS: ${{ needs.checks.result }}
+        run: |
+          test "$SCOPE_RESULT" = success
+          if [ "$CODE" = false ]; then
+            test "$TESTS" = skipped && test "$WEB_TESTS" = skipped && test "$CHECKS" = skipped
+          else
+            test "$CODE" = true
+            test "$TESTS" = success && test "$WEB_TESTS" = success && test "$CHECKS" = success
+          fi
