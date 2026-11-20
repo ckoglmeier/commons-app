@@ -1,5 +1,5 @@
 import { claimMessageNotices, invitedEmailForPerson, messageEmailsEnabled, releaseMessageNotice, unreadWebMessageRecipients, type UnreadWebRecipient } from "@commons/database";
-import { sendEmail } from "@/lib/email/resend";
+import { emailDeliveryAvailable, sendEmail } from "@/lib/email/resend";
 import { getSupabaseAuthUserEmail, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { commonsDatabaseUrl } from "../runtime-environment";
 import { isQuietHours } from "@commons/domain";
@@ -61,7 +61,8 @@ export async function sendMessageNotices(deps: NoticeDeps): Promise<NoticeSummar
 /** Notices as the app sends them: through the configured email mode, to the account's email (or, without Supabase admin access, the address the person was invited at). */
 export async function defaultNoticeDeps(origin: string): Promise<NoticeDeps | null> {
   const databaseUrl = commonsDatabaseUrl();
-  if (!databaseUrl) return null;
+  // No email set up (D81): the thread still works in the app; there's just no notice to send.
+  if (!databaseUrl || !emailDeliveryAvailable()) return null;
   return {
     databaseUrl, origin, now: () => new Date(), send: sendEmail,
     recipient: async ({ personId, authUserId }) => {

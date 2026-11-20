@@ -10,6 +10,8 @@ import { getCurrentCommonsIdentity } from "@/lib/server/commons";
 import { ownVerifiedPhone } from "@/lib/server/messaging/phone-verification";
 import { loadAuthenticatedTravelerProfile } from "@/lib/server/profile";
 import { textMessagingAvailable } from "@/lib/server/runtime-environment";
+import { currentSignInMethod } from "@/lib/server/sign-in-method";
+import { ChangePasswordForm } from "./change-password-form";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +21,14 @@ export default async function ProfilePage() {
   const profile = await loadAuthenticatedTravelerProfile();
   const phoneAvailable = textMessagingAvailable();
   const instanceAdmin = await currentPersonIsInstanceAdmin();
+  const passwords = await currentSignInMethod() === "password";
   return (
     <main className="profile-shell">
       <header><Link href="/"><CommonsWordmark /></Link><Link href="/trips">Done</Link></header>
       <section className="profile-heading"><span className="view-kicker">Private to you</span><h1>Your profile.</h1><p>Commons can reuse these on future trips, with your confirmation.</p></section>
       <ProfileContactMethods email={profile.email} />
       {phoneAvailable ? <ProfileMobile phone={await ownVerifiedPhone()} /> : null}
-      <ProfileMessageEmails initialEnabled={profile.dailyDigestEnabled} />
+      {passwords ? <ChangePasswordForm /> : <ProfileMessageEmails initialEnabled={profile.dailyDigestEnabled} />}
       {instanceAdmin ? (
         <section className="profile-notifications" aria-labelledby="profile-instance-heading">
           <span className="view-kicker">You run this Commons</span>

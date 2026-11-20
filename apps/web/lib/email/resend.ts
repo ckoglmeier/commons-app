@@ -33,6 +33,11 @@ function configuredMode(): SendMode {
   return environment.NODE_ENV === "development" ? "log" : "disabled";
 }
 
+/** True when this copy can send email (Resend is set up, or emails are printed to the log in development). Without it, sign-in uses passwords. */
+export function emailDeliveryAvailable() {
+  return configuredMode() !== "disabled";
+}
+
 export function assertEmailDeliveryAllowed(_recipient?: string) {
   if (configuredMode() === "disabled") {
     throw new EmailDeliveryError("delivery_disabled", "Email delivery is disabled.");

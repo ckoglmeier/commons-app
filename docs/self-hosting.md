@@ -6,7 +6,7 @@ This guide covers running your own copy after you've deployed it. To deploy, sta
 
 Every setting is listed, with a comment, in [`.env.example`](../.env.example). On Vercel, the Supabase and Resend integrations fill in most of them. Change a setting in **Settings → Environment Variables** and redeploy.
 
-You must have these: the database connections, the Supabase URL and keys, `NEXT_PUBLIC_SITE_URL` (on Vercel the production address is used when it's empty), `CRON_SECRET`, and `COMMONS_EMAIL_FROM` with a Resend key. Everything else is optional.
+You must have these: the database connections, the Supabase URL and keys, `NEXT_PUBLIC_SITE_URL` (on Vercel the production address is used when it's empty), `CRON_SECRET`, Everything else is optional, including email: without `RESEND_API_KEY` and `COMMONS_EMAIL_FROM`, people sign in with a password and you share invite links yourself (see [Running without email](#running-without-email)).
 
 ## Who can join
 
@@ -27,6 +27,18 @@ A `vercel.app` address works. To use your own:
 3. Redeploy.
 
 Sign-in links and invitations use `NEXT_PUBLIC_SITE_URL`.
+
+### Running without email
+
+With no Resend settings, Commons sends no email at all:
+
+- People sign in with an email and a password. New people choose **Create account**.
+- Organizers share a trip's invite link (People → copy the private link, or **Share an invite link**). With **Invited people only**, a new account needs that link; an invitation sent to someone's address isn't enough, because nobody has proved they own it.
+- Messages with Commons works in the app. People see new messages when they open Commons.
+- Forgotten passwords: the instance admin sets a temporary one under **Who can join → Reset someone's password**, and the person changes it on their Profile.
+- Email domain rules only check what people type, since addresses aren't confirmed.
+
+Add Resend at any time and redeploy. Sign-in switches to emailed links, and accounts made with a password keep working.
 
 ### Verify your domain in Resend
 

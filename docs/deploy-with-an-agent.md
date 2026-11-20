@@ -10,7 +10,7 @@ After you deploy, [Self-hosting](self-hosting.md) covers settings, your own doma
 
 - A Commons site at a `vercel.app` address, or your own domain.
 - A Supabase project holding the database, sign-in and private photos.
-- Resend sending sign-in links, invitations and new-message notices.
+- Optional: Resend sending sign-in links, invitations and new-message notices. Without it, people sign in with a password.
 - You as the instance admin: the first account to sign in.
 
 ## Costs and limits on free plans
@@ -52,7 +52,9 @@ Check: **Settings → Environment Variables** lists `POSTGRES_URL` and `NEXT_PUB
 
 To create the Supabase project yourself at supabase.com instead, copy these into Vercel: the pooled connection string as `DATABASE_URL`, the direct connection string as `DATABASE_DIRECT_URL`, the project URL as `NEXT_PUBLIC_SUPABASE_URL`, the publishable (anon) key as `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and the secret (service role) key as `SUPABASE_SERVICE_ROLE_KEY`.
 
-## Step 3: Add Resend
+## Step 3: Add Resend (optional)
+
+Skip this step to run without email: people sign in with a password and you share trip invite links yourself. You can add Resend later.
 
 1. In the Vercel project, add **Resend** from the Marketplace (or create an API key at resend.com and add it as `RESEND_API_KEY`).
 2. Add `COMMONS_EMAIL_FROM`, for example `Commons <trips@yourdomain.com>`.
@@ -72,7 +74,7 @@ Check: the deployment succeeds and the site opens. If the build fails, see "If t
 ## Step 5: Become the instance admin
 
 1. Open your site and choose **Sign in**. Enter your email.
-2. Open the link in the email.
+2. With Resend: open the link in the email. Without email: choose **Create account** and pick a password.
 
 The first account to sign in becomes the instance admin. By default, only people invited to a trip can create an account. To change that, open **Who can join** from your account menu and choose:
 

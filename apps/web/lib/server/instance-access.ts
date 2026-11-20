@@ -3,7 +3,7 @@ import {
   emailHasAccount, emailHasPendingInvitation, getCommonsInvitationPreview, getGroupInvitationPreview, instanceHasNoAdmin, isInstanceAdmin,
   readInstanceSettings, updateInstanceSignup,
 } from "@commons/database";
-import { normalizeAllowedDomains, parseSignupMode, signupDecision, type SignupDecision } from "@commons/domain";
+import { normalizeAllowedDomains, parseSignupMode, type SignupDecision } from "@commons/domain";
 import { z } from "zod";
 import { authenticatedCommonsRepositoryOptions } from "./commons";
 import { commonsDatabaseUrl } from "./runtime-environment";
@@ -13,13 +13,7 @@ import { commonsDatabaseUrl } from "./runtime-environment";
  * joining through an invitation always work; only brand-new accounts follow the admin's rule. See packages/domain/src/signup-policy.ts.
  */
 
-type Lookups = {
-  noAdmin: () => Promise<boolean>;
-  hasAccount: (email: string) => Promise<boolean>;
-  hasPendingInvitation: (email: string) => Promise<boolean>;
-  invitationLinkValid: (next: string) => Promise<boolean>;
-  settings: () => Promise<{ signupMode: string; allowedDomains: string[] }>;
-};
+import { decideSignup, type SignupLookups as Lookups } from "@/lib/signup-access";
 
 /** True when `next` is an open trip invitation or reusable join link on this copy. */
 async function invitationLinkValid(next: string, databaseUrl: string) {
@@ -40,15 +34,16 @@ function databaseLookups(databaseUrl: string): Lookups {
   };
 }
 
-/** Whether this email may get a sign-in link. With no database there is nothing to protect yet, so it's allowed. */
-export async function signupAllowedFor(email: string, next: string, lookups?: Lookups): Promise<SignupDecision> {
+/**
+ * Whether this email may sign in or create an account. With no database there is nothing to protect yet, so it's allowed.
+ * `emailVerified: false` (password sign-in, no email set up) means nobody has proved they own the address, so an invitation
+ * sent to that address doesn't count; only holding a valid invite link does.
+ */
+export async function signupAllowedFor(email: string, next: string, lookups?: Lookups, options: { emailVerified?: boolean } = {}): Promise<SignupDecision> {
+  const emailVerified = options.emailVerified ?? true;
   const databaseUrl = commonsDatabaseUrl();
   if (!lookups && !databaseUrl) return { allowed: true, reason: "first_account" };
-  const look = lookups ?? databaseLookups(databaseUrl!);
-  const [firstAccount, existingAccount] = await Promise.all([look.noAdmin(), look.hasAccount(email)]);
-  const invited = !firstAccount && !existingAccount && (await look.hasPendingInvitation(email) || await look.invitationLinkValid(next));
-  const settings = await look.settings();
-  return signupDecision({ email, firstAccount, existingAccount, invited }, { mode: parseSignupMode(settings.signupMode), allowedDomains: settings.allowedDomains });
+  return decideSignup(lookups ?? databaseLookups(databaseUrl!), email, next, emailVerified);
 }
 
 export const SIGNUP_REFUSED_MESSAGE = "This Commons is invite-only. Ask a trip organizer to invite you, then use the link in your invitation.";

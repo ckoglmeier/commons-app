@@ -11,7 +11,8 @@ import { getSupabaseAuthUserEmail } from "@/lib/supabase/admin";
 import { invitationReturnPath, maskedInvitationEmail } from "@/lib/invitation-entry-flow";
 import { commonsWorkspacePath } from "@/lib/commons-route";
 import { InvitationEntryForm } from "./invitation-entry-form";
-import { SignInForm } from "@/app/sign-in/sign-in-form";
+import { EntryForm } from "@/app/sign-in/entry-form";
+import { currentSignInMethod } from "@/lib/server/sign-in-method";
 import { DemoInviteRedeemForm, JoinAction } from "./join-action";
 
 export const dynamic = "force-dynamic";
@@ -126,9 +127,9 @@ export default async function JoinCommonsPage({
             <div><span>{preview.status === "accepted" ? "Welcome back" : `Invited: ${preview.recipientName}`}</span><strong>{emailLabel}</strong>
               {query.entry && !freshEntry ? <p>The sign-in link expired or was already used. Your invitation is still here.</p> : null}
             </div>
-            {entryContext && isSupabaseAuthConfigured() ? <InvitationEntryForm token={token} entry={freshEntry} poll={pollPublicId} emailLabel={emailLabel}
+            {entryContext && isSupabaseAuthConfigured() && await currentSignInMethod() === "link" ? <InvitationEntryForm token={token} entry={freshEntry} poll={pollPublicId} emailLabel={emailLabel}
               currentAccountId={identity?.authUserId} currentEmail={identity ? identity.email ?? identity.displayName ?? "your current account" : undefined} next={next} enabled={isSignInConfigured()} />
-              : <SignInForm next={next} enabled={isSignInConfigured()} intent="invited" />}
+              : <EntryForm next={next} intent="invited" />}
             {identity && preview.status === "pending" && !preview.managedTraveler ? <div className="invite-arrival__actions">
               <JoinAction token={token} signedIn demo={false} label={`Join as ${identity.email ?? identity.displayName ?? "your current account"}`} pollPublicId={pollPublicId} textMessagingOffered className="invite-arrival__secondary" />
             </div> : null}

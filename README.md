@@ -4,7 +4,7 @@
 
 Commons is a group trip planner. It's free and open source (MIT). You run your own copy on your own Vercel account, and on the free plans it costs $0.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fckoglmeier%2Fcommons-app&project-name=commons&repository-name=commons&root-directory=apps%2Fweb&env=CRON_SECRET%2CCOMMONS_EMAIL_FROM&envDescription=CRON_SECRET%20protects%20the%20daily%20job%3A%20any%20long%20random%20string%2C%20such%20as%20the%20output%20of%20openssl%20rand%20-base64%2032.%20COMMONS_EMAIL_FROM%20is%20the%20sender%20for%20sign-in%20and%20invitation%20emails%2C%20like%20Commons%20%3Ctrips%40yourdomain.com%3E%2C%20on%20a%20domain%20you%20verify%20in%20Resend.&envLink=https%3A%2F%2Fgithub.com%2Fckoglmeier%2Fcommons-app%2Fblob%2Fmain%2Fdocs%2Fdeploy-with-an-agent.md&stores=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22supabase%22%2C%22productSlug%22%3A%22supabase%22%2C%22protocol%22%3A%22storage%22%7D%5D)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fckoglmeier%2Fcommons-app&project-name=commons&repository-name=commons&root-directory=apps%2Fweb&env=CRON_SECRET&envDescription=CRON_SECRET%20protects%20the%20daily%20job%3A%20any%20long%20random%20string%2C%20such%20as%20the%20output%20of%20openssl%20rand%20-base64%2032.&envLink=https%3A%2F%2Fgithub.com%2Fckoglmeier%2Fcommons-app%2Fblob%2Fmain%2Fdocs%2Fdeploy-with-an-agent.md&stores=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22supabase%22%2C%22productSlug%22%3A%22supabase%22%2C%22protocol%22%3A%22storage%22%7D%5D)
 
 Deploy your own copy in a few clicks. Using an AI assistant? [Copy the deploy guide to your LLM](docs/deploy-with-an-agent.md) and work through it together.
 
@@ -108,9 +108,9 @@ If you run Commons for a business or charge for it, use a paid Vercel plan.
 ## Get started
 
 1. Click **Deploy with Vercel** above, or follow the [deploy guide](docs/deploy-with-an-agent.md).
-2. Add Supabase when asked, and set `CRON_SECRET` and `COMMONS_EMAIL_FROM`.
-3. After the first deploy, add **Resend** from the project's **Integrations** tab, verify your sending domain in Resend, and redeploy. Sign-in links are sent by email, so you can't sign in until Resend is connected.
-4. Sign in. The first account is the instance admin.
+2. Add Supabase when asked, and set `CRON_SECRET`.
+3. Sign in. The first account is the instance admin. With no email set up, people sign in with an email and a password, and you share trip invite links yourself.
+4. Optional: add **Resend** from the project's **Integrations** tab, set `COMMONS_EMAIL_FROM`, verify your sending domain in Resend, and redeploy. Then Commons emails sign-in links, invitations and new-message notices.
 5. Open **Who can join** from your account menu. Choose invited people only (the default), people at listed email domains, or anyone.
 6. Optional: add your own domain, OpenAI for poll writing help, PostHog for analytics, or Twilio for texting.
 

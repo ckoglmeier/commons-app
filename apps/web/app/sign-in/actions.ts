@@ -6,7 +6,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseAuthConfigured } from "@/lib/supabase/config";
 import { renderCommonsAuthenticationEmail, type AuthenticationEmailIntent } from "@/lib/email/authentication-email";
 import { sendEmail } from "@/lib/email/resend";
-import { createPasswordlessEntryUrl, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import { createConfirmedPasswordAccount, createPasswordlessEntryUrl, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import { currentSignInMethod } from "@/lib/server/sign-in-method";
 import { accountCreationPath, safeAuthNext } from "@/lib/auth-flow";
 import { redirect } from "next/navigation";
 import { findPersonIdForAuthUser } from "@commons/database";
@@ -67,4 +68,45 @@ export async function requestSignInLink(_previous: SignInState, formData: FormDa
     options: { shouldCreateUser: true, emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent(next)}&intent=${intent}` },
   });
   return error ? { status: "error", message: "Sign-in link not sent. Try again." } : { status: "email-sent", message: "Sign-in link sent. Check your email." };
+}
+
+const PasswordSchema = z.object({
+  email: z.email(),
+  password: z.string().min(8).max(200),
+  mode: z.enum(["sign-in", "create"]),
+  ...contextSchema,
+});
+
+/** Sign in or create an account with a password. Used only when this copy has no email set up (D81). */
+export async function signInWithPassword(_previous: SignInState, formData: FormData): Promise<SignInState> {
+  if (await currentSignInMethod() !== "password") return { status: "error", message: "This copy of Commons signs in with emailed links." };
+  const parsed = PasswordSchema.safeParse({
+    email: formData.get("email"), password: formData.get("password"), mode: formData.get("mode"),
+    next: formData.get("next") || undefined, intent: formData.get("intent") || undefined,
+  });
+  if (!parsed.success) {
+    const passwordProblem = parsed.error.issues.some(issue => issue.path[0] === "password");
+    return { status: "error", message: passwordProblem ? "Use a password of at least 8 characters." : "Enter a valid email address." };
+  }
+  const { email, password, mode } = parsed.data;
+  const next = safeAuthNext(parsed.data.next);
+  const intent: AuthenticationEmailIntent = parsed.data.intent ?? "sign-in";
+  if (mode === "create") {
+    // Nobody has proved they own this address, so only an invite link (or the admin's open rule) lets a new person in.
+    const decision = await signupAllowedFor(email, next, undefined, { emailVerified: false }).catch(() => null);
+    if (!decision) return { status: "error", message: "Account not created. Try again." };
+    if (!decision.allowed) return { status: "error", message: decision.reason === "domain_not_listed" ? SIGNUP_DOMAIN_MESSAGE : SIGNUP_REFUSED_MESSAGE };
+    if (!isSupabaseAdminConfigured()) return { status: "error", message: "Accounts can’t be created on this copy yet. Whoever runs it needs to add the Supabase secret key." };
+    try {
+      if (await createConfirmedPasswordAccount(email, password) === "exists") return { status: "error", message: "An account with this email already exists. Sign in instead." };
+    } catch {
+      return { status: "error", message: "Account not created. Try again." };
+    }
+  }
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error || !data.user) return { status: "error", message: "That email and password don’t match. If you forgot your password, ask whoever runs this Commons to reset it." };
+  const databaseUrl = commonsDatabaseUrl();
+  const known = databaseUrl ? await findPersonIdForAuthUser(data.user.id, databaseUrl).catch(() => null) : null;
+  redirect(known ? next : accountCreationPath(next, intent));
 }

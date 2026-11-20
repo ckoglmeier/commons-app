@@ -132,3 +132,40 @@ export async function storeCommonsConfirmationAsset(storagePath: string, bytes: 
   const { error } = await supabase.storage.from("commons-confirmations").upload(storagePath, bytes, { contentType: mimeType, upsert: false });
   if (error && error.message !== "The resource already exists" && !error.message.toLowerCase().includes("duplicate")) throw new Error("The confirmation could not be stored. Retry this same file.");
 }
+
+/*
+ * Password accounts, for copies with no email set up (D81). Accounts are created already confirmed, since there is no email to confirm
+ * them with; who may create one is decided first by lib/server/instance-access.ts.
+ */
+export type PasswordAccountResult = "created" | "exists";
+
+export async function createConfirmedPasswordAccount(email: string, password: string): Promise<PasswordAccountResult> {
+  const supabase = createSupabaseAdminClient("to create an account without email");
+  const { error } = await supabase.auth.admin.createUser({ email, password, email_confirm: true });
+  if (!error) return "created";
+  if (error.status === 422 || /already (been )?registered|already exists/i.test(error.message)) return "exists";
+  throw new Error("Commons could not create the account.");
+}
+
+async function findAuthUserIdByEmail(email: string) {
+  const supabase = createSupabaseAdminClient("to find an account");
+  const wanted = email.trim().toLowerCase();
+  for (let page = 1; page <= 50; page += 1) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) throw new Error("Commons could not look up accounts.");
+    const match = data.users.find(user => user.email?.toLowerCase() === wanted);
+    if (match) return match.id;
+    if (data.users.length < 200) return null;
+  }
+  return null;
+}
+
+/** The instance admin sets a new password for someone who forgot theirs. Returns false when no account has that email. */
+export async function setPasswordForEmail(email: string, password: string) {
+  const authUserId = await findAuthUserIdByEmail(email);
+  if (!authUserId) return false;
+  const supabase = createSupabaseAdminClient("to reset a password");
+  const { error } = await supabase.auth.admin.updateUserById(authUserId, { password });
+  if (error) throw new Error("Commons could not set the password.");
+  return true;
+}
