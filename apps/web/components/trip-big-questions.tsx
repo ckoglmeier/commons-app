@@ -7,19 +7,21 @@ import { TripLetterWelcome } from "./trip-letter-controls";
 import { GoingAction } from "./trip-stage-gate";
 
 /*
- * Trip while a group is getting to "we're going" (docs/TRIP-STAGES-DIRECTION.md). The big questions are the page and the
+ * Trip while a group is getting to "we're going" (DESIGN.md §9 (Trip)). The big questions are the page and the
  * guide. Poll answers never decide anything: each question is settled by the organizer, here, in their own words.
  */
 
 type QuestionId = "where" | "when" | "who";
-type Question = { id: QuestionId; decided: string | null; poll: { id: string; publicId: string; title: string; open: boolean; answers: number } | null };
+type Saved = { locationName?: string; startsOn?: string; endsOn?: string; note?: string };
+type Question = { id: QuestionId; decided: string | null; saved?: Saved; poll: { id: string; publicId: string; title: string; open: boolean; answers: number } | null };
 
 type Loaded = { questions: Question[]; welcome: string | null; decideBy: string | null; roughCost: string | null };
 
 const json = { "content-type": "application/json" };
 
-function Decide({ slug, id, onSaved, onCancel }: { slug: string; id: QuestionId; onSaved: () => void; onCancel: () => void }) {
-  const [where, setWhere] = useState(""), [startsOn, setStartsOn] = useState(""), [endsOn, setEndsOn] = useState(""), [note, setNote] = useState("");
+function Decide({ slug, id, saved, onSaved, onCancel }: { slug: string; id: QuestionId; saved?: Saved; onSaved: () => void; onCancel: () => void }) {
+  // "Change" opens with what is saved, so nobody retypes the place, the dates or the note.
+  const [where, setWhere] = useState(saved?.locationName ?? ""), [startsOn, setStartsOn] = useState(saved?.startsOn ?? ""), [endsOn, setEndsOn] = useState(saved?.endsOn ?? ""), [note, setNote] = useState(saved?.note ?? "");
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => { form.current?.querySelector("input")?.focus(); }, []);
@@ -39,7 +41,7 @@ function Decide({ slug, id, onSaved, onCancel }: { slug: string; id: QuestionId;
     {id === "when" ? <div className="big-questions__dates"><label className="field"><span>First day</span><input type="date" value={startsOn} onChange={event => setStartsOn(event.target.value)} /></label><label className="field"><span>Last day</span><input type="date" value={endsOn} min={startsOn || undefined} onChange={event => setEndsOn(event.target.value)} /></label></div> : null}
     {id === "who" ? <label className="field"><span>Who’s in</span><input value={note} maxLength={500} placeholder="Sam, Kit and probably Noor" onChange={event => setNote(event.target.value)} /><small>A note for you. It doesn’t invite anyone.</small></label> : null}
     {error ? <p className="form-error" role="alert">{error}</p> : null}
-    <div className="setup-actions"><button type="button" className="secondary" disabled={busy} onClick={onCancel}>Cancel</button><button type="submit" disabled={!ready || busy}>{busy ? "Saving…" : "Add"}</button></div>
+    <div className="setup-actions"><button type="button" className="secondary" disabled={busy} onClick={onCancel}>Cancel</button><button type="submit" disabled={!ready || busy}>{busy ? "Saving…" : saved ? "Save" : "Add"}</button></div>
   </form>;
 }
 
@@ -101,7 +103,7 @@ export function TripBigQuestions({ slug, tripName, templateKey = null }: { slug:
           </> : !question.decided ? <Link className="cm-action" href={`/c/${encodeURIComponent(slug)}/polls/new?template=${encodeURIComponent(welcomePollFor(template, question.id)?.id ?? `decide-${question.id}`)}&question=${question.id}`}>Ask your group</Link> : null}
         </div>
       </div>
-      {deciding === question.id ? <Decide slug={slug} id={question.id} onCancel={() => setDeciding(null)} onSaved={() => { setDeciding(null); void load(); }} /> : null}
+      {deciding === question.id ? <Decide slug={slug} id={question.id} saved={question.saved} onCancel={() => setDeciding(null)} onSaved={() => { setDeciding(null); void load(); }} /> : null}
     </li>)}</ol> : null}
     {questions && template.openQuestions.length ? <section className="open-questions" aria-labelledby="open-questions-title"><h3 id="open-questions-title">Also to settle</h3><ul>{template.openQuestions.map(text => <li key={text}><span>{text}</span><Link className="cm-action" href={`/c/${encodeURIComponent(slug)}/polls/new?question=${encodeURIComponent(text)}`}>Ask your group</Link></li>)}</ul></section> : null}
     <footer className="big-questions__footer">

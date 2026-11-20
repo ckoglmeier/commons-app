@@ -2,7 +2,7 @@ import "server-only";
 import { attachBigQuestionPoll, decideBigQuestion, markTripGoing, readBigQuestions, saveTripBrief, setTripExperience } from "@commons/database";
 import { authenticatedCommonsRepositoryOptions } from "./commons";
 
-/** docs/TRIP-STAGES-DIRECTION.md. */
+/** DESIGN.md §9 (Trip). */
 
 async function options() {
   const resolved = await authenticatedCommonsRepositoryOptions();

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import React, { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -19,10 +20,14 @@ test("poll-only navigation does not expose event or management routes", () => {
   assert.doesNotMatch(member, /Manage poll/);
 });
 
-test("unconfigured suggestions keep manual building available without a provider action", () => {
+test("unconfigured writing help doesn't appear, and manual building stays in the editor", () => {
   const html = renderToStaticMarkup(createElement(PollQuestionAssistance, { slug: "event", revision: "", title: "", defaultTitle: "", intro: "", questions: [], framingRequest: "", onFramingRequest: () => {}, ready: false, available: false, saveDraft: async () => undefined, onApply: async () => "applied" as const }));
-  assert.match(html, /isn’t available here yet/);
-  assert.doesNotMatch(html, /<button/);
+  assert.equal(html, "", "an optional service stays hidden until it is set up");
+  // The editor itself needs the app router to render, so check its source: the manual fields sit outside the writing-help component.
+  const editor = readFileSync(new URL("../app/c/[slug]/polls/new/poll-starter.tsx", import.meta.url), "utf8");
+  const assistance = editor.indexOf("<PollQuestionAssistance"), introduction = editor.indexOf("Introduction for the group"), questions = editor.indexOf('aria-label="Questions"');
+  assert.ok(assistance > 0 && introduction > assistance && questions > introduction, "the introduction and questions are always editable by hand");
+  assert.doesNotMatch(editor, /isn’t available here yet/);
 });
 
 test("private drafts accept an undecided audience but publication rejects it", () => {

@@ -33,7 +33,7 @@ test("a trip moves through questions to going, and answers never decide anything
   let view = await readBigQuestions(tripId, options);
   assert.equal(view.stage, "deciding");
   assert.deepEqual(view.questions.map(question => question.id), ["where", "when", "who"]);
-  assert.ok(view.questions.every(question => question.decided === null && question.poll === null));
+  assert.ok(view.questions.every(question => question.decided === null && question.poll === null && question.saved === undefined));
 
   const { id: pollId } = await createCommonsPoll(tripId, linkPoll(), options);
   await attachBigQuestionPoll(tripId, { question: "where", pollId }, options);
@@ -52,7 +52,8 @@ test("a trip moves through questions to going, and answers never decide anything
     await decideBigQuestion(tripId, { commandId: randomUUID(), question: "who", note: "Sam and Kit" }, options);
     await assert.rejects(decideBigQuestion(tripId, { commandId: randomUUID(), question: "when", startsOn: "2027-10-12", endsOn: "2027-10-09" }, options));
     view = await readBigQuestions(tripId, options);
-    assert.deepEqual(view.questions.map(question => question.decided), ["Napa", "2027-10-09 – 2027-10-12", "Sam and Kit"]);
+    assert.deepEqual(view.questions.map(question => question.decided), ["Napa", "Oct 9–12, 2027", "Sam and Kit"]);
+    assert.deepEqual(view.questions.map(question => question.saved), [{ locationName: "Napa" }, { startsOn: "2027-10-09", endsOn: "2027-10-12" }, { note: "Sam and Kit" }], "Change opens with what is saved");
     const [saved] = await database.db.select({ location: commons.locationName, startsOn: commons.startsOn }).from(commons).where(eq(commons.id, tripId));
     assert.deepEqual(saved, { location: "Napa", startsOn: "2027-10-09" }, "a decision becomes the trip's fact");
 

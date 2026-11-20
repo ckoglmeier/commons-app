@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { TripTaskSchema, type TripTask } from "@commons/contracts";
 import { createHookRenderer, registerComponentImportStubs } from "../lib/test-support/hook-harness";
 import { installFakeBrowserEnvironment, settle } from "../lib/test-support/fake-browser-environment";
+import { pilotSnapshot } from "../lib/pilot-fixture";
 registerComponentImportStubs();
 
 test("Task snapshots reuse authorized loads and ignore late data after switching trips", async () => {
@@ -48,5 +49,35 @@ test("completed to-dos disappear from the active list but remain in loaded histo
     assert.equal(renderer.findAll(node => node.type === "summary" && node.children.includes(task.title)).length, 0);
     assert.equal(snapshots.at(-1)?.[0].completed, true);
     assert.equal(renderer.findAll(node => node.type === "p" && node.children.includes("No open to-dos.")).length, 1);
+  } finally { renderer.unmount(); live.restore(); }
+});
+
+test("after saving a to-do for someone else, the next new to-do starts with the viewer as owner", async () => {
+  const casey = pilotSnapshot.participants.find(person => person.displayName.startsWith("Casey"))!, maya = pilotSnapshot.participants.find(person => person.displayName.startsWith("Maya"))!;
+  const posted: Array<Record<string, unknown>> = [];
+  const live = installFakeBrowserEnvironment({ fetch: async (url, init) => {
+    if (init?.method === "POST") {
+      const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+      posted.push(body);
+      return Response.json({ task: { id: body.id, title: body.title, ownerPersonId: body.ownerPersonId, dueOn: null, completed: false, version: 1, itemKind: null, itemId: null, itemTitle: null } });
+    }
+    return url.endsWith("/tasks") ? Response.json({ tasks: [] }) : Response.json({});
+  } });
+  const { TripTasks } = await import("./trip-tasks");
+  const renderer = createHookRenderer({ expand: [TripTasks] });
+  const owner = () => renderer.find(node => node.type === "select" && node.props.required === true).props.value;
+  try {
+    renderer.render(createElement(TripTasks, { slug: "trip", actorId: casey.id, showSuggestions: false, context: { people: pilotSnapshot.participants, state: pilotSnapshot.state, commons: pilotSnapshot.commons, organizer: true } }));
+    await settle(5); renderer.flush();
+    (renderer.find(node => node.type === "button" && node.children.includes("Add to-do")).props.onClick as () => void)(); renderer.flush();
+    assert.equal(owner(), casey.id, "a new to-do starts with the viewer");
+    (renderer.find(node => node.type === "input" && node.props.placeholder === "Arrange airport van").props.onChange as (event: unknown) => void)({ target: { value: "Pick up the keys" } });
+    (renderer.find(node => node.type === "select" && node.props.required === true).props.onChange as (event: unknown) => void)({ target: { value: maya.id } }); renderer.flush();
+    (renderer.find(node => node.type === "form").props.onSubmit as (event: unknown) => void)({ preventDefault() {} });
+    await settle(5); renderer.flush();
+    assert.equal(posted.length, 1);
+    assert.equal(posted[0].ownerPersonId, maya.id, "the saved to-do went to the chosen person");
+    (renderer.find(node => node.type === "button" && node.children.includes("Add to-do")).props.onClick as () => void)(); renderer.flush();
+    assert.equal(owner(), casey.id, "the next to-do doesn't keep the last owner");
   } finally { renderer.unmount(); live.restore(); }
 });

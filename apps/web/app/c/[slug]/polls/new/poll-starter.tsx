@@ -46,6 +46,7 @@ export function PollStarter({ linkOnly = false, bigQuestion, slug, eventName, ti
   const [recipientIds, setRecipientIds] = useState(initialDraft?.data.audience?.personIds ?? (sourcePoll ? [] : people.map(person => person.id)));
   const [guestEmails, setGuestEmails] = useState(initialDraft?.data.audience?.guestEmails.join(", ") ?? "");
   const audience = { personIds: recipientIds, guestEmails: [...new Set(guestEmails.split(/[\s,;]+/).map(email => email.trim().toLowerCase()).filter(Boolean))] };
+  const recipientNames = people.filter(person => recipientIds.includes(person.id)).map(person => person.name).join(", ");
   const [ballotMode, setBallotMode] = useState<CreatePollRequest["ballotMode"]>(initialDraft?.data.ballotMode ?? "transparent");
   const [questions, setQuestions] = useState<PollQuestion[]>(() => {
     if (initialDraft) return initialDraft.data.questions;
@@ -208,10 +209,11 @@ export function PollStarter({ linkOnly = false, bigQuestion, slug, eventName, ti
       {review ? <section className="poll-preview" aria-label="Poll review">
         <h2>{title}</h2>{intro ? <p>{intro}</p> : null}
         <p>{ballotMode === "secret" ? "Secret ballot. Only totals show, after voting closes." : "Named answers. Selected participants and organizers can see choices. Comments are visible to the creator and organizers only."}</p>
-        <h3>Reviewed audience</h3>
-        <p>Trip participants: {people.filter(person => recipientIds.includes(person.id)).map(person => person.name).join(", ") || "None"}. They need to accept their trip invitation first.</p>
+        {linkOnly ? <><h3>Who can answer</h3>
+        <p>Anyone with the link. They don’t sign in or join the trip, and names are self-reported.</p></> : <><h3>Reviewed audience</h3>
+        <p>{recipientNames ? `Trip participants: ${recipientNames}. Anyone still invited needs to accept their trip invitation first.` : "Trip participants: None."}</p>
         <p>Response-only guests: {audience.guestEmails.join(", ") || "None"}. They can answer but can’t open the trip.</p>
-        <p>Recipients sign in with their account. Answering isn’t an RSVP.</p>
+        <p>Recipients sign in with their account. Answering isn’t an RSVP.</p></>}
         {questions.map((question, index) => <div className="poll-preview__question" key={question.id}><span>{index + 1}</span><div><strong>{question.prompt}</strong><p>{question.required ? "Required" : "Optional"} · {pollQuestionFormat(question)}</p>{question.kind !== "text" ? <ul>{question.options.map(item => <li key={item.id}>{item.label}{item.description ? ` — ${item.description}` : ""}{item.exclusive ? " (cannot be combined)" : ""}{item.housing ? <PollHousingFacts housing={item.housing} /> : null}{item.url ? <a href={item.url} target="_blank" rel="noreferrer">View source</a> : null}</li>)}</ul> : null}</div></div>)}
         <p>Publishing doesn’t email anyone or change the trip. You share the link next.</p>
       </section> : <fieldset className="fieldnotes-editing" disabled={busy}>

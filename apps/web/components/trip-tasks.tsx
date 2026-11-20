@@ -114,7 +114,8 @@ export function TripTasks({ slug, actorId, context, onOpenPollResults, onTasksLo
             if (!task) {
                 setOpen(false);
                 setEditing(null);
-                change({ title: "", dueOn: "", item: "" }, null);
+                // The next to-do starts with the viewer as owner again, not whoever this one went to.
+                change({ title: "", ownerPersonId: actorId ?? "", dueOn: "", item: "" }, null);
             }
         }
         catch (cause) {

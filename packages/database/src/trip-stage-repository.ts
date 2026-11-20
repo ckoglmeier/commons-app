@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { formatTripDateRange } from "@commons/contracts";
 import { and, count, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
 import { createDatabase } from "./client";
@@ -7,7 +8,7 @@ import { isCommonsId } from "./commons-identifier";
 import { auditEvents, commons, expenses, memberships, moments, pollResponses, polls } from "./schema";
 
 /*
- * Two stages of one trip (docs/TRIP-STAGES-DIRECTION.md). A new-experience trip starts out getting to a decision and moves
+ * Two stages of one trip (DESIGN.md §9 (Trip)). A new-experience trip starts out getting to a decision and moves
  * to "We're going" only when its organizer says so. Existing trips keep today's experience until an organizer turns this on. Poll answers never decide anything here: only `decideBigQuestion` does, and only an organizer can call it.
  */
 
@@ -33,6 +34,8 @@ async function organizerTrip(tx: Pick<CommandTransaction, "select">, identifier:
 export type BigQuestionView = {
   id: BigQuestionId;
   decided: string | null;
+  /** What is saved, so "Change" opens with it. Present only when the question has an answer. */
+  saved?: { locationName: string } | { startsOn: string; endsOn: string } | { note: string };
   poll: { id: string; publicId: string; title: string; open: boolean; answers: number } | null;
 };
 
@@ -45,11 +48,12 @@ export async function readBigQuestions(identifier: string, options: Options) {
     const pollIds = BIG_QUESTION_IDS.flatMap(id => saved[id]?.pollId ? [saved[id]!.pollId!] : []);
     const rows = pollIds.length ? await database.db.select({ id: polls.id, publicId: polls.publicId, title: polls.title, status: polls.status }).from(polls).where(and(eq(polls.commonsId, trip.id), inArray(polls.id, pollIds))) : [];
     const answers = pollIds.length ? await database.db.select({ pollId: pollResponses.pollId, total: count() }).from(pollResponses).where(inArray(pollResponses.pollId, pollIds)).groupBy(pollResponses.pollId) : [];
-    const dates = trip.startsOn && trip.endsOn ? (trip.startsOn === trip.endsOn ? trip.startsOn : `${trip.startsOn} – ${trip.endsOn}`) : null;
+    const dates = trip.startsOn && trip.endsOn ? formatTripDateRange(trip.startsOn, trip.endsOn) : null;
     const decidedFor: Record<BigQuestionId, string | null> = { where: trip.locationName, when: dates, who: saved.who?.note ?? null };
+    const savedFor: Record<BigQuestionId, BigQuestionView["saved"]> = { where: trip.locationName ? { locationName: trip.locationName } : undefined, when: trip.startsOn && trip.endsOn ? { startsOn: trip.startsOn, endsOn: trip.endsOn } : undefined, who: saved.who?.note ? { note: saved.who.note } : undefined };
     const questions: BigQuestionView[] = BIG_QUESTION_IDS.map(id => {
       const poll = rows.find(row => row.id === saved[id]?.pollId);
-      return { id, decided: decidedFor[id], poll: poll ? { id: poll.id, publicId: poll.publicId, title: poll.title, open: poll.status === "open", answers: Number(answers.find(row => row.pollId === poll.id)?.total ?? 0) } : null };
+      return { id, decided: decidedFor[id], ...(savedFor[id] ? { saved: savedFor[id] } : {}), poll: poll ? { id: poll.id, publicId: poll.publicId, title: poll.title, open: poll.status === "open", answers: Number(answers.find(row => row.pollId === poll.id)?.total ?? 0) } : null };
     });
     return { stage: tripStage(trip), questions, welcome: trip.welcomeMessage, decideBy: saved.decideBy ?? null, roughCost: saved.roughCost ?? null };
   } finally { await database.close(); }

@@ -69,7 +69,8 @@ export function PollQuestionAssistance({ slug, revision, title, defaultTitle, in
     } finally { locked.current = false; setBusy(false); }
   }
 
-  if (!available) return <p className="poll-suggestion-status">Writing help isn’t available here yet. Write the introduction and questions below.</p>;
+  // Writing help is an optional service: until the person running this copy sets it up, it doesn't appear at all.
+  if (!available) return null;
   return <section className="poll-framing-help" aria-label="Commons writing help">
     <label className="fieldnotes-field"><span>What needs deciding?</span>
       <textarea value={framingRequest} onChange={event => onFramingRequest(event.target.value)} maxLength={500} rows={3} placeholder="Help us pick between these two activities for Saturday" />
