@@ -120,7 +120,7 @@ test("TripIdentity exposes People and a Trip options menu only for authorized ca
   const people = identity({ openPeople() {} });
   assert.match(people, /<button[^>]*aria-label="People: 2 travelers"/);
   assert.doesNotMatch(people, /Trip options/);
-  const full = identity({ openPeople() {}, openCoverPicker() {}, openSettings() {}, contextHref: "/c/trip/context" });
+  const full = identity({ openPeople() {}, openCoverPicker() {}, openSettings() {} });
   assert.match(full, /<button[^>]*aria-label="Trip options"[^>]*aria-expanded="false"|<button[^>]*aria-expanded="false"[^>]*aria-label="Trip options"/);
   const solo = identity({ openCoverPicker() {} });
   assert.match(solo, /aria-label="Trip options"/);

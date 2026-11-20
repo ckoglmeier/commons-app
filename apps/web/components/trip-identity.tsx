@@ -11,7 +11,7 @@ import { ResilientCoverImage } from "./resilient-cover-image";
  * Presentational trip identity for the persistent rail and the compact Menu.
  * It performs no fetching and infers no permissions: an action appears only when its callback or href is supplied.
  */
-export function TripIdentity({ placement, commons, meta, coverImage, participants, openPeople, openCoverPicker, openSettings, openContext, contextHref, demo, onAction }: {
+export function TripIdentity({ placement, commons, meta, coverImage, participants, openPeople, openCoverPicker, openSettings, demo, onAction }: {
   placement: "rail" | "menu";
   commons: CommonsSummary;
   meta: string;
@@ -20,8 +20,6 @@ export function TripIdentity({ placement, commons, meta, coverImage, participant
   openPeople?: () => void;
   openCoverPicker?: () => void;
   openSettings?: () => void;
-  openContext?: () => void;
-  contextHref?: string;
   demo?: boolean;
   onAction?: () => void;
 }) {
@@ -32,7 +30,7 @@ export function TripIdentity({ placement, commons, meta, coverImage, participant
   const trigger = useRef<HTMLButtonElement>(null);
   const aspectRatio = coverImage && dimensions?.src === coverImage ? `${dimensions.width} / ${dimensions.height}` : undefined;
   const travelers = `${participants.length} ${participants.length === 1 ? "traveler" : "travelers"}`;
-  const hasOptions = Boolean(openCoverPicker || openSettings || openContext || contextHref);
+  const hasOptions = Boolean(openCoverPicker || openSettings);
 
   useEffect(() => {
     if (!optionsOpen) return;
@@ -96,7 +94,6 @@ export function TripIdentity({ placement, commons, meta, coverImage, participant
         <div className="trip-identity__options" id={optionsId} role="group" aria-label="Trip options">
           {openCoverPicker ? <button type="button" aria-haspopup="dialog" onClick={() => act(openCoverPicker)}>{coverImage ? "Change cover" : "Add cover"}</button> : null}
           {openSettings ? <button type="button" aria-haspopup="dialog" onClick={() => act(openSettings)}>Trip settings</button> : null}
-          {openContext ? <button type="button" onClick={() => { root.current?.querySelector<HTMLButtonElement>('[aria-label="Trip options"]')?.focus({ preventScroll: true }); setOptionsOpen(false); onAction?.(); openContext(); }}>Trip context</button> : contextHref ? <a href={contextHref} target="_blank" rel="noopener noreferrer" onClick={() => { setOptionsOpen(false); onAction?.(); }}>Trip context<span className="sr-only"> (opens in a new tab)</span><span aria-hidden="true"> ↗</span></a> : null}
         </div>
       ) : null}
     </div>

@@ -1,7 +1,6 @@
 "use client";
-import { TripContextSheet } from "./trip-context-sheet";
-import { personFacingError } from "@/lib/person-facing-error";
 import { TimeInput } from "./time-input";
+import { personFacingError } from "@/lib/person-facing-error";
 import { TripMapView } from "./trip-map";
 import { BetaMoneyWrapUp } from "./beta-money-wrap-up";
 import { TripQuickAddSheet, type QuickAddInput } from "./trip-quick-add";
@@ -101,7 +100,7 @@ import {
     WalletIcon
 } from "./icons";
 type Tab = EventView;
-type Sheet = "trip-context" | "add-item" | "item-detail" | "add-receipt" | "expense" | "add-expense" | "edit-expense" | "payment" | "add-payment" | "edit-payment" | "close-expenses" | "reopen-expenses" | "money-settings" | "add-plan" | "add-meal" | "edit-plan" | "cover" | "edit-trip-details" | "add-stay" | "edit-stay" | "add-flight" | "add-rental" | "moment" | "edit-moment" | "photo-mapping" | "travel" | "people" | null;
+type Sheet = "add-item" | "item-detail" | "add-receipt" | "expense" | "add-expense" | "edit-expense" | "payment" | "add-payment" | "edit-payment" | "close-expenses" | "reopen-expenses" | "money-settings" | "add-plan" | "add-meal" | "edit-plan" | "cover" | "edit-trip-details" | "add-stay" | "edit-stay" | "add-flight" | "add-rental" | "moment" | "edit-moment" | "photo-mapping" | "travel" | "people" | null;
 type ParticipationChoice = "in" | "maybe" | "skip";
 
 const initialPilotParticipation: Record<string, ParticipationChoice> = {
@@ -5301,7 +5300,7 @@ export function CommonsApp({
         account={{ signedIn, actorName: initialSnapshot.currentActor.displayName, actorInitials, roleLabel: canManageTrip ? "Organizer" : "Traveler", signInHref: `/sign-in?next=${encodeURIComponent(commonsPath(initialSnapshot.commons.id))}`, instanceAdmin }}
         identity={(placement, closeMenu) => <TripIdentity placement={placement} onAction={closeMenu} commons={commonsSummary} meta={[formatTripDates(commonsSummary.startsOn, commonsSummary.endsOn), formatTripPlaces(commonsSummary)].filter(Boolean).join(" · ")} coverImage={displayedCoverImage} participants={participants}
           openPeople={() => { trackProductEvent("people_opened", { commonsSlug: initialSnapshot.commons.slug }); setSheet("people"); }} openCoverPicker={() => setSheet("cover")}
-          openSettings={canEditBasics ? () => setSheet("edit-trip-details") : undefined} openContext={canManageTrip && dataMode === "database" ? () => setSheet("trip-context") : undefined}
+          openSettings={canEditBasics ? () => setSheet("edit-trip-details") : undefined}
           demo={seededPilot} />}>
           <div className="trip-shell-page">
               {decisionHandoff ? <p className="decision-return"><a href={`${commonsPath(initialSnapshot.commons.id)}/polls/${decisionHandoff.pollId}`}>Back to decision</a></p> : null}
@@ -5338,7 +5337,6 @@ export function CommonsApp({
       {sheet === "moment" && selectedMoment ? <MomentViewerSheet moment={selectedMoment} openItem={selectedMoment.itineraryItemId ? () => openItem("plan", selectedMoment.itineraryItemId!) : undefined} close={() => setSheet(null)} edit={() => setSheet("edit-moment")} /> : null}
       {sheet === "edit-moment" && selectedMoment ? <MomentEditorSheet moment={selectedMoment} days={days} itinerary={state.itinerary} timeZone={initialSnapshot.commons.timezone} close={() => setSheet("moment")} save={updateMoment} remove={deleteMoment} /> : null}
       {sheet === "photo-mapping" && pendingPhotos.length ? <PhotoMappingSheet initialActivityId={photoActivityId} photos={pendingPhotos} itinerary={state.itinerary} timeZone={initialSnapshot.commons.timezone} actorId={initialSnapshot.currentActor.id} actorName={initialSnapshot.currentActor.displayName} close={closePhotoMapping} addMoment={persistNewMoment} notify={notify} persistent={dataMode === "database"} /> : null}
-      {sheet === "trip-context" && canManageTrip ? <TripContextSheet tripId={initialSnapshot.commons.id} close={() => setSheet(null)} /> : null}
       {sheet === "people" ? <PeopleSheet decidingStage={tripStage === "deciding"} emailInvitations={emailInvitations} slug={initialSnapshot.commons.slug} tripName={commonsSummary.name} tripStatus={commonsSummary.status} participants={participants} currentPersonId={initialSnapshot.currentActor.id} canManage={canManageTrip} persistent={dataMode === "database"} onPeopleChanged={refreshPeople} attendance={dataMode === "database" ? <EventAttendancePanel key={`${commonsSummary.id}:${commonsSummary.startsOn}:${commonsSummary.endsOn}`} eventId={commonsSummary.id} onSaved={() => setPeopleRevision(value => value + 1)} /> : undefined} close={() => { setSheet(null); setPeopleRevision(value => value + 1); }} /> : null}
       {planReceipt && !sheet && !quickAdd ? <section className="plan-receipt" role="status" aria-label="Saved to Plan">
         <CheckIcon /><p><strong>{planReceipt.title}</strong><span>{planReceipt.status} · Saved to Plan</span></p>
