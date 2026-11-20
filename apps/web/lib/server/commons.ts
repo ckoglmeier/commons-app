@@ -81,7 +81,7 @@ import { renderCommonsInvitationEmail } from "@/lib/email/invitation-email";
 import { renderCommonsAuthenticationEmail } from "@/lib/email/authentication-email";
 import { createPasswordlessEmailProof, getSupabaseAuthUserEmail, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { invitationReturnPath } from "@/lib/invitation-entry-flow";
-import { EmailDeliveryError, sendEmail } from "@/lib/email/resend";
+import { EmailDeliveryError, emailDeliveryAvailable, sendEmail } from "@/lib/email/resend";
 import { createPublicDemoSnapshotLookup } from "./public-demo";
 import {
     CommonsAuthenticationRequiredError,
@@ -732,7 +732,9 @@ export async function processInvitationDelivery(deliveryAttemptId: string | null
     const joinPath = invitationReturnPath(invitation.token, invitation.returnPollPublicId);
     let entry = invitation.authenticationEntry;
     // Without Supabase admin access (the local test sign-in) there is no email proof: the link opens the join page, where the traveler signs in.
-    if (!entry && isSupabaseAdminConfigured()) {
+    // The proof only has a use inside an invitation email, and asking Supabase for one creates a passwordless account for a new address.
+    // With no email set up it would never be delivered, and that account would block the traveler's own Create account, so none is made.
+    if (!entry && isSupabaseAdminConfigured() && emailDeliveryAvailable()) {
       const proof = await createPasswordlessEmailProof(recipientEmail, `${origin}${joinPath}`);
       entry = await cacheInvitationAuthenticationEntry(invitation.deliveryAttemptId, invitation.leaseAttempt,
         sealInvitationEmailProof({ ...proof, token: invitation.token, tokenVersion: invitation.tokenVersion, email: recipientEmail }), url);

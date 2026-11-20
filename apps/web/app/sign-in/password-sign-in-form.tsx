@@ -12,12 +12,12 @@ export function PasswordSignInForm({ next, intent = "sign-in" }: { next: string;
   const creating = mode === "create";
 
   return (
-    <form className="auth-form" action={action}>
+    <form className="auth-form auth-form--password" action={action}>
       <input type="hidden" name="next" value={next} />
       <input type="hidden" name="intent" value={intent} />
       <input type="hidden" name="mode" value={mode} />
       <label htmlFor="email">Email</label>
-      <input id="email" name="email" type="email" autoComplete="email" inputMode="email" placeholder="you@example.com" required disabled={pending} />
+      <input id="email" name="email" type="email" autoComplete="email" inputMode="email" placeholder="you@example.com" defaultValue={state.email ?? ""} required disabled={pending} />
       <label htmlFor="password">{creating ? "Choose a password" : "Password"}</label>
       <input id="password" name="password" type="password" autoComplete={creating ? "new-password" : "current-password"} minLength={8} required disabled={pending} />
       {creating ? <p className="auth-hint">At least 8 characters.</p> : null}

@@ -23,7 +23,7 @@ export function SignInForm({
       <input type="hidden" name="next" value={next} />
       <input type="hidden" name="intent" value={intent} />
       <label htmlFor="email">Email</label>
-      <input id="email" name="email" type="email" autoComplete="email" inputMode="email" placeholder="you@example.com" required disabled={!enabled || emailPending} />
+      <input id="email" name="email" type="email" autoComplete="email" inputMode="email" placeholder="you@example.com" defaultValue={emailState.email ?? ""} required disabled={!enabled || emailPending} />
       <button type="submit" disabled={!enabled || emailPending}>{emailPending ? "Sending…" : submitLabel}</button>
       {emailState.message ? <p className={`auth-message auth-message--${emailState.status === "error" ? "error" : "sent"}`} role="status" aria-live="polite">{emailState.message}</p> : null}
     </form>

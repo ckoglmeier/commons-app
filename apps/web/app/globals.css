@@ -1191,6 +1191,12 @@ section + section { margin-top: 2.4rem; }
 .invite-arrival__redeem .auth-form input { min-width: 0; padding: 0 .9rem; border: 1px solid rgb(255 253 248 / 48%); background: rgb(255 253 248 / 94%); color: var(--cm-color-ink); }
 .invite-arrival__redeem .auth-form button { padding: 0 1rem; border: 1px solid var(--cm-color-paper); background: var(--cm-color-paper); color: var(--cm-color-ink); font-size: var(--cm-text-utility); }
 .invite-arrival__redeem .auth-message { grid-column: 1 / -1; margin: 0; }
+/* The email-and-password form on the dark invitation panel: one column, visible labels, and a quiet switch rather than a second big button. */
+.invite-arrival__redeem .auth-form--password { grid-template-columns: minmax(0, 1fr); }
+.invite-arrival__redeem .auth-form--password label { position: static; width: auto; height: auto; overflow: visible; clip: auto; clip-path: none; white-space: normal; color: var(--cm-color-paper); font-size: var(--cm-text-meta); font-weight: 700; }
+.invite-arrival__redeem .auth-form--password .auth-hint { margin: 0; color: var(--cm-color-on-ink-secondary); }
+.invite-arrival__redeem .auth-form--password .auth-switch { width: auto; min-height: var(--cm-touch-target); justify-self: start; padding: .5rem 0; border-color: transparent; background: transparent; color: var(--cm-color-paper); font-size: var(--cm-text-meta); text-decoration: underline; text-underline-offset: .2em; }
+.invite-arrival__redeem .auth-form--password .auth-switch:focus-visible { outline: 3px solid var(--cm-color-paper); outline-offset: 2px; }
 .invite-arrival--email-entry { display: flex; flex-direction: column; }
 .invite-arrival--email-entry .invite-arrival__trip { position: relative; inset: auto; margin: auto var(--cm-gutter-mobile) 2rem; padding-top: 10rem; }
 .invite-arrival--email-entry .invite-arrival__footer { position: relative; inset: auto; }
@@ -2137,6 +2143,7 @@ section + section { margin-top: 2.4rem; }
   .invite-arrival__actions button { min-height: 4rem; padding: 0 1.5rem; font-size: 1rem; }
   .invite-arrival__redeem { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) minmax(30rem, 38rem); align-items: end; column-gap: 2rem; }
   .invite-arrival__redeem .auth-form input, .invite-arrival__redeem .auth-form button { min-height: 4rem; }
+  .invite-arrival__redeem .auth-form--password { width: min(100%, 30rem); justify-self: end; }
   .trip-arrival__photo { object-position: center 45%; }
   .trip-arrival__wash { background: linear-gradient(90deg, rgb(11 33 27 / 98%) 0%, rgb(11 33 27 / 90%) 24%, rgb(11 33 27 / 55%) 48%, rgb(11 33 27 / 8%) 76%), linear-gradient(180deg, rgb(11 33 27 / 18%) 0%, transparent 65%, rgb(11 33 27 / 62%) 100%); }
   .trip-arrival__brand { left: clamp(2rem, 4.5vw, 5rem); top: clamp(2rem, 5vw, 4.5rem); }
