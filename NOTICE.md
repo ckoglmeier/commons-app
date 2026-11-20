@@ -2,7 +2,7 @@
 
 Copyright (c) 2026 Chandler Koglmeier.
 
-The source code in this repository is released under the MIT License (see `LICENSE`). The name and artwork described below are not covered by the MIT License. This notice sets out the only rights you have to them.
+The source code in this repository is released under the MIT License (see `LICENSE`). The name and artwork described below are not covered by the MIT License, and the MIT License grants no rights to any trademark. This notice sets out the only rights you have to them.
 
 ## The Commons name
 
@@ -17,6 +17,14 @@ The Commons cover library is reserved by Chandler Koglmeier. Only twelve covers 
 celebration, city, coast, countryside, desert, forest, garden, hills, lake, mountains, table and together.
 
 These twelve files are not licensed under the MIT License. You may use, copy and modify them as part of running or modifying this software, including in copies you run for other people. You may not offer them, or covers made from them, as a separate collection or use them to identify a different product. The rest of the cover library, and other Commons drawings, are not included and are not licensed.
+
+## No warranty
+
+The twelve covers are provided as is, without warranty of any kind, on the same terms as the MIT License's warranty disclaimer.
+
+## Contributions
+
+By contributing code or documentation, you agree it is licensed under the MIT License (see `CONTRIBUTING.md`). Don't contribute drawings or other artwork unless the maintainer asks; artwork contributions need a separate written agreement.
 
 ## Questions
 

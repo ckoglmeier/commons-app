@@ -53,7 +53,11 @@ Until then, sign-in works for you and invitations to other people wait.
 
 ## Your terms and privacy pages
 
-The built-in terms and privacy pages are templates. Fill in `COMMONS_INSTANCE_OWNER_NAME`, `COMMONS_INSTANCE_CONTACT_EMAIL` and `COMMONS_INSTANCE_JURISDICTION`, or link your own pages with `COMMONS_TERMS_URL` and `COMMONS_PRIVACY_URL`. If you run a public copy, give it your own name. See [NOTICE.md](../NOTICE.md).
+The built-in terms and privacy pages are templates, not legal advice. You are responsible for the copy you run and for checking that its terms suit where you and your travelers live. Fill in `COMMONS_INSTANCE_OWNER_NAME`, `COMMONS_INSTANCE_CONTACT_EMAIL` and `COMMONS_INSTANCE_JURISDICTION`, or link your own pages with `COMMONS_TERMS_URL` and `COMMONS_PRIVACY_URL`. If you run a public copy, give it your own name. See [NOTICE.md](../NOTICE.md).
+
+## Maps
+
+The trip map uses OpenStreetMap's public tiles, with attribution shown on the map. Their [tile usage policy](https://operations.osmfoundation.org/policies/tiles/) is fine for a group's own trips. If your copy gets heavy public use, switch to a commercial tile provider.
 
 ## Optional services
 
