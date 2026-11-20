@@ -4,7 +4,7 @@
     "sections": [
       [
         "About these terms",
-        "{owner} runs this copy of Commons, an open source group trip planner. These Terms of Use govern your use of this copy. You must agree to them to create an account. {contactSentence}"
+        "This copy of Commons, an open source group trip planner, is run by {owner}. These Terms of Use govern your use of this copy. You must agree to them to create an account. {contactSentence}"
       ],
       [
         "Who can use this copy",
@@ -61,7 +61,7 @@
     "sections": [
       [
         "Who is responsible",
-        "{owner} runs this copy of Commons and is responsible for the personal information it holds. {contactSentence}"
+        "This copy of Commons is run by {owner}, who is responsible for the personal information it holds. {contactSentence}"
       ],
       [
         "Information this copy holds",

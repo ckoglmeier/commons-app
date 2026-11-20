@@ -2,35 +2,39 @@ import { AnalyticsChoices } from '@/components/analytics-choices';
 import Link from 'next/link';
 import { siteOrigin } from '@/lib/site-origin';
 import { instanceSettings } from '@/lib/instance';
+import { emailDeliveryAvailable } from '@/lib/email/resend';
 import { PageShell } from '@/components/page-shell';
 import css from '@/components/page-shell.module.css';
 
 export const metadata = {
   title: 'Support and your data — Commons',
   alternates: { canonical: `${siteOrigin()}/support/` },
-  description: 'Get help with Commons, find your trip, download expense records, or request a copy or deletion of your personal data.',
+  description: 'Get help with this copy of Commons, find your trip, download expense records, or ask for a copy or deletion of your personal data.',
 };
 
 export default function SupportPage() {
-  const contactEmail = instanceSettings().contactEmail;
+  const { contactEmail, ownerName, ownerNamed } = instanceSettings();
+  const runBy = ownerNamed ? ownerName.replace(/^The /, 'the ') : 'the person who set it up';
+  const emailSignIn = emailDeliveryAvailable();
   const request = (subject: string) => `mailto:${contactEmail}?subject=${encodeURIComponent(subject)}`;
   return <PageShell>
     <h1>Support and your data</h1>
     <p className={css.lead}>A little help getting back to your trip, and clear ways to manage your information.</p>
     <section className={css.section}>
       <h2>Get help</h2>
+      <p>Commons is open source, and this copy is run by {runBy}. There’s no central support team.</p>
       {contactEmail ? <>
-        <p>Use <strong>Feedback</strong> in your trip to report a problem or suggest an improvement. You can also email directly.</p>
-        <div className={css.actions}><a className={css.primary} href={request('Commons support')}>Email support</a></div>
-        <p>Opens your email app. You can also write to <a href={request('Commons support')}>{contactEmail}</a>.</p>
-      </> : <p>Ask the person who runs this copy of Commons, or the organizer who invited you.</p>}
-      <p>Tell us what you were trying to do, what happened, and which page you were on. If useful, attach a screenshot with private information covered. Never send a password, sign-in code or payment-card details.</p>
+        <p>For help, email <a href={request('Commons help')}>{contactEmail}</a>.</p>
+        <div className={css.actions}><a className={css.primary} href={request('Commons help')}>Email for help</a></div>
+        <p>You can also choose <strong>Give feedback</strong> in your account menu.</p>
+      </> : <p>For help, ask them, or the organizer who invited you.</p>}
+      <p>Say what you were trying to do, what happened, and which page you were on. A screenshot helps; cover anything private first. Never send a password, a sign-in link or card details.</p>
     </section>
     <section className={css.section}>
       <h2>Finding your trip</h2>
-      <p>Invited to a trip? Sign in using the email address your invitation was sent to. If you cannot find the invitation or are unsure which address was used, ask your organizer to check.</p>
-      <p>If you still cannot get in, email support from the address you use for Commons and describe the problem.</p>
-      <Link href="/sign-in/?next=%2Ftrips&intent=invited">Sign in to your trip →</Link>
+      {emailSignIn ? <p>Invited to a trip? Sign in with the email address your invitation was sent to. If you can’t find the invitation or aren’t sure which address was used, ask your organizer to check.</p> : <p>Invited to a trip? Open the invite link your organizer sent you, then create an account or sign in. If you’ve lost the link, ask your organizer for a new one. If you forgot your password, the person who runs this copy can reset it.</p>}
+      <p>Still stuck? Ask the person who runs this copy.</p>
+      <Link href="/sign-in/?next=%2Ftrips">Sign in to your trip →</Link>
     </section>
     <section className={css.section}>
       <h2>Things you can manage in your trip</h2>
@@ -42,15 +46,15 @@ export default function SupportPage() {
     </section>
     <section className={css.section}>
       <h2>Request a copy of your data</h2>
-      <p>Email us from the address you use to sign in. Say that you want a copy of your personal data, and whether your request concerns a particular trip or your account. We confirm the request with that address before acting and reply by email.</p>
-      {contactEmail ? <a href={request('Commons data copy request')}>Request a copy by email →</a> : null}
+      <p>Ask the person who runs this copy for a copy of your personal data. Say whether you mean one trip or your whole account. Expect them to confirm it’s you, using your sign-in email, before sending anything.</p>
+      {contactEmail ? <a href={request('Commons data copy request')}>Ask by email →</a> : null}
     </section>
     <section className={css.section}>
       <h2>Request deletion</h2>
-      <p>Account deletion is handled by support. Email from your sign-in address and tell us what you want removed. We confirm your request before acting.</p>
-      <p>Some records belong to a shared trip, such as expenses other people rely on. Before anything is removed, we explain what can be deleted and what stays with the trip. A request does not automatically delete another person’s records or the whole group’s trip.</p>
-      {contactEmail ? <a href={request('Commons data deletion request')}>Request deletion by email →</a> : null}
+      <p>Ask the person who runs this copy to delete your account, and say what you want removed.</p>
+      <p>Some records belong to a shared trip, such as expenses other people rely on. A request doesn’t automatically delete another person’s records or the whole group’s trip, so expect to be told what can be removed and what stays.</p>
+      {contactEmail ? <a href={request('Commons data deletion request')}>Ask by email →</a> : null}
     </section>
-    <section id="analytics" className={css.section}><h2>Analytics choices</h2><AnalyticsChoices /></section>
+    {process.env.NEXT_PUBLIC_POSTHOG_KEY ? <section id="analytics" className={css.section}><h2>Analytics choices</h2><AnalyticsChoices /></section> : null}
   </PageShell>;
 }

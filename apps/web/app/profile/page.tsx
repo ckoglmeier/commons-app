@@ -14,6 +14,7 @@ import { currentSignInMethod } from "@/lib/server/sign-in-method";
 import { ChangePasswordForm } from "./change-password-form";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Your profile — Commons" };
 
 export default async function ProfilePage() {
   const identity = await getCurrentCommonsIdentity();
@@ -26,7 +27,7 @@ export default async function ProfilePage() {
     <main className="profile-shell">
       <header><Link href="/"><CommonsWordmark /></Link><Link href="/trips">Done</Link></header>
       <section className="profile-heading"><span className="view-kicker">Private to you</span><h1>Your profile.</h1><p>Commons can reuse these on future trips, with your confirmation.</p></section>
-      <ProfileContactMethods email={profile.email} />
+      <ProfileContactMethods email={profile.email} passwordSignIn={passwords} />
       {phoneAvailable ? <ProfileMobile phone={await ownVerifiedPhone()} /> : null}
       {passwords ? <ChangePasswordForm /> : <ProfileMessageEmails initialEnabled={profile.dailyDigestEnabled} />}
       {instanceAdmin ? (

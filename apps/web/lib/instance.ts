@@ -6,6 +6,8 @@ type Env = Record<string, string | undefined>;
 
 export type InstanceSettings = {
   ownerName: string;
+  /** True when COMMONS_INSTANCE_OWNER_NAME is set, so pages can tell a real name from the default label. */
+  ownerNamed: boolean;
   contactEmail: string | null;
   jurisdiction: string | null;
   termsUrl: string | null;
@@ -20,8 +22,10 @@ const httpsUrl = (value: string | undefined) => {
 
 export function instanceSettings(env: Env = process.env): InstanceSettings {
   const email = env.COMMONS_INSTANCE_CONTACT_EMAIL?.trim();
+  const name = env.COMMONS_INSTANCE_OWNER_NAME?.trim();
   return {
-    ownerName: env.COMMONS_INSTANCE_OWNER_NAME?.trim() || "The person who runs this copy",
+    ownerName: name || "The person who set up this copy",
+    ownerNamed: Boolean(name),
     contactEmail: email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null,
     jurisdiction: env.COMMONS_INSTANCE_JURISDICTION?.trim() || null,
     termsUrl: httpsUrl(env.COMMONS_TERMS_URL),
@@ -31,7 +35,8 @@ export function instanceSettings(env: Env = process.env): InstanceSettings {
 
 /** Fills a policy template's {owner}, {contactSentence} and {jurisdictionSentence} tokens. */
 export function fillPolicyText(text: string, settings: InstanceSettings) {
-  const contactSentence = settings.contactEmail ? `Contact ${settings.ownerName} at ${settings.contactEmail}.` : `Contact ${settings.ownerName} through the trip organizer who invited you.`;
+  const contactOwner = settings.ownerName.replace(/^The /, "the ");
+  const contactSentence = settings.contactEmail ? `Contact ${contactOwner} at ${settings.contactEmail}.` : `Contact ${contactOwner} through the trip organizer who invited you.`;
   const jurisdictionSentence = settings.jurisdiction ? `The laws of ${settings.jurisdiction} govern these terms, except where the law where you live gives you mandatory protections.` : "The laws where the person running this copy is based govern these terms, except where the law where you live gives you mandatory protections.";
   const owner = settings.ownerName;
   const midSentence = owner.replace(/^The /, "the ");

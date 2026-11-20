@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export function ProfileContactMethods({ email }: { email: string | null }) {
+export function ProfileContactMethods({ email, passwordSignIn = false }: { email: string | null; passwordSignIn?: boolean }) {
   const [editing, setEditing] = useState(false);
   const [emailValue, setEmailValue] = useState(email ?? "");
   const [pending, setPending] = useState(false);
@@ -42,7 +42,7 @@ export function ProfileContactMethods({ email }: { email: string | null }) {
     <section className="profile-contact">
       <h2>Contact methods</h2>
       <div className="profile-contact-row">
-        <div><span>Email</span><strong>{email ?? "Not added"}</strong><small>{email ? "Verified for sign-in" : "Add an email for sign-in."}</small></div>
+        <div><span>Email</span><strong>{email ?? "Not added"}</strong><small>{email ? (passwordSignIn ? "Used for sign-in" : "Verified for sign-in") : "Add an email for sign-in."}</small></div>
         <button type="button" onClick={begin}>{email ? "Edit" : "Add"}</button>
       </div>
       {editing ? <form className="profile-contact-editor" onSubmit={(event) => void requestUpdate(event)}>
