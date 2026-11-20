@@ -42,6 +42,8 @@ With no Resend settings, Commons sends no email at all:
 
 Add Resend at any time and redeploy. Sign-in then switches to emailed links. Accounts made with a password keep working, as long as the email on the account is a real address the person can read.
 
+Going the other way works too: remove the Resend settings and redeploy, and sign-in switches to passwords. People who only ever signed in with emailed links have no password yet, so set a temporary one for each of them under **Who can join → Reset someone's password**.
+
 ## Adding email with Resend
 
 In the Vercel project, add **Resend** from the **Integrations** tab (or create an API key at resend.com and add it as `RESEND_API_KEY`), then verify a domain. Resend needs a verified domain to email people other than yourself.
@@ -75,7 +77,9 @@ Texting costs money. See [what it costs](../README.md#what-it-costs).
 
 ## The daily job
 
-Commons has one scheduled job, `/api/internal/daily/`, set in `apps/web/vercel.json` to run once a day. Vercel Hobby allows daily jobs only, and may run it any time within the scheduled hour.
+Commons has one scheduled job, `/api/internal/daily/`, set in `apps/web/vercel.json` to run once a day at 16:00 UTC, which is morning in the Americas. Vercel Hobby allows daily jobs only, and may run it any time within the scheduled hour.
+
+If your group lives elsewhere, pick an hour that is morning for them: in `apps/web/vercel.json`, the schedule `0 16 * * *` means minute 0 of hour 16 in UTC, so `0 7 * * *` is 07:00 UTC. Commons holds its own messages during a trip's quiet hours, and a job that runs in the group's night finds them still held.
 
 The job:
 

@@ -134,6 +134,8 @@ Prefer rules and white space to nested cards.
 
 Loading, empty, error, success, disabled and pending states are explicit and honest. Use real buttons and links. Status never relies on color alone.
 
+Error text is always Commons's own words. A failed save says what didn't happen and what to do next; when the request never arrived it reads `Couldn’t connect. Check your connection and try again.` A browser's, parser's or database's wording never reaches the page (`apps/web/lib/person-facing-error.ts`). A page that fails to load shows the Commons error page with **Try again** and **Go to your trips**, never the framework's.
+
 Dialogs: use the native dialog for bounded decisions. Escape closes it and focus returns to the control that opened it. When one sheet hands off to another, release the first before opening the second. Keep unsaved edits when a sheet is closed and reopened.
 
 Photos on cards: keep the photo area unshaded above its caption. Use `--cm-color-photo-caption` only behind text, with a short fade. Never put a full-card wash over a photo.
@@ -247,7 +249,7 @@ A to-do is a simple action with a title, a named owner and an open or done state
 People opens from the trip identity. It lists the roster with roles and archive controls.
 
 - **Invite your group:** one inline **Share an invite link** action. Selecting it creates and copies a 14-day link; opening People creates nothing. A short sentence says that anyone who gets the link can sign in and join as a traveler, never as an organizer. If copying fails, show a selectable URL and a true error. Joining needs sign-in and grants no attendance, expense or booking authority. A signed-out preview shows only the trip name, inviter and expiry.
-- **Personal invitations:** Traveler is the default role. Organizer is explained before saving and starts only after acceptance with the invited email. **Invite traveler** sends the invitation through the normal delivery path. Organizer invitations are prepared first and sent in a separate step. Show the true state: sent, queued, failed or not sent. Keep the traveler if delivery fails and offer retry. Editing never resends. On a copy with no email set up nothing is sent: the invitation reads **Not sent**, it is not an error, and the organizer copies the person's private link.
+- **Personal invitations:** Traveler is the default role. Organizer is explained before saving and starts only after acceptance with the invited email. **Invite traveler** sends the invitation through the normal delivery path. Organizer invitations are prepared first and sent in a separate step. **Copy private link** shows the link in a field to select when the browser refuses to copy it. Show the true state: sent, queued, failed or not sent. Keep the traveler if delivery fails and offer retry. Editing never resends. On a copy with no email set up nothing is sent: the invitation reads **Not sent**, it is not an error, and the organizer copies the person's private link.
 - Managed travelers (people without accounts) cannot be organizers and get no invitation email.
 - Keep protections for the last organizer and for demoting yourself.
 - Attaching an invited person to a plan item shows **Invited · attendance not confirmed**. Attaching never accepts an invitation or records attendance.

@@ -8,7 +8,7 @@ Commons is a group trip planner. It's free and open source (MIT). You run your o
 
 Deploy your own copy in a few clicks. Using an AI assistant? [Copy the deploy guide to your LLM](docs/deploy-with-an-agent.md) and work through it together.
 
-![A trip home page showing where, when and who, with a Needs you note](docs/images/trip-home.jpg)
+![A trip home page with a Needs you note, the welcome, and the trip's dates, place and stay](docs/images/trip-home.jpg)
 
 The screenshots in this README use made-up people, such as Casey and Maya, and a made-up trip.
 
