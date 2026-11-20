@@ -51,6 +51,7 @@ function deliveryLabel(person: CommonsPerson, emailInvitations = true) {
 }
 
 function deliveryHelp(person: CommonsPerson, emailInvitations = true) {
+  if (person.membershipStatus === "active") return person.email ?? "";
   if (person.invitation?.status === "expired") {
     return "This legacy invitation needs a new private link.";
   }

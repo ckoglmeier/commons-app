@@ -5,7 +5,7 @@ import { personFacingError } from "@/lib/person-facing-error";
 
 type Delivery = { fingerprint: string; recipients: Array<{ email: string; personId: string | null; status: string; errorCode: string | null }>; missingPersonIds: string[] };
 const statusLabels: Record<string, string> = { not_sent: "Not sent", queued: "Queued", processing: "Sending", sent: "Sent", failed: "Needs attention", cancelled: "Cancelled" };
-const errorLabels: Record<string, string> = { access_changed: "Access changed; review the audience.", operator_review_required: "Retry limit reached. Contact support.", delivery_disabled: "Email delivery is disabled.", email_not_configured: "Email needs server configuration.", provider_rejected: "The email provider rejected delivery.", provider_unavailable: "The email provider could not be reached." };
+const errorLabels: Record<string, string> = { access_changed: "Access changed; review the audience.", operator_review_required: "Retry limit reached. Ask the person who runs this copy of Commons.", delivery_disabled: "Email is turned off on this copy.", email_not_configured: "Email isn’t set up on this copy.", provider_rejected: "The email provider rejected delivery.", provider_unavailable: "The email provider could not be reached." };
 
 export function PollDeliveryReview({ slug, pollId, people, includesMessage = false }: { slug: string; pollId: string; people: Array<{ id: string; name: string }>; includesMessage?: boolean }) {
   const [delivery, setDelivery] = useState<Delivery | null>(null);

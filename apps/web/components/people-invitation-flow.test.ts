@@ -126,6 +126,23 @@ test("with email set up, a failed invitation still needs attention and offers a 
   } finally { renderer.unmount(); live.restore(); }
 });
 
+for (const delivery of [{ deliveryState: "sent", deliveryErrorCode: null, stale: /Waiting for them to join/ }, { deliveryState: "failed", deliveryErrorCode: null, stale: /Email wasn’t delivered/ }] as const) {
+  test(`a traveler who has joined does not show stale ${delivery.deliveryState} invitation help`, async () => {
+    const base = { commons: pilotSnapshot.commons, currentPersonId: pilotSnapshot.currentActor.id, organizerName: "Synthetic organizer", people: [{ membershipId: "membership-sam", personId: "sam", displayName: "Sam Lee", email: "sam@example.com", role: "member", membershipStatus: "active", joinedAt: "2026-11-01T00:00:00.000Z", accessMode: "account", managedByPersonIds: null, canClaimAccess: false, removal: { blocked: false, moneyItems: 0, responsibilityItems: 0 }, invitation: { id: "sam-invitation", status: "accepted", deliveryState: delivery.deliveryState, deliveryErrorCode: delivery.deliveryErrorCode, message: null, sentAt: null, lastAttemptAt: null, expiresAt: null } }] as unknown[] };
+    const live = installFakeBrowserEnvironment({ fetch: async () => Response.json({ people: base }) });
+    const { PeopleSheet } = await import("./people-sheet");
+    const renderer = createHookRenderer({ expand: [PeopleSheet] });
+    try {
+      renderer.render(createElement(PeopleSheet, { slug: base.commons.slug, tripName: base.commons.name, tripStatus: "planning", participants: [], currentPersonId: base.currentPersonId, canManage: true, close: () => {} }));
+      await settle(10); renderer.flush();
+      const text = renderer.tree.map(textOf).join(" ");
+      assert.match(text, /Sam Lee/);
+      assert.match(text, /Joined/);
+      assert.doesNotMatch(text, delivery.stale);
+    } finally { renderer.unmount(); live.restore(); }
+  });
+}
+
 test("when the browser refuses the clipboard, the private link stays on screen to copy by hand", async () => {
   const invitation = { id: "invitation-sam", status: "pending", deliveryState: "not_sent", deliveryErrorCode: null, message: null, sentAt: null, lastAttemptAt: null, expiresAt: null };
   const sam = { membershipId: "membership-sam", personId: "sam", displayName: "Sam Lee", email: "sam@example.com", role: "member", membershipStatus: "invited", joinedAt: null, accessMode: "account", managedByPersonIds: null, canClaimAccess: false, removal: { blocked: false, moneyItems: 0, responsibilityItems: 0 }, invitation };
