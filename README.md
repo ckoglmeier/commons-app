@@ -4,11 +4,9 @@
 
 Commons is a group trip planner. It's free and open source (MIT). You run your own copy on your own Vercel account, and on the free plans it costs $0.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FOWNER%2Fcommons&project-name=commons&repository-name=commons&root-directory=apps%2Fweb&env=CRON_SECRET%2CCOMMONS_EMAIL_FROM&envDescription=CRON_SECRET%20protects%20the%20daily%20job%3A%20any%20long%20random%20string%2C%20such%20as%20the%20output%20of%20openssl%20rand%20-base64%2032.%20COMMONS_EMAIL_FROM%20is%20the%20sender%20for%20sign-in%20and%20invitation%20emails%2C%20like%20Commons%20%3Ctrips%40yourdomain.com%3E%2C%20on%20a%20domain%20you%20verify%20in%20Resend.&envLink=https%3A%2F%2Fgithub.com%2FOWNER%2Fcommons%2Fblob%2Fmain%2Fdocs%2Fdeploy-with-an-agent.md&stores=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22supabase%22%2C%22productSlug%22%3A%22supabase%22%2C%22protocol%22%3A%22storage%22%7D%2C%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22resend%22%2C%22productSlug%22%3A%22resend%22%7D%5D)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fckoglmeier%2Fcommons-app&project-name=commons&repository-name=commons&root-directory=apps%2Fweb&env=CRON_SECRET%2CCOMMONS_EMAIL_FROM&envDescription=CRON_SECRET%20protects%20the%20daily%20job%3A%20any%20long%20random%20string%2C%20such%20as%20the%20output%20of%20openssl%20rand%20-base64%2032.%20COMMONS_EMAIL_FROM%20is%20the%20sender%20for%20sign-in%20and%20invitation%20emails%2C%20like%20Commons%20%3Ctrips%40yourdomain.com%3E%2C%20on%20a%20domain%20you%20verify%20in%20Resend.&envLink=https%3A%2F%2Fgithub.com%2Fckoglmeier%2Fcommons-app%2Fblob%2Fmain%2Fdocs%2Fdeploy-with-an-agent.md&stores=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22supabase%22%2C%22productSlug%22%3A%22supabase%22%2C%22protocol%22%3A%22storage%22%7D%2C%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22resend%22%2C%22productSlug%22%3A%22resend%22%7D%5D)
 
 Deploy your own copy in a few clicks. Using an AI assistant? [Copy the deploy guide to your LLM](docs/deploy-with-an-agent.md) and work through it together.
-
-> Before publishing, replace `OWNER` in the button link with the repository's real GitHub owner.
 
 ![A trip home page showing where, when and who, with a Needs you note](docs/images/trip-home.jpg)
 
