@@ -25,7 +25,7 @@ export function InvitationEntryForm({ token, entry, poll, emailLabel, currentAcc
         </button>
         {state.error ? <p className="auth-message auth-message--error" role="alert">{state.error}</p> : null}
         {emailState.error ? <p className="auth-message auth-message--error" role="alert">{emailState.error}</p> : null}
-        {emailState.sent ? <p role="status">Check the inbox for {emailLabel}. Your event will be waiting.</p> : null}
+        {emailState.sent ? <p role="status">Check the inbox for {emailLabel}. Your trip will be waiting.</p> : null}
       </form>
     </> : <SignInForm next={next} enabled={enabled} intent="invited" />}
     <button className="invitation-entry-form__alternative" type="button" onClick={() => setDifferent(!different)}>

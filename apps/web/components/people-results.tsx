@@ -10,7 +10,7 @@ export function PeopleResults({ participants, attendance }: { participants: Comm
     <ul className="event-attendance-list">{participants.map(person => {
       const answer = attendance?.people.find(answer => answer.personId === person.id);
       return <li key={person.id}><div><strong>{person.displayName}</strong>{person.accessMode === "managed" ? <small> · Managed traveler</small> : null}
-        {Object.values(person.sharedPreferences ?? {}).some(Boolean) ? <div className="shared-preferences"><strong>Shared with this event</strong>{Object.values(person.sharedPreferences ?? {}).filter(Boolean).map(value => <span key={value}>{value}</span>)}</div> : null}
+        {Object.values(person.sharedPreferences ?? {}).some(Boolean) ? <div className="shared-preferences"><strong>Shared with this trip</strong>{Object.values(person.sharedPreferences ?? {}).filter(Boolean).map(value => <span key={value}>{value}</span>)}</div> : null}
       </div><span>{answer ? attendanceLabels[answer.state] : person.membershipStatus === "active" ? "Joined" : "Invited"}</span></li>;
     })}</ul>
   </section>;

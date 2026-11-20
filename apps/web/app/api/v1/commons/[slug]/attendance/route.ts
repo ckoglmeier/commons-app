@@ -6,7 +6,7 @@ import { loadAuthenticatedEventAttendance, saveAuthenticatedEventAttendance } fr
 
 function failure(error: unknown) {
   if (error instanceof CommonsAuthenticationRequiredError) return NextResponse.json({ error: error.message }, { status: 401 });
-  if (error instanceof CommandAccessError || error instanceof CommonsMembershipRequiredError) return NextResponse.json({ error: "This event is not available to this account." }, { status: 403 });
+  if (error instanceof CommandAccessError || error instanceof CommonsMembershipRequiredError) return NextResponse.json({ error: "This trip is not available to this account." }, { status: 403 });
   if (error instanceof AttendanceReviewError || error instanceof CommandConflictError) return NextResponse.json({ error: error.message }, { status: 409 });
   if (error instanceof ZodError) return NextResponse.json({ error: "Review your attendance answer." }, { status: 400 });
   return NextResponse.json({ error: "Attendance not saved. Try again." }, { status: 503 });

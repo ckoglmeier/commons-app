@@ -9,7 +9,7 @@ import type { PollRepositoryOptions } from "./poll-repository";
 const POLL_INFERENCE_HOURLY_LIMIT = 100;
 
 export class PollInferenceLimitError extends Error {
-  constructor(message = "This event has used its 100 AI-backed turns for this hour. Keep editing manually or try later.") { super(message); }
+  constructor(message = "This trip has used its 100 writing-help requests for this hour. Keep editing manually or try later.") { super(message); }
 }
 /** The same command id is already being answered. The provider is never called twice for one command. */
 export class PollFramingInFlightError extends Error {

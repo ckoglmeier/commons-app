@@ -12,6 +12,6 @@ test("attendance remains contextual with explicit decline and reviewed dates", a
   assert.match(source, /currentState === "helping" \|\| currentState === "needs_confirmation"/);
   assert.match(source, /Change response/);
   assert.match(source, /reviewedDates: data.dates/);
-  assert.match(source, /You’ll lose access to this event/);
-  assert.match(source, /Decline and leave event/);
+  assert.match(source, /You’ll lose access to this trip/);
+  assert.match(source, /Decline and leave trip/);
 });

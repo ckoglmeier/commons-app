@@ -115,7 +115,7 @@ export const UpdateEventCreationDraftRequestSchema = z
     forceTravel: z.boolean().optional().default(false),
   })
   .refine((value) => !value.startsOn || !value.endsOn || value.endsOn >= value.startsOn, {
-    message: "The event must end on or after it starts.",
+    message: "The trip must end on or after it starts.",
     path: ["endsOn"],
   });
 

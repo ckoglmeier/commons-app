@@ -60,11 +60,11 @@ export async function setEventAttendance(identifier: string, rawInput: unknown, 
             if ((previous.result as { fingerprint?: string }).fingerprint !== commandFingerprint(options.actorPersonId, action, input)) throw new CommandConflictError();
             return;
           }
-          if (input.reviewedDates !== eventAttendanceDates(event.startsOn, event.endsOn)) throw new AttendanceReviewError("The event dates changed. Review them before answering.");
-          if (input.state === "attending" && (!event.startsOn || !event.endsOn)) throw new AttendanceReviewError("Set the event dates before confirming attendance.");
+          if (input.reviewedDates !== eventAttendanceDates(event.startsOn, event.endsOn)) throw new AttendanceReviewError("The trip dates changed. Review them before answering.");
+          if (input.state === "attending" && (!event.startsOn || !event.endsOn)) throw new AttendanceReviewError("Set the trip dates before confirming attendance.");
           if (input.state === "declined" && context.role === "organizer") {
             const [other] = await tx.select({ id: memberships.id }).from(memberships).where(and(eq(memberships.commonsId, event.id), eq(memberships.status, "active"), eq(memberships.role, "organizer"), ne(memberships.personId, options.actorPersonId))).limit(1);
-            if (!other) throw new AttendanceReviewError("Add another organizer before leaving this event.");
+            if (!other) throw new AttendanceReviewError("Add another organizer before leaving this trip.");
           }
         }, async context => {
           await tx.update(memberships).set({ attendanceState: input.state, attendanceDates: input.reviewedDates,
@@ -79,7 +79,7 @@ export async function setEventAttendance(identifier: string, rawInput: unknown, 
               .where(and(inArray(invitationDeliveryAttempts.invitationId, oldInvites.map(row => row.id)), inArray(invitationDeliveryAttempts.status, ["queued", "processing"])));
           }
           return { result: { state: input.state }, resourceType: "membership", resourceId: actor!.id,
-            summary: input.state === "declined" ? `${context.displayName} declined the event.` : input.state === "attending" ? `${context.displayName} confirmed attendance for the current dates.` : `${context.displayName} is helping plan; attendance is not confirmed.` };
+            summary: input.state === "declined" ? `${context.displayName} declined the trip.` : input.state === "attending" ? `${context.displayName} confirmed attendance for the current dates.` : `${context.displayName} is helping plan; attendance is not confirmed.` };
         });
     });
   } finally { await database.close(); }

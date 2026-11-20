@@ -29,15 +29,15 @@ export function renderCommonsAuthenticationEmail(input: {
   const email = escapeHtml(input.email.trim().toLowerCase());
   const creating = input.intent === "create";
   const invited = input.intent === "invited";
-  const subject = creating ? "Finish creating your Commons account" : invited ? "Continue to your event on Commons" : "Your Commons sign-in link";
-  const kicker = creating ? "New account" : invited ? "Event invitation" : "Sign in to Commons";
-  const heading = creating ? "Your events start here." : invited ? "Your event is waiting." : "Pick up where you left off.";
+  const subject = creating ? "Finish creating your Commons account" : invited ? "Continue to your trip on Commons" : "Your Commons sign-in link";
+  const kicker = creating ? "New account" : invited ? "Trip invitation" : "Sign in to Commons";
+  const heading = creating ? "Your trips start here." : invited ? "Your trip is waiting." : "Pick up where you left off.";
   const body = creating
     ? "Use this private link to finish creating your account."
     : invited
       ? "Use this private link to sign in, then continue directly to your invitation."
       : "Use this private link to sign in. No password needed.";
-  const action = creating ? "Create account" : invited ? "Continue to your event" : "Sign in to Commons";
+  const action = creating ? "Create account" : invited ? "Continue to your trip" : "Sign in to Commons";
 
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(subject)}</title>

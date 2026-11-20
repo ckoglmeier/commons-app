@@ -100,3 +100,9 @@ test("title destination inference requires an explicit place phrase", () => {
     assert.equal(interpretEventTitle(title).locationName, place, title);
   }
 });
+
+test("default names say trip and old saved New event names still infer no place", () => {
+  assert.equal(interpretEventDescription("\n\n").proposedName, "New trip");
+  assert.equal(interpretEventDescription("New event").locationName, null);
+  assert.equal(interpretEventDescription("New trip").locationName, null);
+});

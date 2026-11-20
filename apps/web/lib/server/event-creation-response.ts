@@ -18,7 +18,7 @@ export function eventCreationErrorResponse(error: unknown) {
     return NextResponse.json({ error: error.message, code: error.code }, { status });
   }
   if (error instanceof ZodError) {
-    return NextResponse.json({ error: error.issues[0]?.message ?? "Check the event details." }, { status: 400 });
+    return NextResponse.json({ error: error.issues[0]?.message ?? "Check the trip details." }, { status: 400 });
   }
-  return NextResponse.json({ error: "Event setup is unavailable. Try again." }, { status: 503 });
+  return NextResponse.json({ error: "Trip setup is unavailable. Try again." }, { status: 503 });
 }

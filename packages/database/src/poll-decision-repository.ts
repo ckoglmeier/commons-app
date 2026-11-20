@@ -15,7 +15,7 @@ export async function recordPollDecisionInTransaction(tx: CommandTransaction, co
         const [existing] = await tx.select({ id: pollDecisions.id }).from(pollDecisions).where(eq(pollDecisions.pollId, pollId));
         if (existing) throw new PollRepositoryError("invalid_response", "This round already has an approved decision. Start a follow-up round to reconsider it.");
         const { evidence, fingerprint } = await readPollEvidence(tx, poll);
-        if (fingerprint !== input.evidenceFingerprint) throw new PollRepositoryError("invalid_response", "Responses, audience, or event details changed. Reload and review the evidence again.");
+        if (fingerprint !== input.evidenceFingerprint) throw new PollRepositoryError("invalid_response", "Responses, audience, or trip details changed. Reload and review the evidence again.");
         if (!options.allowNoSelection && poll.questions.some(question => question.kind !== "choice" && question.kind !== "text")) throw new PollRepositoryError("invalid_response", "This decision form does not support grouped responses, rankings or points.");
         if (!input.selected.length && !options.allowNoSelection && poll.questions.some(question => question.kind === "choice")) throw new PollRepositoryError("invalid_response", "Choose an option before approving a decision for this poll.");
         if (new Set(input.selected.map(item => item.questionId)).size !== input.selected.length) throw new PollRepositoryError("invalid_response", "Choose at most one option for each decision.");
@@ -26,7 +26,7 @@ export async function recordPollDecisionInTransaction(tx: CommandTransaction, co
         for (const response of evidence.responses) for (const answer of response.answers) {
           if (answer.context?.kind === "need" && !input.needResolutions.some(item => item.responseId === response.id && item.questionId === answer.questionId)) throw new PollRepositoryError("invalid_response", "Explain how each stated need is handled before approving. A vote alone does not resolve it.");
         }
-        if (input.target === "plan_idea" && !input.audienceExpansionApproved) throw new PollRepositoryError("invalid_response", "Explicitly approve sharing the decision summary with the whole event before adding it to Plan.");
+        if (input.target === "plan_idea" && !input.audienceExpansionApproved) throw new PollRepositoryError("invalid_response", "Explicitly approve sharing the decision summary with the whole trip before adding it to Plan.");
         let planId: string | null = null;
         if (input.target === "plan_idea") {
           const [event] = await tx.select({ timezone: commons.timezone }).from(commons).where(eq(commons.id, context.id));
@@ -52,7 +52,7 @@ export async function approvePollDecision(identifier: string, pollId: string, ra
       }, async context => {
         const decisionId = await recordPollDecisionInTransaction(tx, context, options.actorPersonId, pollId, input);
         return { result: { decisionId }, resourceType: "poll_decision", resourceId: decisionId,
-          summary: input.target === "plan_idea" ? "Approved a poll decision and added its reviewed summary as a Plan idea." : "Approved a decision for the poll audience. No event plans changed." };
+          summary: input.target === "plan_idea" ? "Approved a poll decision and added its reviewed summary as a Plan idea." : "Approved a decision for the poll audience. No trip plans changed." };
       }));
     return getCommonsPollDetail(identifier, pollId, options);
   } finally { await database.close(); }

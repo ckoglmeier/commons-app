@@ -1376,7 +1376,7 @@ export async function updateCommonsPendingInvitation(
           || (mappedPersonId && mappedPersonId !== invitation.provisionalPersonId)
           || knownIdentities.some((row) => row.state !== "observed")) {
           throw new OnboardingRepositoryError("identity_conflict",
-            "Contact not changed. This person is linked to another account or event. Revoke this invitation to invite someone else.");
+            "Contact not changed. This person is linked to another account or trip. Revoke this invitation to invite someone else.");
         }
         if (invitation.recipientEmail) {
           await transaction.delete(identities).where(and(

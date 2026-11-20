@@ -30,8 +30,8 @@ test("uses account and invitation language for their respective entry points", (
 
   assert.match(create.subject, /creating your Commons account/);
   assert.match(create.html, /Create account/);
-  assert.match(invited.subject, /Continue to your event/);
-  assert.match(invited.html, /Event invitation/);
+  assert.match(invited.subject, /Continue to your trip/);
+  assert.match(invited.html, /Trip invitation/);
 });
 
 test("rejects unsafe authentication links", () => {

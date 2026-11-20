@@ -160,7 +160,7 @@ export async function createCommonsPoll(identifier: string, rawInput: unknown, o
       if (input.audience?.personIds.length) {
         const selected = await tx.select({ id: memberships.personId }).from(memberships).where(and(eq(memberships.commonsId, context.id),
           inArray(memberships.personId, input.audience.personIds), inArray(memberships.status, ["active", "invited"])));
-        if (new Set(selected.map(row => row.id)).size !== new Set(input.audience.personIds).size) throw new PollRepositoryError("invalid_response", "A selected recipient is no longer in this event. Review the audience.");
+        if (new Set(selected.map(row => row.id)).size !== new Set(input.audience.personIds).size) throw new PollRepositoryError("invalid_response", "A selected recipient is no longer on this trip. Review the audience.");
       }
       const publicationAudience = input.publicationApproval && input.publicationApproval.access !== "link" ? { personIds: (await tx.select({ id: memberships.personId }).from(memberships).where(and(eq(memberships.commonsId, context.id), inArray(memberships.status, ["active", "invited"])))).map(row => row.id), guestEmails: [] } : input.audience;
       const [created] = await tx.insert(polls).values({
@@ -301,7 +301,7 @@ async function submitPollResponse(
         .from(polls).where(publicPollCondition(lookup)).for("update").limit(1);
       if (!poll || poll.status === "revoked") throw new PollRepositoryError("poll_not_found", "That poll link is no longer available.");
       const access = await pollViewerAccess(transaction, poll, viewer);
-      if (!access.allowed) throw new PollRepositoryError("poll_not_found", "Sign in with the invited account to open this poll. If you declined the event, ask for a new invitation.");
+      if (!access.allowed) throw new PollRepositoryError("poll_not_found", "Sign in with the invited account to open this poll. If you declined the trip, ask for a new invitation.");
       if (!viewer && !input.respondentName) throw new PollRepositoryError("invalid_response", "Add your name before responding.");
       if (poll.status !== "open") throw new PollRepositoryError("poll_closed", "Voting is closed for this poll.");
       if (poll.ballotMode === "secret" && input.answers.some(answer => answer.context)) {

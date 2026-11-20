@@ -6,7 +6,7 @@ import { loadAuthenticatedPollDrafts, saveAuthenticatedPollDraft } from "@/lib/s
 
 function failure(error: unknown) {
   if (error instanceof CommonsAuthenticationRequiredError) return NextResponse.json({ error: error.message }, { status: 401 });
-  if (error instanceof CommandAccessError || error instanceof CommonsMembershipRequiredError) return NextResponse.json({ error: "This draft is not available to this account in this event." }, { status: 403 });
+  if (error instanceof CommandAccessError || error instanceof CommonsMembershipRequiredError) return NextResponse.json({ error: "This draft is not available to this account in this trip." }, { status: 403 });
   if (error instanceof CommandConflictError) return NextResponse.json({ error: "The saved draft changed in another tab or was already shared. Your current edits are still here; reload the saved draft before continuing." }, { status: 409 });
   if (error instanceof ZodError) return NextResponse.json({ error: error.issues[0]?.message ?? "Check the draft." }, { status: 400 });
   return NextResponse.json({ error: "Draft not saved. Your edits are still here. Try again." }, { status: 503 });

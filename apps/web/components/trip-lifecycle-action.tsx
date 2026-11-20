@@ -70,7 +70,7 @@ export function TripLifecycleAction({
     <div className="trip-lifecycle-confirm trip-lifecycle-confirm--people" role="group" aria-label={archived ? `Restore ${name}` : `Archive ${name}`}>
       <strong>{archived ? `Restore ${name}?` : `Archive ${name}?`}</strong>
       <p>{archived
-        ? "This returns the trip to everyone’s event list."
+        ? "This returns the trip to everyone’s trip list."
         : "This moves the trip to Archived for everyone. Plans, messages, expenses, photos, and access stay as they are."}</p>
       <div>
         <button type="button" onClick={() => setConfirming(false)} disabled={busy}>Cancel</button>

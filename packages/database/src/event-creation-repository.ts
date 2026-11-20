@@ -202,7 +202,7 @@ export async function createEventCreationDraft(
         } catch {
           interpretationStatus = "failed";
           errorCode = "interpretation_failed";
-          interpretation = interpretEventDescription("New travel event");
+          interpretation = { ...interpretEventDescription("New trip"), proposedName: "New trip" };
         }
         const chosenTemplate = newPlanTemplate(request.templateKey);
         const [created] = await transaction.insert(eventCreationDrafts).values({
@@ -259,7 +259,7 @@ export async function createEventCreationDraft(
         ))
         .where(eq(commons.id, request.sourceEventId))
         .limit(1);
-      if (!source) throw new EventCreationRepositoryError("source_not_available", "That event is not available to plan again.");
+      if (!source) throw new EventCreationRepositoryError("source_not_available", "That trip is not available to plan again.");
 
       const [created] = await transaction.insert(eventCreationDrafts).values({
         createdByPersonId: options.actorPersonId,
@@ -402,10 +402,10 @@ export async function updateEventCreationDraftPeople(
       for (const [position, person] of request.people.entries()) {
         const prior = existingById.get(person.id);
         if (person.personId && (!prior || prior.personId !== person.personId)) {
-          throw new EventCreationRepositoryError("identity_conflict", "A person from another event cannot be added to this draft.");
+          throw new EventCreationRepositoryError("identity_conflict", "A person from another trip cannot be added to this draft.");
         }
         if (person.personId === options.actorPersonId || (person.email && selfHashes.has(hashNormalizedEmail(person.email)))) {
-          throw new EventCreationRepositoryError("identity_conflict", "You are already the organizer of this event.");
+          throw new EventCreationRepositoryError("identity_conflict", "You are already the organizer of this trip.");
         }
         await transaction.insert(eventCreationDraftPeople).values({
           id: person.id,
@@ -478,7 +478,7 @@ export async function commitEventCreationDraft(
       }
       if (draft.version !== request.expectedVersion) throw new EventCreationRepositoryError("draft_conflict", "This draft changed. Review the latest version and try again.");
       if (!draft.supported) throw new EventCreationRepositoryError("creation_not_supported", "Confirm this is a trip before creating it.");
-      if (!draft.proposedName?.trim()) throw new EventCreationRepositoryError("draft_conflict", "Add an event name before creating it.");
+      if (!draft.proposedName?.trim()) throw new EventCreationRepositoryError("draft_conflict", "Add a trip name before creating it.");
 
       const [organizer] = await transaction.select({ displayName: people.displayName }).from(people)
         .where(eq(people.id, options.actorPersonId)).limit(1);
@@ -554,7 +554,7 @@ export async function commitEventCreationDraft(
         if (candidate.personId && knownIdentity && candidate.personId !== knownIdentity.personId) {
           throw new EventCreationRepositoryError(
             "identity_conflict",
-            `${candidate.displayName}'s email belongs to a different Commons account. Review their contact details before creating the event.`,
+            `${candidate.displayName}'s email belongs to a different Commons account. Review their contact details before creating the trip.`,
           );
         }
         const personId = candidate.personId ?? knownIdentity?.personId ?? (await transaction.insert(people).values({
@@ -613,7 +613,7 @@ export async function commitEventCreationDraft(
         action: "event.created",
         resourceType: "commons",
         resourceId: createdEvent.id,
-        summary: `${organizer.displayName} created the private event ${draft.proposedName}.`,
+        summary: `${organizer.displayName} created the private trip ${draft.proposedName}.`,
       });
       await transaction.update(eventCreationDrafts).set({
         status: "committed",

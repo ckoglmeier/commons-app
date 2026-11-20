@@ -8,7 +8,7 @@ export function PollAudienceReview({ slug, pollId, audience, people }: { slug: s
   const [busy, setBusy] = useState(false);
   const command = useRef<string | null>(null);
   const recipients: Array<{ kind: "person" | "email"; recipient: string; label: string }> = [
-    ...audience.personIds.map(id => ({ kind: "person" as const, recipient: id, label: people.find(person => person.id === id)?.name ?? "Event participant" })),
+    ...audience.personIds.map(id => ({ kind: "person" as const, recipient: id, label: people.find(person => person.id === id)?.name ?? "Trip participant" })),
     ...audience.guestEmails.map(email => ({ kind: "email" as const, recipient: email, label: email })),
   ];
   async function revoke() {
@@ -24,9 +24,9 @@ export function PollAudienceReview({ slug, pollId, audience, people }: { slug: s
       window.location.reload();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Access not changed. Try again."); setBusy(false); }
   }
-  return <section className="poll-responses"><h2>Who can answer?</h2><p>Only these accounts, the creator, and organizers. Share the poll link with them. Response-only guests can’t open the event.</p>
-    <ul className="event-attendance-list">{recipients.map(recipient => <li key={`${recipient.kind}:${recipient.recipient}`}><span>{recipient.label} · {recipient.kind === "person" ? "Event participant" : "Response only"}</span><button type="button" className="cm-action cm-action--quiet" disabled={busy} onClick={() => { setSelected(recipient); command.current = null; }}>Remove access</button></li>)}</ul>
-    {selected ? <div><h3>Remove {selected.label}’s poll access?</h3><p>They won’t be able to open or answer this poll. Past responses stay. Their event membership and organizer role don’t change.</p><div className="poll-action-row"><button className="cm-action" type="button" disabled={busy} onClick={() => setSelected(null)}>Cancel</button><button className="cm-action cm-action--danger" type="button" disabled={busy} onClick={revoke}>{busy ? "Removing…" : "Confirm removal"}</button></div></div> : null}
+  return <section className="poll-responses"><h2>Who can answer?</h2><p>Only these accounts, the creator, and organizers. Share the poll link with them. Response-only guests can’t open the trip.</p>
+    <ul className="event-attendance-list">{recipients.map(recipient => <li key={`${recipient.kind}:${recipient.recipient}`}><span>{recipient.label} · {recipient.kind === "person" ? "Trip participant" : "Response only"}</span><button type="button" className="cm-action cm-action--quiet" disabled={busy} onClick={() => { setSelected(recipient); command.current = null; }}>Remove access</button></li>)}</ul>
+    {selected ? <div><h3>Remove {selected.label}’s poll access?</h3><p>They won’t be able to open or answer this poll. Past responses stay. Their trip membership and organizer role don’t change.</p><div className="poll-action-row"><button className="cm-action" type="button" disabled={busy} onClick={() => setSelected(null)}>Cancel</button><button className="cm-action cm-action--danger" type="button" disabled={busy} onClick={revoke}>{busy ? "Removing…" : "Confirm removal"}</button></div></div> : null}
     {error ? <p role="alert">{error}</p> : null}
   </section>;
 }

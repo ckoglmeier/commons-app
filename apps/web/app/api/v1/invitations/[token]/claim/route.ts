@@ -17,7 +17,7 @@ export async function POST(
     const slug = await claimAuthenticatedInvitation(token);
     recordOutcome({ event: "invitation_accepted", key: createHash("sha256").update(token).digest("hex"), perActor: true, trip: slug, request });
     const snapshot = await loadCommonsSnapshot(slug);
-    if (!snapshot) return NextResponse.json({ error: "Invitation event not found." }, { status: 404 });
+    if (!snapshot) return NextResponse.json({ error: "That invitation’s trip could not be found." }, { status: 404 });
     return NextResponse.json({ commonsId: snapshot.commons.id, slug });
   } catch (error) {
     if (error instanceof CommonsAuthenticationRequiredError) {

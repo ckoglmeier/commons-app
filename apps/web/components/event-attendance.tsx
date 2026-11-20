@@ -68,9 +68,9 @@ export function EventAttendancePanel({ eventId, readOnly = false, participants =
       <p>{labels[data.people.find(person => person.personId === data.currentPersonId)?.state ?? "helping"]}</p>
       <p>{dates}</p>
       {!showActions ? <button className="text-action cm-action" type="button" onClick={() => setChanging(true)}>Change response</button> : <div className="fieldnotes-actions">{(["helping", "attending", "declined"] as const).map(state => <button type="button" key={state} disabled={saving || (state === "attending" && (!data.startsOn || !data.endsOn))} onClick={() => { command.current = null; setSaved(false); if (state === "declined") setReview(state); else void save(state); }}>{state === "helping" ? "Still deciding" : state === "attending" ? "I’m attending" : "I can’t attend"}</button>)}{context === "people" ? <button type="button" disabled={saving} onClick={() => { setChanging(false); setReview(null); }}>Done</button> : null}</div>}
-      {review ? <div className="fieldnotes-question"><h4>Decline this event?</h4>
-        <p>You’ll lose access to this event and its future updates. Your past contributions stay attributed to you. You’ll need a new invitation to rejoin. Skipping an optional activity doesn’t mean leaving the event.</p>
-        <div className="fieldnotes-actions"><button type="button" disabled={saving} onClick={() => { setReview(null); command.current = null; }}>Cancel</button><button type="button" disabled={saving} onClick={() => void save()}>{saving ? "Saving…" : "Decline and leave event"}</button></div>
+      {review ? <div className="fieldnotes-question"><h4>Decline this trip?</h4>
+        <p>You’ll lose access to this trip and its future updates. Your past contributions stay attributed to you. You’ll need a new invitation to rejoin. Skipping an optional activity doesn’t mean leaving the trip.</p>
+        <div className="fieldnotes-actions"><button type="button" disabled={saving} onClick={() => { setReview(null); command.current = null; }}>Cancel</button><button type="button" disabled={saving} onClick={() => void save()}>{saving ? "Saving…" : "Decline and leave trip"}</button></div>
       </div> : null}
     </> : null}
     {saved ? <p role="status">Attendance saved.</p> : null}

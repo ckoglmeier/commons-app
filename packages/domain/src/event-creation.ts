@@ -7,21 +7,22 @@ function firstMeaningfulLine(description: string) {
   return description
     .split(/\r?\n/)
     .map((line) => line.replace(/^#+\s*/, "").trim())
-    .find(Boolean) ?? "New event";
+    .find(Boolean) ?? "New trip";
 }
 
 function proposedName(description: string) {
+  if (/^New trip$/i.test(firstMeaningfulLine(description))) return "New trip";
   const first = firstMeaningfulLine(description)
     .replace(/\s+[—-]\s+(summer|spring|fall|winter)\s+(20\d{2})$/i, " $2")
     .replace(/\btrip\b\s*[—:-]?/i, "")
     .replace(/\s{2,}/g, " ")
     .trim();
-  return (first || "New event").slice(0, 100);
+  return (first || "New trip").slice(0, 100);
 }
 
 function inferredLocation(description: string, name: string) {
   const namedPlace = name.match(/^([A-Z][A-Za-z .'-]{2,40})(?:\s+20\d{2})?$/)?.[1]?.trim();
-  if (namedPlace && !/^(New event|Friends|Couples)$/i.test(namedPlace)) return namedPlace;
+  if (namedPlace && !/^(New (?:event|trip)|Friends|Couples)$/i.test(namedPlace)) return namedPlace;
   const route = description.match(/(?:possible route|route)\s*:\s*([^\n]+)/i)?.[1];
   if (route) return route.split(/→|->/)[0]?.trim().slice(0, 120) || null;
   const direct = description.match(/\b(?:in|to)\s+([A-Z][A-Za-z .'-]{2,50})(?=[,.;\n]|\s+with\b)/)?.[1];
