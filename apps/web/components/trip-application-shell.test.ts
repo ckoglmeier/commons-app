@@ -38,6 +38,8 @@ test("renders one main landmark, a skip link, and three destination links in the
   assert.equal((html.match(/<main /g) ?? []).length, 1);
   assert.match(html, /<main id="workspace-content" class="trip-shell__content" tabindex="-1"/);
   assert.match(html, /<a class="skip-link" href="#workspace-content">/);
+  assert.match(html, /<main [^>]*><h1 class="sr-only">Cape Cod week<\/h1><p>page body<\/p><\/main>/, "one page heading names the trip");
+  assert.equal((html.match(/<h1[ >]/g) ?? []).length, 1);
   const destinations = ["Trip", "Plan", "Money"];
   for (const nav of html.split('class="trip-shell__nav"').slice(1)) {
     const links = [...nav.slice(0, nav.indexOf("</nav>")).matchAll(/<a [^>]*href="([^"]+)"[^>]*><svg[\s\S]*?<span>(.*?)<\/span>/g)];

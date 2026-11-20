@@ -757,7 +757,7 @@ function ConfirmationUploadControl({
   }
 
   return <section className="confirmation-upload" aria-label="Confirmation file">
-    <input ref={inputRef} className="sr-only" tabIndex={-1} type="file" accept="application/pdf,.pdf,image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp,.txt,.eml" onChange={(event) => void preview(event.target.files?.[0])} />
+    <input ref={inputRef} className="sr-only" tabIndex={-1} aria-label="Choose a confirmation file" type="file" accept="application/pdf,.pdf,image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp,.txt,.eml" onChange={(event) => void preview(event.target.files?.[0])} />
     <div><span className="confirmation-upload-mark"><FileTextIcon /></span><p><strong>{currentFileName ? "Confirmation ready" : "Add confirmation"}</strong><small>{currentFileName ?? "PDF or email: review extracted details. Images: attach and enter details."}</small></p></div>
     <button type="button" disabled={busy} onClick={() => inputRef.current?.click()}>{busy ? "Reading…" : currentFileName ? "Replace file" : "Choose file"}</button>
     {warnings?.length ? <ul className="confirmation-warnings">{warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul> : null}
@@ -1815,7 +1815,7 @@ function MomentsView({
           {downloadableMoments.length ? <button className="photo-download-all" onClick={downloadAll} disabled={archiveBusy}><DownloadIcon /><span>{archiveBusy ? "Preparing…" : "Download all"}</span></button> : null}
           <button className="photo-add-action" onClick={() => inputRef.current?.click()}><PlusIcon /><span>Add photos</span></button>
         </div>
-        <input ref={inputRef} className="sr-only" tabIndex={-1} type="file" accept="image/*" multiple onChange={(event) => { choosePhotos(event.target.files); event.target.value = ""; }} />
+        <input ref={inputRef} className="sr-only" tabIndex={-1} aria-label="Choose photos" type="file" accept="image/*" multiple onChange={(event) => { choosePhotos(event.target.files); event.target.value = ""; }} />
       </div>
 
       {importedArchive ? null : (
@@ -2126,7 +2126,7 @@ function CoverPickerSheet({
         <div className="cover-upload-divider"><span>Use another photo</span></div>
         <button className="cover-upload-action" type="button" disabled={Boolean(busyId)} onClick={() => inputRef.current?.click()}><PlusIcon /> {busyId === "upload" ? "Uploading…" : "Upload a cover photo"}</button>
 
-        <input ref={inputRef} className="sr-only" tabIndex={-1} type="file" accept="image/*" onChange={(event) => upload(event.target.files?.[0])} />
+        <input ref={inputRef} className="sr-only" tabIndex={-1} aria-label="Choose a cover photo" type="file" accept="image/*" onChange={(event) => upload(event.target.files?.[0])} />
       </section>
     </ModalLayer>
   );

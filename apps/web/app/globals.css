@@ -677,7 +677,7 @@ section + section { margin-top: 2.4rem; }
 .trip-letter__sign { margin: var(--cm-space-2) 0 0; color: var(--cm-color-mineral); font-size: var(--cm-text-utility); }
 .trip-letter__welcome .text-action { min-height: var(--cm-touch-target); padding: 0; color: var(--cm-color-green); font-size: var(--cm-text-utility); text-decoration: underline; text-underline-offset: .2em; }
 .trip-letter__welcome-form { display: grid; gap: var(--cm-space-3); }
-.trip-letter__arrange .text-action { min-height: var(--cm-touch-target); }
+.trip-letter__arrange .text-action { min-height: var(--cm-touch-target); min-width: var(--cm-touch-target); }
 .trip-letter__update-text { margin: 0; padding: var(--cm-space-3); background: var(--cm-color-board); border-radius: var(--cm-radius-compact); white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
 .trip-letter__own { display: grid; gap: var(--cm-space-2); margin-top: var(--cm-space-3); padding-top: var(--cm-space-3); border-top: 1px solid var(--cm-color-line); }
 .trip-letter__own textarea { width: 100%; height: auto; min-height: 5rem; padding: .75rem .85rem; font-size: 16px; line-height: 1.5; resize: vertical; }
@@ -715,6 +715,7 @@ section + section { margin-top: 2.4rem; }
 .home-next-step small { color: var(--cm-color-green); font-size: var(--cm-text-utility); text-decoration: underline; text-underline-offset: .2em; }
 .home-next-step:focus-visible { outline: 3px solid var(--cm-color-focus); outline-offset: 2px; }
 .home-next-step:disabled { cursor: wait; }
+.home-next-steps__list .text-action { min-height: var(--cm-touch-target); display: inline-flex; align-items: center; }
 
 .home-shortcuts { display: grid; gap: var(--cm-space-2); }
 .home-shortcut { width: 100%; min-height: var(--cm-action-height); display: flex; align-items: center; gap: var(--cm-space-3); padding: var(--cm-space-4); border: 1px solid var(--cm-color-line); border-radius: var(--cm-radius-control); background: var(--cm-color-paper); color: var(--cm-color-ink); text-align: left; text-decoration: none; font-size: var(--cm-text-body); }

@@ -124,6 +124,7 @@ export function TripApplicationShell({ tripStage = null, commonsId, view, naviga
         </section>
       </dialog>
       <main id="workspace-content" className="trip-shell__content" tabIndex={-1} aria-label={contentLabel} aria-busy={busy || undefined} {...inertProps}>
+        <h1 className="sr-only">{tripName}</h1>
         {children}
       </main>
     </div>
