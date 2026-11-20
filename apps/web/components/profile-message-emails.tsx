@@ -29,10 +29,10 @@ export function ProfileMessageEmails({ initialEnabled }: { initialEnabled: boole
       <span className="view-kicker">Email</span>
       <h2 id="profile-message-emails-heading">New messages</h2>
       <p>When Commons leaves you a message, it sends one short email with a link. No more until you’ve read it.</p>
-      <div className="profile-notification-row">
-        <span><label htmlFor="message-emails-enabled">Email me about new messages</label><small>Sign-in, invitation and poll emails don’t change.</small></span>
+      <label className="profile-notification-row" htmlFor="message-emails-enabled">
+        <strong>Email me about new messages</strong><small>Sign-in, invitation and poll emails don’t change.</small>
         <input type="checkbox" id="message-emails-enabled" role="switch" checked={enabled} disabled={pending} aria-describedby="profile-message-emails-status" onChange={event => void update(event.target.checked)} />
-      </div>
+      </label>
       <small id="profile-message-emails-status" role="status" aria-live="polite">{message}</small>
     </section>
   );

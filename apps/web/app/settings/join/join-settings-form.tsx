@@ -37,16 +37,16 @@ export function JoinSettingsForm({ initialMode, initialDomains }: { initialMode:
       <fieldset>
         <legend className="sr-only">Who can create an account</legend>
         {CHOICES.map(choice => (
-          <div className="profile-notification-row" key={choice.mode}>
-            <span><label htmlFor={`signup-${choice.mode}`}><strong>{choice.label}</strong></label><small>{choice.detail}</small></span>
+          <label className="profile-notification-row" htmlFor={`signup-${choice.mode}`} key={choice.mode}>
+            <strong>{choice.label}</strong><small>{choice.detail}</small>
             <input type="radio" id={`signup-${choice.mode}`} name="signupMode" value={choice.mode} checked={mode === choice.mode} onChange={() => setMode(choice.mode)} />
-          </div>
+          </label>
         ))}
       </fieldset>
       {mode === "domains" ? (
-        <label className="field field--wide" htmlFor="signup-domains">
+        <label className="field field--wide" htmlFor="signup-domain-list">
           <span>Email domains</span>
-          <input id="signup-domains" value={domains} onChange={event => setDomains(event.target.value)} placeholder="example.com, family.net" autoComplete="off" spellCheck={false} />
+          <input id="signup-domain-list" value={domains} onChange={event => setDomains(event.target.value)} placeholder="example.com, family.net" autoComplete="off" spellCheck={false} />
         </label>
       ) : null}
       <button className="cm-action cm-action--primary" type="submit" disabled={pending}>{pending ? "Saving…" : "Save"}</button>
