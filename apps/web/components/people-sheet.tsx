@@ -130,6 +130,10 @@ export function PeopleSheet({
   const [accessMode, setAccessMode] = useState<"account" | "managed">("account");
   const [inviteRole, setInviteRole] = useState<"member" | "organizer">("member");
   const [busy, setBusy] = useState<string | null>(null);
+  // When the browser refuses the clipboard, the link stays here for that person's row so it can be selected and copied by hand.
+  const [linkFallback, setLinkFallback] = useState<{ invitationId: string; url: string; message: string } | null>(null);
+  // Every action starts here, so a link left from an earlier copy never sits beside a different action's result.
+  function begin(action: string) { setBusy(action); setLinkFallback(null); }
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [roleConfirm, setRoleConfirm] = useState<{ personId: string; role: "organizer" | "member" } | null>(null);
@@ -201,7 +205,7 @@ export function PeopleSheet({
 
   async function savePerson(event: React.FormEvent) {
     event.preventDefault();
-    setBusy("save");
+    begin("save");
     setError("");
     setNotice("");
     try {
@@ -238,7 +242,7 @@ export function PeopleSheet({
   }
 
   async function send(invitationId: string) {
-    setBusy(`send-${invitationId}`);
+    begin(`send-${invitationId}`);
     setError("");
     setNotice("");
     try {
@@ -257,13 +261,15 @@ export function PeopleSheet({
   }
 
   async function copyLink(invitationId: string) {
-    setBusy(`copy-${invitationId}`);
+    begin(`copy-${invitationId}`);
     setError("");
     try {
       const response = await fetch(`/api/v1/commons/${slug}/invitations/${invitationId}/link`, { cache: "no-store" });
       const payload = await responseJson(response, "Private link unavailable.");
       const link = InvitationLinkSchema.parse(payload.link);
-      await navigator.clipboard.writeText(link.url);
+      // A refused clipboard (common on iPhone, since the write follows a request) is not a server failure: keep the link and show it.
+      try { await navigator.clipboard.writeText(link.url); }
+      catch { setLinkFallback({ invitationId, url: link.url, message: "Couldn’t copy automatically. Select and copy the link below." }); return; }
       trackProductEvent("invitation_link_copied", { commonsSlug: slug, properties: { source: "people" } });
       setNotice("Private link copied.");
     } catch (copyError) {
@@ -274,7 +280,7 @@ export function PeopleSheet({
   }
 
   async function openManagedProfile(personId: string) {
-    setBusy(`profile-${personId}`);
+    begin(`profile-${personId}`);
     setError("");
     try {
       const response = await fetch(`/api/v1/commons/${slug}/people/${personId}/profile`, { cache: "no-store" });
@@ -289,16 +295,18 @@ export function PeopleSheet({
 
   async function rotateLink(invitationId: string) {
     if (!window.confirm("Replace this private link? The old link will stop working.")) return;
-    setBusy(`rotate-${invitationId}`);
+    begin(`rotate-${invitationId}`);
     setError("");
     try {
       const response = await fetch(`/api/v1/commons/${slug}/invitations/${invitationId}/link`, { method: "POST" });
       const payload = await responseJson(response, "Private link not replaced.");
       const link = InvitationLinkSchema.parse(payload.link);
-      await navigator.clipboard.writeText(link.url);
+      // The link is already replaced on the server, so a refused clipboard keeps the new link on screen and says so.
+      const copied = await navigator.clipboard.writeText(link.url).then(() => true, () => false);
       trackProductEvent("invitation_link_replaced", { commonsSlug: slug });
       await load();
-      setNotice("New private link copied. The old link no longer works.");
+      if (copied) setNotice("New private link copied. The old link no longer works.");
+      else setLinkFallback({ invitationId, url: link.url, message: "Link replaced. Couldn’t copy automatically. Select and copy the new link below." });
     } catch (rotateError) {
       setError(personFacingError(rotateError, "Private link not replaced. Try again."));
     } finally {
@@ -309,7 +317,7 @@ export function PeopleSheet({
   async function revoke(person: CommonsPerson) {
     const invitationId = person.invitation?.id;
     if (!invitationId || !window.confirm(`Revoke ${person.displayName}’s invitation? Their private link will stop working.`)) return;
-    setBusy(`revoke-${invitationId}`);
+    begin(`revoke-${invitationId}`);
     setError("");
     try {
       const response = await fetch(`/api/v1/commons/${slug}/invitations/${invitationId}`, { method: "DELETE" });
@@ -327,7 +335,7 @@ export function PeopleSheet({
   }
 
   async function updateRole(person: CommonsPerson, role: "organizer" | "member") {
-    setBusy(`role-${person.personId}`);
+    begin(`role-${person.personId}`);
     setError("");
     setNotice("");
     try {
@@ -438,7 +446,7 @@ export function PeopleSheet({
                   .join(" and ");
                 return (
                   <article key={person.membershipId} className={`people-row${person.invitation?.deliveryState === "failed" && !linkOnly(person, emailInvitations) ? " people-row--attention" : ""}`}>
-                    <button className="people-row__summary" type="button" onClick={() => { setSelectedId(selected ? null : person.personId); setManagedProfile(null); setRoleConfirm(null); }} aria-expanded={selected}>
+                    <button className="people-row__summary" type="button" onClick={() => { setSelectedId(selected ? null : person.personId); setManagedProfile(null); setRoleConfirm(null); setLinkFallback(null); }} aria-expanded={selected}>
                       <span className="people-avatar">{initials(person.displayName)}</span>
                       <span><strong>{person.displayName}{person.role === "organizer" ? <em>Organizer</em> : null}</strong><small>{person.accessMode === "managed" ? `Managed${managerNames ? ` by ${managerNames}` : ""} · no account` : person.role === "organizer" ? "Trip organizer" : deliveryHelp(person, emailInvitations)}</small></span>
                       <span className={`people-status people-status--${person.invitation?.status === "expired" ? "failed" : linkOnly(person, emailInvitations) ? "not_sent" : person.invitation?.deliveryState ?? "joined"}`}>{person.accessMode === "managed" ? pending ? "Invitation pending" : "Managed" : deliveryLabel(person, emailInvitations)}</span>
@@ -462,6 +470,7 @@ export function PeopleSheet({
                               <button type="button" onClick={() => beginEdit(person)} disabled={Boolean(busy)}><EditIcon /> Edit</button>
                               <button type="button" onClick={() => void rotateLink(person.invitation!.id)} disabled={Boolean(busy)}>Replace link</button>
                             </div> : null}
+                            {linkFallback?.invitationId === person.invitation!.id ? <><p className="form-error" role="alert">{linkFallback.message}</p><label className="field"><span>Private link</span><input readOnly value={linkFallback.url} onFocus={event => event.currentTarget.select()} /></label></> : null}
                             <button className="people-revoke" type="button" onClick={() => void revoke(person)} disabled={Boolean(busy)}>{busy === `revoke-${person.invitation!.id}` ? "Revoking…" : "Revoke invitation"}</button>
                           </>
                         ) : expired ? (
@@ -470,6 +479,7 @@ export function PeopleSheet({
                             <p>Replace the private link so {person.displayName.split(" ")[0]} can join. New invitation links do not expire.</p>
                             <button className="sheet-secondary" type="button" disabled>Copy private link</button>
                             {mayInvite ? <button className="sheet-secondary" type="button" onClick={() => void rotateLink(person.invitation!.id)} disabled={Boolean(busy)}>Replace and copy link</button> : null}
+                            {linkFallback?.invitationId === person.invitation!.id ? <><p className="form-error" role="alert">{linkFallback.message}</p><label className="field"><span>Private link</span><input readOnly value={linkFallback.url} onFocus={event => event.currentTarget.select()} /></label></> : null}
                             <button className="people-revoke" type="button" onClick={() => void revoke(person)} disabled={Boolean(busy)}>Revoke invitation</button>
                           </div>
                         ) : person.accessMode === "managed" ? (

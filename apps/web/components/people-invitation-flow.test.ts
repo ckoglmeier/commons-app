@@ -125,3 +125,37 @@ test("with email set up, a failed invitation still needs attention and offers a 
     assert.match(textOf(renderer.find(node => node.props.className === "people-row__actions")), /^Retry invitation/);
   } finally { renderer.unmount(); live.restore(); }
 });
+
+test("when the browser refuses the clipboard, the private link stays on screen to copy by hand", async () => {
+  const invitation = { id: "invitation-sam", status: "pending", deliveryState: "not_sent", deliveryErrorCode: null, message: null, sentAt: null, lastAttemptAt: null, expiresAt: null };
+  const sam = { membershipId: "membership-sam", personId: "sam", displayName: "Sam Lee", email: "sam@example.com", role: "member", membershipStatus: "invited", joinedAt: null, accessMode: "account", managedByPersonIds: null, canClaimAccess: false, removal: { blocked: false, moneyItems: 0, responsibilityItems: 0 }, invitation };
+  const base = { commons: pilotSnapshot.commons, currentPersonId: pilotSnapshot.currentActor.id, organizerName: "Synthetic organizer", people: [sam] };
+  const link = (url: string) => ({ link: { invitationId: invitation.id, url, expiresAt: null } });
+  const live = installFakeBrowserEnvironment({ fetch: async (url, init) => {
+    if (url.endsWith(`/invitations/${invitation.id}/link`)) return Response.json(link(init?.method === "POST" ? "https://trips.example.com/join/new-token" : "https://trips.example.com/join/first-token"));
+    return Response.json({ people: base });
+  } });
+  Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async () => { throw new DOMException("Write permission denied.", "NotAllowedError"); } } });
+  const { PeopleSheet } = await import("./people-sheet");
+  const renderer = createHookRenderer({ expand: [PeopleSheet] });
+  const text = () => renderer.tree.map(textOf).join(" ");
+  const click = (label: string) => (renderer.find(node => node.type === "button" && textOf(node).trim() === label).props.onClick as () => void)();
+  const field = () => renderer.findAll(node => node.type === "input" && node.props.readOnly === true);
+  try {
+    renderer.render(createElement(PeopleSheet, { slug: base.commons.slug, tripName: base.commons.name, tripStatus: "planning", participants: [], currentPersonId: base.currentPersonId, canManage: true, close: () => {}, emailInvitations: false }));
+    await settle(10); renderer.flush();
+    (renderer.find(node => node.type === "button" && node.props.className === "people-row__summary").props.onClick as () => void)(); renderer.flush();
+    click("Copy private link"); await settle(10); renderer.flush();
+    assert.match(text(), /Couldn’t copy automatically\. Select and copy the link below\./);
+    assert.doesNotMatch(text(), /Private link unavailable|Write permission denied/);
+    assert.equal(field()[0]?.props.value, "https://trips.example.com/join/first-token");
+    assert.match(text(), /Private link/);
+    assert.equal(typeof field()[0]?.props.onFocus, "function", "focusing the field selects the link");
+    click("Replace link"); await settle(10); renderer.flush();
+    assert.match(text(), /Link replaced\. Couldn’t copy automatically\. Select and copy the new link below\./);
+    assert.equal(field().length, 1);
+    assert.equal(field()[0]?.props.value, "https://trips.example.com/join/new-token");
+    (renderer.find(node => node.type === "button" && node.props.className === "people-row__summary").props.onClick as () => void)(); renderer.flush();
+    assert.equal(field().length, 0, "closing the row clears the link");
+  } finally { renderer.unmount(); live.restore(); delete (navigator as unknown as Record<string, unknown>).clipboard; }
+});

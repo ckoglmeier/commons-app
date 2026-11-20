@@ -35,6 +35,7 @@ test("a parser's, driver's or runtime's own text gives the fallback", () => {
   assert.equal(personFacingError(abort, fallback), fallback);
   assert.equal(personFacingError(new Error("Something broke\n    at handler (route.ts:1:1)"), fallback), fallback);
   assert.equal(personFacingError(new RangeError("Invalid time value"), fallback), fallback);
+  assert.equal(personFacingError(new DOMException("Write permission denied.", "NotAllowedError"), fallback), fallback);
 });
 
 test("anything that is not an Error with words gives the fallback", () => {

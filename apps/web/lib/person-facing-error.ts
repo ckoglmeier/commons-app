@@ -15,6 +15,7 @@ const TECHNICAL_PROPERTIES = ["query", "severity", "routine", "syscall", "errno"
 
 function isBuiltInTechnicalError(error: Error) {
   if (error instanceof TypeError || error instanceof SyntaxError || error instanceof RangeError || error instanceof ReferenceError || error instanceof URIError || error instanceof EvalError) return true;
+  if (typeof DOMException !== "undefined" && error instanceof DOMException) return true;
   return typeof AggregateError !== "undefined" && error instanceof AggregateError;
 }
 
