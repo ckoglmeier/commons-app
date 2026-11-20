@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { personFacingError } from "@/lib/person-facing-error";
 
 export function PollResponseDelete({
   pollId,
@@ -29,7 +30,7 @@ export function PollResponseDelete({
       if (!response.ok) throw new Error(payload.error ?? "Response not deleted. Try again.");
       window.location.reload();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Response not deleted. Try again.");
+      setError(personFacingError(cause, "Response not deleted. Try again."));
       setDeleting(false);
     }
   }

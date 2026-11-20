@@ -1,5 +1,6 @@
 import { InvitationDeliveryActionSchema } from "@commons/contracts";
 import { NextResponse } from "next/server";
+import { errorTextForResponse } from "@/lib/server/error-response";
 import {
   CommonsAuthenticationRequiredError,
   CommonsMembershipRequiredError,
@@ -15,6 +16,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   } catch (error) {
     if (error instanceof CommonsAuthenticationRequiredError) return NextResponse.json({ error: error.message }, { status: 401 });
     if (error instanceof CommonsMembershipRequiredError) return NextResponse.json({ error: error.message }, { status: 403 });
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Invitation email could not be queued." }, { status: 409 });
+    return NextResponse.json({ error: errorTextForResponse(error, "Invitation email could not be queued.") }, { status: 409 });
   }
 }

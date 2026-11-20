@@ -1,5 +1,6 @@
 import { CommonsSetupSchema } from "@commons/contracts";
 import { NextResponse } from "next/server";
+import { errorTextForResponse } from "@/lib/server/error-response";
 import { ZodError } from "zod";
 import {
   CommonsAuthenticationRequiredError,
@@ -22,7 +23,7 @@ function errorResponse(error: unknown) {
     );
   }
   return NextResponse.json(
-    { error: error instanceof Error ? error.message : "Setup not saved. Try again." },
+    { error: errorTextForResponse(error, "Setup not saved. Try again.") },
     { status: 503 },
   );
 }

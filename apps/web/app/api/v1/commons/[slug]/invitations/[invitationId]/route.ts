@@ -1,5 +1,6 @@
 import { CommonsPeopleSchema, UpdateCommonsInvitationRequestSchema } from "@commons/contracts";
 import { NextResponse } from "next/server";
+import { errorTextForResponse } from "@/lib/server/error-response";
 import { ZodError } from "zod";
 import {
   CommonsAuthenticationRequiredError,
@@ -12,7 +13,7 @@ function failure(error: unknown) {
   if (error instanceof CommonsAuthenticationRequiredError) return NextResponse.json({ error: error.message }, { status: 401 });
   if (error instanceof CommonsMembershipRequiredError) return NextResponse.json({ error: error.message }, { status: 403 });
   if (error instanceof ZodError) return NextResponse.json({ error: error.issues[0]?.message ?? "Check the invitation details." }, { status: 400 });
-  return NextResponse.json({ error: error instanceof Error ? error.message : "Invitation not updated." }, { status: 409 });
+  return NextResponse.json({ error: errorTextForResponse(error, "Invitation not updated.") }, { status: 409 });
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ slug: string; invitationId: string }> }) {

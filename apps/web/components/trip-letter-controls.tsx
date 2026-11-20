@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { EditIcon, ShareIcon } from "./icons";
 import { TRIP_LETTER_SECTION_IDS, type TripLetterSections } from "@commons/contracts";
 import { DEFAULT_LETTER_SECTIONS, moveLetterSection, tripLetterSectionLabel } from "@/lib/trip-letter";
+import { personFacingError } from "@/lib/person-facing-error";
 
 async function saveLetter(slug: string, body: object) {
   const response = await fetch(`/api/v1/commons/${encodeURIComponent(slug)}/letter`, {
@@ -40,7 +41,7 @@ export function TripLetterWelcome({ slug, welcome, authorName, canEdit, onSaved,
       onSaved(next || null);
       setEditing(false); setSaved(true);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Not saved. Try again.");
+      setError(personFacingError(cause, "Not saved. Try again."));
     } finally { setBusy(false); }
   }
 
@@ -78,7 +79,7 @@ export function TripLetterShareUpdate({ slug, canText, canWrite = false, text, r
       if (!response.ok) throw new Error(value.error?.message ?? "Not sent. Try again.");
       setStatus(value.recipients ? `On its way to ${value.recipients === 1 ? "1 traveler" : `${value.recipients} travelers`} with messages on. If it’s quiet hours for the trip, Commons holds it until morning.` : "Nobody has messages on for this trip yet, so nothing was sent.");
       setOwn(""); shareId.current = null;
-    } catch (cause) { setStatus(cause instanceof Error ? cause.message : "Not sent. Try again."); }
+    } catch (cause) { setStatus(personFacingError(cause, "Not sent. Try again.")); }
     finally { setSending(false); }
   }
   async function copy() {
@@ -94,7 +95,7 @@ export function TripLetterShareUpdate({ slug, canText, canWrite = false, text, r
       setStatus(canWrite
         ? value.queued ? `On its way to ${value.queued === 1 ? "1 traveler" : `${value.queued} travelers`} with messages on. If it’s quiet hours for the trip, Commons holds it until morning.` : "Nobody new to send to. Only travelers with messages on get these."
         : value.queued ? `Queued for ${value.queued}. Queued isn’t delivered. Commons sends these outside quiet hours.` : "Nobody new to text. Only people who opted in get these.");
-    } catch (cause) { setStatus(cause instanceof Error ? cause.message : "Not queued. Try again."); }
+    } catch (cause) { setStatus(personFacingError(cause, "Not queued. Try again.")); }
     finally { setSending(false); }
   }
   return <>
@@ -137,7 +138,7 @@ export function TripLetterArrange({ slug, sections, onSaved }: {
     try {
       await saveLetter(slug, { commandId: crypto.randomUUID(), sections: { value, expected: sections } });
       onSaved(value); close();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Not saved. Try again."); }
+    } catch (cause) { setError(personFacingError(cause, "Not saved. Try again.")); }
     finally { setBusy(false); }
   }
   const hidden = draft.filter(section => section.hidden).map(section => tripLetterSectionLabel(section.id));

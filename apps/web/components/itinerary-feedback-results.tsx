@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { PollDetailSchema, type PollDetail } from "@commons/contracts";
 import { itineraryResults } from "@/lib/itinerary-workshop";
+import { personFacingError } from "@/lib/person-facing-error";
 
 export function ItineraryFeedbackResults({ slug, pollId, initialPoll, showHeading = true }: { slug: string; pollId: string; initialPoll?: PollDetail; showHeading?:boolean }) {
   const [poll, setPoll] = useState(initialPoll), [error, setError] = useState("");
@@ -10,7 +11,7 @@ export function ItineraryFeedbackResults({ slug, pollId, initialPoll, showHeadin
       const response = await fetch(`/api/v1/commons/${slug}/polls/${pollId}`, { cache: "no-store", signal });
       const payload = await response.json(); if (!response.ok) throw new Error(payload.error ?? "Poll results could not load.");
       if (!signal?.aborted) { setPoll(PollDetailSchema.parse(payload.poll)); setError(""); }
-    } catch (cause) { if (!signal?.aborted) setError(cause instanceof Error ? cause.message : "Poll results could not load."); }
+    } catch (cause) { if (!signal?.aborted) setError(personFacingError(cause, "Poll results could not load.")); }
   }, [slug, pollId]);
   useEffect(() => {
     const controller = new AbortController();

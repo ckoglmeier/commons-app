@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { commonsWorkspacePath } from "@/lib/commons-route";
+import { personFacingError } from "@/lib/person-facing-error";
 
 export function JoinAction({
   token,
@@ -45,7 +46,7 @@ export function JoinAction({
       router.push(pollPublicId && /^[0-9a-f]{12}$/.test(pollPublicId) ? `/c/poll/${pollPublicId}` : textMessagingOffered ? `/messages/trip/${payload.commonsId}?joined=1` : commonsWorkspacePath(payload.commonsId));
       router.refresh();
     } catch (joinError) {
-      setError(joinError instanceof Error ? joinError.message : "Invitation not accepted. Try again.");
+      setError(personFacingError(joinError, "Invitation not accepted. Try again."));
       setPending(false);
     }
   }

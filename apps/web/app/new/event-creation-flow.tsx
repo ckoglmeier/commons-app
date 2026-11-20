@@ -13,6 +13,7 @@ import { PLAN_TEMPLATES } from "@commons/domain";
 import { commonsPath } from "@/lib/commons-route";
 import { trackProductEvent } from "@/lib/product-analytics";
 import { tripEntrySignInPath, type TripEntryContext } from "@/lib/trip-entry/context";
+import { errorKind, personFacingError } from "@/lib/person-facing-error";
 
 type Stage = "entry" | "setup" | "people" | "review";
 
@@ -100,7 +101,7 @@ export function EventCreationFlow({ signedIn, initialRecentEvents, initialDraft,
         setStage("review"); // A failed commit leaves this same saved draft available to retry, never another creation request.
         await finishCreation(next, false);
       }
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Trip setup is unavailable."); } finally { setBusy(false); }
+    } catch (cause) { setError(personFacingError(cause, "Trip setup is unavailable.")); } finally { setBusy(false); }
   }
 
   function createFromDescription(event: FormEvent) {
@@ -127,7 +128,7 @@ export function EventCreationFlow({ signedIn, initialRecentEvents, initialDraft,
         cents(budgetMaximum) !== draft.brief.budgetMaximumCents,
       ].filter(Boolean).length;
       trackProductEvent("event_setup_reviewed", { properties: { source: next.sourceKind, hasDates: Boolean(next.startsOn), hasLocation: Boolean(next.locationName), correctedFieldCount, interpretationStatus: draft.interpretationStatus } });
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Check the trip details."); } finally { setBusy(false); }
+    } catch (cause) { setError(personFacingError(cause, "Check the trip details.")); } finally { setBusy(false); }
   }
 
   function addPerson() {
@@ -144,7 +145,7 @@ export function EventCreationFlow({ signedIn, initialRecentEvents, initialDraft,
     try {
       const { draft: next } = await requestJson<{ draft: EventCreationDraft }>(`/api/v1/event-creation-drafts/${draft.id}/people`, { method: "PUT", body: JSON.stringify({ expectedVersion: draft.version, people: people.map((person) => ({ id: person.id, personId: person.personId, displayName: person.displayName, email: person.email?.trim() || null, message: person.message?.trim() || null, included: true })) }) });
       hydrate(next); setStage("review");
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Check the people you added."); } finally { setBusy(false); }
+    } catch (cause) { setError(personFacingError(cause, "Check the people you added.")); } finally { setBusy(false); }
   }
 
   async function commit(sendInvitations: boolean) {
@@ -176,10 +177,11 @@ export function EventCreationFlow({ signedIn, initialRecentEvents, initialDraft,
       }
       router.push(`${commonsPath(result.eventId)}?arrival=0`);
     } catch (cause) {
-      setError(cause instanceof Error
+      const detail = errorKind(cause) === "technical" ? "" : personFacingError(cause, "");
+      setError(detail
         ? createdEventSlug
-          ? sendInvitations ? `The trip was created, but invitations were not sent. ${cause.message}` : `The trip was created. Open it below. ${cause.message}`
-          : cause.message
+          ? sendInvitations ? `The trip was created, but invitations were not sent. ${detail}` : `The trip was created. Open it below. ${detail}`
+          : detail
         : createdEventSlug
           ? sendInvitations ? "The trip was created, but invitations were not sent. Try again, or open the trip and use People." : "The trip was created. Open it below."
           : "The trip couldn’t be created.");

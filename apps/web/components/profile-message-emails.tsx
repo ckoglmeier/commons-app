@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { personFacingError } from "@/lib/person-facing-error";
 
 /** One switch: whether Commons emails you when it leaves a new message in your thread. */
 export function ProfileMessageEmails({ initialEnabled }: { initialEnabled: boolean }) {
@@ -20,7 +21,7 @@ export function ProfileMessageEmails({ initialEnabled }: { initialEnabled: boole
       setMessage(payload.dailyDigestEnabled ?? next ? "Message emails are on." : "Message emails are off.");
     } catch (error) {
       setEnabled(previous);
-      setMessage(error instanceof Error ? error.message : "Not saved. Try again.");
+      setMessage(personFacingError(error, "Not saved. Try again."));
     } finally { setPending(false); }
   }
 

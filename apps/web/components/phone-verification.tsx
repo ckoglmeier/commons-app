@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { personFacingError } from "@/lib/person-facing-error";
 
 /**
  * Two steps on one form: send a code, enter it. Verifying a number never turns on texts. Everything typed survives a failure, and the number stays
@@ -21,7 +22,7 @@ export function PhoneVerification({ initialPhone = "", submitLabel = "Text me a 
     if (sending.current) return;
     sending.current = true; setBusy(true); setError(""); setStatus("");
     try { await action(); }
-    catch (failure) { setError(failure instanceof Error ? failure.message : "That didn’t go through. Try again."); }
+    catch (failure) { setError(personFacingError(failure, "That didn’t go through. Try again.")); }
     finally { sending.current = false; setBusy(false); }
   }
   const sendCode = () => run(async () => {

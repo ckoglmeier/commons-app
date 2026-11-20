@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { TravelerProfile } from "@commons/contracts";
+import { personFacingError } from "@/lib/person-facing-error";
 
 type PreferenceKey = "usualOriginLabel" | "dietaryPreferences" | "accessibilityNeeds" | "lodgingPreferences" | "transportationPreferences";
 
@@ -43,7 +44,7 @@ export function TravelerPreferencesForm({ profile, endpoint, managed = false }: 
       setSavedSharedKeys(((payload as TravelerProfile).sharedPreferenceKeys ?? []) as PreferenceKey[]);
       setMessage(sharingAvailable ? "Travel details and trip sharing updated." : "Saved.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Travel details not saved.");
+      setMessage(personFacingError(error, "Travel details not saved. Try again."));
     } finally {
       setPending(false);
     }

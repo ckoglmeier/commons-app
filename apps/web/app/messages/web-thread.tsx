@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Fragment, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { messageParts } from "@commons/domain";
+import { personFacingError } from "@/lib/person-facing-error";
 
 type Thread = {
   optedOut: boolean;
@@ -42,7 +43,7 @@ export function WebThread({ initial, siteOrigin }: { initial: Thread; siteOrigin
       const payload = await response.json().catch(() => null);
       if (!response.ok) throw new Error(payload?.error?.message ?? "That didn’t go through. Try again.");
       setThread(payload as Thread); setText(""); pendingId.current = null;
-    } catch (failure) { setError(failure instanceof Error ? failure.message : "That didn’t go through. Try again."); }
+    } catch (failure) { setError(personFacingError(failure, "That didn’t go through. Try again.")); }
     finally { sending.current = false; setBusy(false); }
   }
 

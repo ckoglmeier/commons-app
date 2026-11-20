@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { personFacingError } from "@/lib/person-facing-error";
 
 async function responseError(response: Response, fallback: string) {
   const text = await response.text();
@@ -48,7 +49,7 @@ export function TripLifecycleAction({
       setConfirming(false);
       router.refresh();
     } catch (updateError) {
-      setError(updateError instanceof Error ? updateError.message : "Trip status not changed. Try again.");
+      setError(personFacingError(updateError, "Trip status not changed. Try again."));
     } finally {
       setBusy(false);
     }

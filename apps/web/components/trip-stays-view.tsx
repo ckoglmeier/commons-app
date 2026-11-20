@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import type { CommonsParticipant, CommonsSummary, ItineraryItem, Stay } from "@commons/contracts";
 import { stayComparison } from "../lib/stay-compare";
 import { StayAddressActions } from "./stay-address-actions";
+import { personFacingError } from "@/lib/person-facing-error";
 
 const day = (value: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T12:00:00Z`));
 const nights = (stay: Stay) => stay.startsOn === stay.endsOn ? day(stay.startsOn) : `${day(stay.startsOn)} – ${day(stay.endsOn)}`;
@@ -27,7 +28,7 @@ export function TripStaysView({ commons, participants, stays, itinerary, canEdit
     if (!note) return;
     setNote({ ...note, busy: true, error: "" });
     try { await saveNote(stay, note.text.trim()); setNote(null); }
-    catch (error) { setNote(current => current && { ...current, busy: false, error: error instanceof Error ? error.message : "Note not saved. Try again." }); }
+    catch (error) { setNote(current => current && { ...current, busy: false, error: personFacingError(error, "Note not saved. Try again.") }); }
   }
   const names = (stay: Stay) => stay.includedPersonIds.map(id => participants.find(person => person.id === id)?.displayName).filter(Boolean);
   return <div className="product-view trip-stays-view">

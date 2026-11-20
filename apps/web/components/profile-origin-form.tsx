@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { personFacingError } from "@/lib/person-facing-error";
 
 export function ProfileOriginForm({ initialValue = "", compact = false }: { initialValue?: string | null; compact?: boolean }) {
   const [origin, setOrigin] = useState(initialValue ?? "");
@@ -19,7 +20,7 @@ export function ProfileOriginForm({ initialValue = "", compact = false }: { init
       setSaved(payload.usualOriginLabel ?? "");
       setMessage("Saved.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Profile not saved.");
+      setMessage(personFacingError(error, "Profile not saved. Try again."));
     } finally {
       setPending(false);
     }

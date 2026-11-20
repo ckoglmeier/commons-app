@@ -15,6 +15,7 @@ import { TripLetterArrange, TripLetterShareUpdate, TripLetterWelcome } from "./t
 import { TripBigQuestions } from "./trip-big-questions";
 import { CalendarIcon, ImageIcon, PinIcon, QuestionIcon, ReceiptIcon } from "./icons";
 import { LogisticsAddMenu, type LogisticsAddKind } from "./logistics-add-menu";
+import { personFacingError } from "@/lib/person-facing-error";
 
 /** Where a traveler can talk with Commons from this trip: messages in Commons ("web"), texting ("sms"), or neither. */
 export type TextMessagingChannel = false | "sms" | "web";
@@ -105,7 +106,7 @@ export function HomeDashboard({ coverImage = null, decidingStage = false, state,
       const value=await response.json();if(!response.ok)throw new Error(value.error ?? "The to-do wasn’t completed. Try again.");
       const saved=TripTaskSchema.parse(value.task);setTripTasks(current=>current.map(task=>task.id===saved.id?saved:task));
       completionCommands.current.delete(key);window.dispatchEvent(new Event("commons:trip-tasks-changed"));
-    } catch(cause){setStepError(cause instanceof Error?cause.message:"The to-do wasn’t completed. Try again.");}
+    } catch(cause){setStepError(personFacingError(cause, "The to-do wasn’t completed. Try again."));}
     finally{setCompletingTodo(null);}
   }
   const actionItems = thingsToDo({tripId:commons.id,personId:currentActorId,organizer:canAskGroup,state,travel:nextStep,tripTasks:tripTasksUnavailable ? [] : tripTasks,today:now === null ? undefined : new Intl.DateTimeFormat("en-CA",{timeZone:commons.timezone,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(now))});

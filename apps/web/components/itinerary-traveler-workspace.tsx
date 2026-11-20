@@ -5,6 +5,7 @@ import { itineraryQuestion } from "@/lib/itinerary-workshop";
 import { SavedPollResponseSchema } from "@/lib/poll-response";
 import { ItineraryMessage } from "./itinerary-message";
 import { ItineraryDocument } from "./itinerary-document";
+import { personFacingError } from "@/lib/person-facing-error";
 
 const emptyFeedback: ItineraryPollFeedback = { comments: [], interests: [] };
 export function ItineraryTravelerWorkspace({ initialPoll }: { initialPoll: PublicPoll }) {
@@ -93,7 +94,7 @@ export function ItineraryTravelerWorkspace({ initialPoll }: { initialPoll: Publi
     } catch (cause) {
       if (!sent) {pending.current=null;setUncertain(false);}
       else if (!received && pending.current) setUncertain(true);
-      setError(cause instanceof Error ? cause.message : "Your response could not be saved.");
+      setError(personFacingError(cause, "Your response could not be saved."));
     } finally {
       if (received) { pending.current = null; setUncertain(false); if (!poll.identityBound) { try { window.localStorage.removeItem(`${storageKey}:itinerary-pending`); } catch { /* Receipt remains in memory. */ } } }
       writing.current = false; setBusy(false);

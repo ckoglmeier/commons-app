@@ -2,6 +2,7 @@
 import type { PollDetail } from "@commons/contracts";
 import { useRef, useState } from "react";
 import { PollDecisionActions } from "./poll-decision-actions";
+import { personFacingError } from "@/lib/person-facing-error";
 
 export function PollDecisionReview({ slug, poll }: { slug: string; poll: PollDetail }) {
   const [selected, setSelected] = useState<Record<string, string>>({});
@@ -33,7 +34,7 @@ export function PollDecisionReview({ slug, poll }: { slug: string; poll: PollDet
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "Couldn’t save the decision. Try again.");
       window.location.reload();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Couldn’t save the decision. Try again."); }
+    } catch (cause) { setError(personFacingError(cause, "Couldn’t save the decision. Try again.")); }
     finally { inFlight.current = false; setBusy(false); }
   }
   if (poll.decision) return <section className="poll-responses"><h2>What was decided</h2><p>{poll.decision.summary}</p><p>{poll.decision.approvedByName} approved this · {new Date(poll.decision.approvedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p><p>{poll.decision.target === "plan_idea" ? "Added to Plan as an idea for everyone." : "Saved here for people in this poll."}</p><PollDecisionActions slug={slug} poll={poll} /></section>;

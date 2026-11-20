@@ -18,6 +18,7 @@ import { TravelerPreferencesForm } from "./traveler-preferences-form";
 import { ModalLayer } from "./modal-layer";
 import { GroupInvitationPanel } from "./group-invitation-panel";
 import { GoingAction } from "./trip-stage-gate";
+import { personFacingError } from "@/lib/person-facing-error";
 
 async function responseJson(response: Response, fallback: string) {
   const text = await response.text();
@@ -154,7 +155,7 @@ export function PeopleSheet({
         if (!cancelled) setData(CommonsPeopleSchema.parse(payload.people));
       })
       .catch((loadError) => {
-        if (!cancelled) setError(loadError instanceof Error ? loadError.message : "People could not be loaded.");
+        if (!cancelled) setError(personFacingError(loadError, "People could not be loaded."));
       });
     return () => { cancelled = true; };
   }, [canManage, persistent, slug]);
@@ -229,7 +230,7 @@ export function PeopleSheet({
       if (emailInvitations && !editingId && accessMode === "account" && invitation?.deliveryState === "failed") setError(deliveryErrorHelp(invitation.deliveryErrorCode));
       resetForm();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Changes not saved. Try again.");
+      setError(personFacingError(saveError, "Changes not saved. Try again."));
     } finally {
       setBusy(null);
     }
@@ -248,7 +249,7 @@ export function PeopleSheet({
       if (delivery.deliveryState === "sent") setNotice("Invitation email sent.");
       else setError(deliveryErrorHelp(delivery.deliveryErrorCode));
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : "Invitation email could not be sent.");
+      setError(personFacingError(sendError, "Invitation email could not be sent."));
     } finally {
       setBusy(null);
     }
@@ -265,7 +266,7 @@ export function PeopleSheet({
       trackProductEvent("invitation_link_copied", { commonsSlug: slug, properties: { source: "people" } });
       setNotice("Private link copied.");
     } catch (copyError) {
-      setError(copyError instanceof Error ? copyError.message : "Private link unavailable.");
+      setError(personFacingError(copyError, "Private link unavailable."));
     } finally {
       setBusy(null);
     }
@@ -279,7 +280,7 @@ export function PeopleSheet({
       const payload = await responseJson(response, "Private travel details could not be loaded.");
       setManagedProfile(TravelerProfileSchema.parse(payload));
     } catch (profileError) {
-      setError(profileError instanceof Error ? profileError.message : "Private travel details could not be loaded.");
+      setError(personFacingError(profileError, "Private travel details could not be loaded."));
     } finally {
       setBusy(null);
     }
@@ -298,7 +299,7 @@ export function PeopleSheet({
       await load();
       setNotice("New private link copied. The old link no longer works.");
     } catch (rotateError) {
-      setError(rotateError instanceof Error ? rotateError.message : "Private link not replaced.");
+      setError(personFacingError(rotateError, "Private link not replaced. Try again."));
     } finally {
       setBusy(null);
     }
@@ -318,7 +319,7 @@ export function PeopleSheet({
       trackProductEvent("invitation_revoked", { commonsSlug: slug });
       setNotice(`${person.displayName}’s invitation was revoked.`);
     } catch (revokeError) {
-      setError(revokeError instanceof Error ? revokeError.message : "Invitation not revoked.");
+      setError(personFacingError(revokeError, "Invitation not revoked. Try again."));
     } finally {
       setBusy(null);
     }
@@ -344,7 +345,7 @@ export function PeopleSheet({
         ? `${person.displayName} is now an organizer.`
         : `${person.displayName} is no longer an organizer.`);
     } catch (roleError) {
-      setError(roleError instanceof Error ? roleError.message : "Organizer access not changed.");
+      setError(personFacingError(roleError, "Organizer access not changed. Try again."));
     } finally {
       setBusy(null);
     }
@@ -576,7 +577,7 @@ export function PeopleSheet({
           </section>
         ) : null}
         {notice ? <p className="people-notice" role="status"><CheckIcon /> {notice}</p> : null}
-        {error ? <div role="alert"><p className="form-error">{error}</p>{canManage && persistent && !data ? <button className="sheet-secondary" type="button" onClick={() => { setError(""); void load().catch(cause => setError(cause instanceof Error ? cause.message : "People could not be loaded.")); }}>Reload people</button> : null}</div> : null}
+        {error ? <div role="alert"><p className="form-error">{error}</p>{canManage && persistent && !data ? <button className="sheet-secondary" type="button" onClick={() => { setError(""); void load().catch(cause => setError(personFacingError(cause, "People could not be loaded."))); }}>Reload people</button> : null}</div> : null}
       </section>
     </PeopleContainer>
   );

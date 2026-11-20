@@ -1,5 +1,6 @@
 import { TravelerProfileAccessError } from "@commons/database";
 import { NextResponse } from "next/server";
+import { errorTextForResponse } from "@/lib/server/error-response";
 import { ZodError } from "zod";
 import {
   loadAuthenticatedManagedTravelerProfile,
@@ -13,7 +14,7 @@ function failure(error: unknown) {
   if (error instanceof ZodError) {
     return NextResponse.json({ error: error.issues[0]?.message ?? "Check the travel details and try again." }, { status: 400 });
   }
-  return NextResponse.json({ error: error instanceof Error ? error.message : "Travel profile unavailable." }, { status: 503 });
+  return NextResponse.json({ error: errorTextForResponse(error, "Travel profile unavailable.") }, { status: 503 });
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ slug: string; personId: string }> }) {

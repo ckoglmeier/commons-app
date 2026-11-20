@@ -16,6 +16,7 @@ import { CheckIcon, CloseIcon, ImageIcon, PlusIcon, UsersIcon } from "@/componen
 import { getSupabaseBrowserClient, uploadCommonsCover } from "@/lib/supabase/browser";
 import { createCoverCardImage } from "@/lib/cover-image";
 import { trackProductEvent } from "@/lib/product-analytics";
+import { personFacingError } from "@/lib/person-facing-error";
 
 type SetupStep = "details" | "people" | "review";
 type TravelerDraft = { displayName: string; email: string };
@@ -171,7 +172,7 @@ export function NewCommonsForm({
       if (exitAfterSave) router.push("/trips");
       else move("review");
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Travelers not saved. Your entries are still here. Try again.");
+      setError(personFacingError(saveError, "Travelers not saved. Your entries are still here. Try again."));
     } finally {
       setPending(false);
     }
@@ -194,7 +195,7 @@ export function NewCommonsForm({
         },
       });
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : "Invitations not sent. The trip is still private.");
+      setError(personFacingError(sendError, "Invitations not sent. The trip is still private."));
     } finally {
       setPending(false);
     }
@@ -209,7 +210,7 @@ export function NewCommonsForm({
       await responseJson(response, "Setup not finished. Try again.");
       router.push(commonsPath(setup.commons.id));
     } catch (finishError) {
-      setError(finishError instanceof Error ? finishError.message : "Setup not finished. Try again.");
+      setError(personFacingError(finishError, "Setup not finished. Try again."));
     } finally {
       setPending(false);
     }

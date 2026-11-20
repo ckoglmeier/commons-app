@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import { useRouter } from "next/navigation";
 import { CommonsSnapshotSchema, type CommonsState } from "@commons/contracts";
 import { closureReadiness, moneyWrapUpRelevant, planNextVisible, type PaymentReportRow } from "../lib/beta/closure";
+import { personFacingError } from "@/lib/person-facing-error";
 
 type Person = { id: string; displayName: string };
 type Report = PaymentReportRow & { note: string | null; createdAt: string };
@@ -40,7 +41,7 @@ export function BetaMoneyWrapUp({ slug, currentActorId, isOrganizer, participant
     let live = true;
     call<{ reports: Report[] }>(`/api/v1/commons/${slug}/payment-reports`)
       .then(result => { if (live) { setReports(result.reports); setProblem(""); } })
-      .catch(error => { if (live) setProblem(error instanceof Error ? error.message : "Payment reports didn’t load."); });
+      .catch(error => { if (live) setProblem(personFacingError(error, "Payment reports didn’t load.")); });
     return () => { live = false; };
   }, [features.paymentReports, slug, refresh]);
 
@@ -92,7 +93,7 @@ function PaymentReports({ slug, currentActorId, isOrganizer, participants, repor
       setMessage(`Reported. ${nameOf(to)} or an organizer records it. Your balance changes only then.`);
       setAmount(""); setNote(""); setCommandId(crypto.randomUUID());
       await reload();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Report not saved. Try again."); }
+    } catch (error) { setMessage(personFacingError(error, "Report not saved. Try again.")); }
     finally { setBusy(false); setSubmitting(false); }
   }
   async function resolve(report: Report, action: "record" | "dismiss") {
@@ -102,7 +103,7 @@ function PaymentReports({ slug, currentActorId, isOrganizer, participants, repor
       if (result.snapshot) onState(CommonsSnapshotSchema.parse(result.snapshot).state);
       setMessage(action === "record" ? `Payment from ${nameOf(report.reportedByPersonId)} recorded.` : "Report dismissed. Nothing was recorded.");
       await reload();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "That didn’t work. Try again."); }
+    } catch (error) { setMessage(personFacingError(error, "That didn’t work. Try again.")); }
     finally { setBusy(false); }
   }
 
@@ -163,7 +164,7 @@ function RecapSection({ slug, isOrganizer, moments }: { slug: string; isOrganize
     try {
       const next = (await call<{ recap: Recap }>(`/api/v1/commons/${slug}/recap`, { method: "PUT", body: JSON.stringify({ expectedVersion: recap.version, summary, approvedMomentIds: chosen, share }) })).recap;
       setRecap(next); setMessage(share ? "Recap shared with the group." : recap.status === "shared" ? "Draft saved. The group no longer sees the recap until you share it again." : "Draft saved. Only organizers can see it.");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Recap not saved. Try again."); }
+    } catch (error) { setMessage(personFacingError(error, "Recap not saved. Try again.")); }
     finally { setBusy(false); }
   }
   if (!recap) return message ? <p className="beta-wrap__status" role="status">{message}</p> : null;
@@ -197,14 +198,14 @@ function PlanNext({ slug }: { slug: string }) {
     setOpen(true);
     if (source) return;
     try { setSource((await call<{ source: Source }>(`/api/v1/commons/${slug}/next-trip`)).source); }
-    catch (error) { setMessage(error instanceof Error ? error.message : "This trip’s ideas didn’t load."); }
+    catch (error) { setMessage(personFacingError(error, "This trip’s ideas didn’t load.")); }
   }
   async function start() {
     setBusy(true); setMessage("");
     try {
       const result = await call<{ path: string }>(`/api/v1/commons/${slug}/next-trip`, { method: "POST", body: JSON.stringify({ commandId, activityIds: activities, stayIds: stays, keepDestination, includePeople, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }) });
       router.push(result.path);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "The draft wasn’t started. Try again."); setBusy(false); }
+    } catch (error) { setMessage(personFacingError(error, "The draft wasn’t started. Try again.")); setBusy(false); }
   }
   const toggle = (list: string[], set: (next: string[]) => void, id: string, on: boolean) => set(on ? [...list, id] : list.filter(value => value !== id));
   return <section className="beta-wrap__block beta-wrap__next" aria-labelledby="beta-next-title">

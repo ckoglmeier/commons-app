@@ -2,6 +2,7 @@
 
 import type { PollStatus } from "@commons/contracts";
 import { useState } from "react";
+import { personFacingError } from "@/lib/person-facing-error";
 
 export function PollDetailControls({ pollId, slug, shareUrl, status: initialStatus, canManage, mode = "share" }: { pollId: string; slug: string; shareUrl: string; status: PollStatus; canManage: boolean; mode?: "share" | "status" }) {
   const [status, setStatus] = useState(initialStatus);
@@ -28,7 +29,7 @@ export function PollDetailControls({ pollId, slug, shareUrl, status: initialStat
       setStatus(payload.poll.status);
       window.location.reload();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Poll not updated. Try again.");
+      setError(personFacingError(cause, "Poll not updated. Try again."));
       setBusy(false);
     }
   }

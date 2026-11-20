@@ -1,5 +1,6 @@
 "use client";
 import { TripContextSheet } from "./trip-context-sheet";
+import { personFacingError } from "@/lib/person-facing-error";
 import { TimeInput } from "./time-input";
 import { TripMapView } from "./trip-map";
 import { BetaMoneyWrapUp } from "./beta-money-wrap-up";
@@ -650,7 +651,7 @@ function TripDetailsEditorSheet({ experience, commons, close, save, inline = fal
         endsOn: endsOn || null,
       });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Trip details not updated. Try again.");
+      setError(personFacingError(cause, "Trip details not updated. Try again."));
       setBusy(false);
     }
   }
@@ -713,7 +714,7 @@ function ConfirmationUploadControl({
       const saved = body.intakes.find(row => row.kind === expectedKind && row.status === "awaiting_review" && row.draft && (!intakeId || row.id === intakeId));
       if(active && saved?.draft){intake.current={id:saved.id,revision:saved.revision,fingerprint:JSON.stringify(saved.draft)};ready.current({file:null,intakeId:saved.id,intakeVersion:saved.revision,alreadyUploaded:true,draft:saved.draft,upload:{storagePath:saved.storagePath,token:"already-stored",mimeType:saved.mimeType}});setIntakeReady(true);}
       if(active && body.intakes.some(row=>row.kind===expectedKind && row.status==="processing"))setError("Your confirmation is processing. Reopen this review shortly; you do not need another upload.");
-    }).catch(cause => { if(active)setError(cause instanceof Error?cause.message:"Your review could not load."); });
+    }).catch(cause => { if(active)setError(personFacingError(cause, "Your review could not load.")); });
     return () => {active=false;};
   },[commonsSlug,expectedKind,intakeId]);
   const reviewText = review ? JSON.stringify(review) : "";
@@ -724,7 +725,7 @@ function ConfirmationUploadControl({
       void fetch(`/api/v1/commons/${commonsSlug}/confirmations/intakes`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:current.id,expectedRevision:current.revision,draft:JSON.parse(reviewText)})}).then(async response=>{
         if(!response.ok)throw new Error("This review changed elsewhere or could not save. Refresh before saving trip details. Your fields stay here.");
         const saved=await response.json() as {revision:number};current.revision=saved.revision;current.fingerprint=reviewText;reviewSaved.current?.(saved.revision);
-      }).catch(cause=>setError(cause instanceof Error?cause.message:"Review could not save."));
+      }).catch(cause=>setError(personFacingError(cause, "Review could not save.")));
     },750);
     return ()=>window.clearTimeout(timer);
   },[intakeReady,reviewText,commonsSlug]);
@@ -749,7 +750,7 @@ function ConfirmationUploadControl({
       if(parsed.intakeId && parsed.intakeVersion){intake.current={id:parsed.intakeId,revision:parsed.intakeVersion,fingerprint:JSON.stringify(parsed.draft)};setIntakeReady(true);}
       onReady({ file, draft: parsed.draft, upload: parsed.upload, intakeId:parsed.intakeId, intakeVersion:parsed.intakeVersion, alreadyUploaded:parsed.alreadyUploaded });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "That confirmation could not be read.");
+      setError(personFacingError(cause, "That confirmation could not be read."));
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -875,7 +876,7 @@ function StayEditorSheet({
         ...(pendingConfirmation ? { confirmationDocument: { storagePath: pendingConfirmation.upload.storagePath, fileName: pendingConfirmation.draft.sourceLabel, mimeType: pendingConfirmation.upload.mimeType ?? "application/pdf" as const, ...(pendingConfirmation.intakeId ? { intakeId: pendingConfirmation.intakeId, intakeVersion: pendingConfirmation.intakeVersion } : {}) } } : {}),
       });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Stay not saved. Try again.");
+      setError(personFacingError(cause, "Stay not saved. Try again."));
       setBusy(false);
     }
   }
@@ -887,7 +888,7 @@ function StayEditorSheet({
     try {
       await remove();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Stay not removed. Try again.");
+      setError(personFacingError(cause, "Stay not removed. Try again."));
       setBusy(false);
     }
   }
@@ -1752,7 +1753,7 @@ function MomentsView({
     setDropDay(null);
     if (!moment) return;
     void moveMoment(moment, day).catch((error) => {
-      notify(error instanceof Error ? error.message : "Photo not moved. Try again.");
+      notify(personFacingError(error, "Photo not moved. Try again."));
     });
   }
 
@@ -1783,7 +1784,7 @@ function MomentsView({
       window.setTimeout(() => URL.revokeObjectURL(archiveUrl), 1_000);
       notify(`${files.length} ${files.length === 1 ? "photo" : "photos"} ready.`);
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Photos not downloaded. Try again.");
+      notify(personFacingError(error, "Photos not downloaded. Try again."));
     } finally {
       setArchiveBusy(false);
     }
@@ -1953,7 +1954,7 @@ function PhotoMappingSheet({
         : undefined,
       });
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Photo not added. Try again.");
+      setError(personFacingError(saveError, "Photo not added. Try again."));
       setBusy(false);
       return;
     }
@@ -2057,7 +2058,7 @@ function CoverPickerSheet({
       const blob = fetched.type === "image/svg+xml" || art.src.endsWith(".svg") ? await rasterizeCoverDrawing(fetched) : fetched;
       await uploadCover(new File([blob], blob.type === "image/png" ? "commons-cover.png" : "commons-cover.webp", { type: blob.type || "image/webp" }));
       close(); notify("Cover updated.");
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Cover not updated. Try again."); setBusyId(null); }
+    } catch (cause) { setError(personFacingError(cause, "Cover not updated. Try again.")); setBusyId(null); }
   }
   const choices = [
     ...localMoments,
@@ -2073,7 +2074,7 @@ function CoverPickerSheet({
       close();
       notify("Cover updated.");
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Cover not updated. Try again.");
+      setError(personFacingError(saveError, "Cover not updated. Try again."));
       setBusyId(null);
     }
   }
@@ -2090,7 +2091,7 @@ function CoverPickerSheet({
       close();
       notify("Cover updated.");
     }).catch((saveError) => {
-      setError(saveError instanceof Error ? saveError.message : "Cover not updated. Try again.");
+      setError(personFacingError(saveError, "Cover not updated. Try again."));
       setBusyId(null);
     });
   }
@@ -2204,7 +2205,7 @@ function MomentEditorSheet({
           setBusy(true);
           setError("");
           void save(caption, itineraryItemId || null, occurredOn || null).catch((saveError) => {
-            setError(saveError instanceof Error ? saveError.message : "Photo not updated. Try again.");
+            setError(personFacingError(saveError, "Photo not updated. Try again."));
             setBusy(false);
           });
         }}>
@@ -2232,7 +2233,7 @@ function MomentEditorSheet({
               <strong>Delete this photo?</strong>
               <p>It will be removed from Photos and any linked trip plan.</p>
               {deleteError ? <p className="delete-photo-error">{deleteError}</p> : null}
-              <div><button type="button" disabled={deleting} onClick={() => { setConfirmDelete(false); setDeleteError(""); }}>Keep photo</button><button type="button" disabled={deleting} onClick={() => { setDeleting(true); setDeleteError(""); void remove().catch((removeError) => { setDeleteError(removeError instanceof Error ? removeError.message : "Photo not deleted. Try again."); setDeleting(false); }); }}>{deleting ? "Deleting…" : "Delete photo"}</button></div>
+              <div><button type="button" disabled={deleting} onClick={() => { setConfirmDelete(false); setDeleteError(""); }}>Keep photo</button><button type="button" disabled={deleting} onClick={() => { setDeleting(true); setDeleteError(""); void remove().catch((removeError) => { setDeleteError(personFacingError(removeError, "Photo not deleted. Try again.")); setDeleting(false); }); }}>{deleting ? "Deleting…" : "Delete photo"}</button></div>
             </div>
           )}
         </section>
@@ -2266,7 +2267,7 @@ function MoneySettingsSheet({
     try {
       await save(nextBalancesDisabled, nextCurrency);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Money settings not updated. Try again.");
+      setError(personFacingError(saveError, "Money settings not updated. Try again."));
       setBusy(false);
     }
   }
@@ -2436,7 +2437,7 @@ export function ExpenseEditorSheet({
         note: note.trim() || undefined,
       });
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : `Expense not ${editing ? "updated" : "added"}. Try again.`);
+      setError(personFacingError(saveError, `Expense not ${editing ? "updated" : "added"}. Try again.`));
       setBusy(false);
     }
   }
@@ -2562,7 +2563,7 @@ function PaymentEditorSheet({
     try {
       await save({ currency, fromPersonId, toPersonId, amountCents, occurredOn });
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : `Payment not ${editing ? "updated" : "recorded"}. Try again.`);
+      setError(personFacingError(saveError, `Payment not ${editing ? "updated" : "recorded"}. Try again.`));
       setBusy(false);
     }
   }
@@ -2630,7 +2631,7 @@ function PaymentSheet({
               <strong>Delete this payment?</strong>
               <p>This removes {formatMoney(payment.amountCents, payment.currency)} from the ledger and recalculates everyone’s balance.</p>
               {deleteError ? <p className="delete-expense-error">{deleteError}</p> : null}
-              <div><button type="button" disabled={deleting} onClick={() => { setConfirmDelete(false); setDeleteError(""); }}>Keep payment</button><button type="button" disabled={deleting} onClick={() => { setDeleting(true); setDeleteError(""); void remove().catch((error) => { setDeleteError(error instanceof Error ? error.message : "Payment not deleted. Try again."); setDeleting(false); }); }}>{deleting ? "Deleting…" : "Delete payment"}</button></div>
+              <div><button type="button" disabled={deleting} onClick={() => { setConfirmDelete(false); setDeleteError(""); }}>Keep payment</button><button type="button" disabled={deleting} onClick={() => { setDeleting(true); setDeleteError(""); void remove().catch((error) => { setDeleteError(personFacingError(error, "Payment not deleted. Try again.")); setDeleting(false); }); }}>{deleting ? "Deleting…" : "Delete payment"}</button></div>
             </div>
           )}
         </section>
@@ -2663,7 +2664,7 @@ function ExpenseLedgerStatusSheet({
     try {
       await save();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : `Expenses not ${closing ? "closed" : "reopened"}. Try again.`);
+      setError(personFacingError(saveError, `Expenses not ${closing ? "closed" : "reopened"}. Try again.`));
       setBusy(false);
     }
   }
@@ -2792,7 +2793,7 @@ function ExpenseSheet({
               <strong>Delete {expense.title}?</strong>
               <p>{balancesDisabled ? `This removes ${formatMoney(expense.amountCents, expense.currency)} from recorded trip spending.` : `This removes ${formatMoney(expense.amountCents, expense.currency)} from the shared ledger and recalculates everyone’s balance.`}</p>
               {deleteError ? <p className="delete-expense-error">{deleteError}</p> : null}
-              <div><button ref={keepExpenseRef} type="button" disabled={deleting} onClick={() => { setConfirmDelete(false); setDeleteError(""); }}>Keep expense</button><button type="button" disabled={deleting} onClick={() => { setDeleting(true); setDeleteError(""); void remove().catch((error) => { setDeleteError(error instanceof Error ? error.message : "Expense not deleted. Try again."); setDeleting(false); }); }}>{deleting ? "Deleting…" : "Delete expense"}</button></div>
+              <div><button ref={keepExpenseRef} type="button" disabled={deleting} onClick={() => { setConfirmDelete(false); setDeleteError(""); }}>Keep expense</button><button type="button" disabled={deleting} onClick={() => { setDeleting(true); setDeleteError(""); void remove().catch((error) => { setDeleteError(personFacingError(error, "Expense not deleted. Try again.")); setDeleting(false); }); }}>{deleting ? "Deleting…" : "Delete expense"}</button></div>
             </div>
           )}
         </section>
@@ -2961,7 +2962,7 @@ function AddPlanSheet({
       }
     } catch (previewError) {
       setLinkPreview(null);
-      setError(previewError instanceof Error ? previewError.message : "That link could not be previewed. Try again.");
+      setError(personFacingError(previewError, "That link could not be previewed. Try again."));
     } finally {
       setPreviewBusy(false);
     }
@@ -3016,7 +3017,7 @@ function AddPlanSheet({
       sourceUrl: linkPreview?.url ?? null,
       arrangerPersonId,
     }).catch((saveError) => {
-      setError(saveError instanceof Error ? saveError.message : "Plan not shared. Try again.");
+      setError(personFacingError(saveError, "Plan not shared. Try again."));
       setBusy(null);
     });
   }
@@ -3164,7 +3165,7 @@ function EditPlanSheet({
       ...(item.mealType ? { mealType, ...(mealType === "restaurant" ? { mealReservation: { number: reservationNumber.trim(), note: reservationNote.trim() } } : {}) } : {}),
       ...(arrangerPersonId !== originalArrangerPersonId ? { arrangerPersonId, expectedArrangerPersonId: originalArrangerPersonId } : {}),
     }).catch((saveError) => {
-      setError(saveError instanceof Error ? saveError.message : "Plan not updated. Try again.");
+      setError(personFacingError(saveError, "Plan not updated. Try again."));
       setBusy(false);
     });
   }
@@ -3214,7 +3215,7 @@ function EditPlanSheet({
               <strong id="delete-plan-title">Delete {item.title}?</strong>
               <p>{item.startsAt ? `This removes it from ${formatDayHeading(localDateKey(item.startsAt, timeZone))} at ${formatTime(item.startsAt, timeZone)}.` : "This removes the idea from the shared plan."} Linked photos stay in Photos.</p>
               {deleteError ? <p className="form-error">{deleteError}</p> : null}
-              <div><button type="button" disabled={deleting} onClick={() => { setConfirmDelete(false); setDeleteError(""); }}>Keep plan</button><button type="button" disabled={deleting} onClick={() => { setDeleting(true); setDeleteError(""); void remove().catch((removeError) => { setDeleteError(removeError instanceof Error ? removeError.message : "Plan not deleted. Try again."); setDeleting(false); }); }}>{deleting ? "Deleting…" : `Delete ${item.title}`}</button></div>
+              <div><button type="button" disabled={deleting} onClick={() => { setConfirmDelete(false); setDeleteError(""); }}>Keep plan</button><button type="button" disabled={deleting} onClick={() => { setDeleting(true); setDeleteError(""); void remove().catch((removeError) => { setDeleteError(personFacingError(removeError, "Plan not deleted. Try again.")); setDeleting(false); }); }}>{deleting ? "Deleting…" : `Delete ${item.title}`}</button></div>
             </div>
           )}
         </section>
@@ -3396,7 +3397,7 @@ export function TravelPlansSheet({
             }
           })()
             .then(() => { setBusy(false); setPendingConfirmation(null); close(); })
-            .catch((saveError) => { setError(saveError instanceof Error ? saveError.message : "Travel plan not saved. Try again."); setBusy(false); });
+            .catch((saveError) => { setError(personFacingError(saveError, "Travel plan not saved. Try again.")); setBusy(false); });
         }}>
           <p className="logistics-editor-owner">{currentActorName}</p>
           {sampleOnly ? <p className="event-logistics-note">Sample only. Changes reset when you reload.</p> : null}
@@ -3465,16 +3466,16 @@ export function TravelPlansSheet({
               <button type="button" onClick={() => setSharingOpen(true)}>{existingVisibility === "private" ? "Share" : "Change sharing"}</button>
             ) : (
               <div className="travel-sharing-options">
-                <button type="button" disabled={sharingBusy} onClick={() => { setSharingBusy(true); setError(""); void shareSavedPlan("basic").then(() => { setSharingBusy(false); setSharingOpen(false); }).catch((shareError) => { setError(shareError instanceof Error ? shareError.message : "Sharing not changed. Try again."); setSharingBusy(false); }); }}><strong>Share basic info</strong><small>Traveler, route, date, and time</small></button>
-                <button type="button" disabled={sharingBusy} onClick={() => { setSharingBusy(true); setError(""); void shareSavedPlan("all").then(() => { setSharingBusy(false); setSharingOpen(false); }).catch((shareError) => { setError(shareError instanceof Error ? shareError.message : "Sharing not changed. Try again."); setSharingBusy(false); }); }}><strong>Share all info (including cost)</strong><small>Also shares the coordination note</small></button>
-                {existingVisibility !== "private" ? <button className="travel-sharing-private" type="button" disabled={sharingBusy} onClick={() => { setSharingBusy(true); setError(""); void shareSavedPlan("private").then(() => { setSharingBusy(false); setSharingOpen(false); }).catch((shareError) => { setError(shareError instanceof Error ? shareError.message : "Sharing not changed. Try again."); setSharingBusy(false); }); }}>Make private again</button> : null}
+                <button type="button" disabled={sharingBusy} onClick={() => { setSharingBusy(true); setError(""); void shareSavedPlan("basic").then(() => { setSharingBusy(false); setSharingOpen(false); }).catch((shareError) => { setError(personFacingError(shareError, "Sharing not changed. Try again.")); setSharingBusy(false); }); }}><strong>Share basic info</strong><small>Traveler, route, date, and time</small></button>
+                <button type="button" disabled={sharingBusy} onClick={() => { setSharingBusy(true); setError(""); void shareSavedPlan("all").then(() => { setSharingBusy(false); setSharingOpen(false); }).catch((shareError) => { setError(personFacingError(shareError, "Sharing not changed. Try again.")); setSharingBusy(false); }); }}><strong>Share all info (including cost)</strong><small>Also shares the coordination note</small></button>
+                {existingVisibility !== "private" ? <button className="travel-sharing-private" type="button" disabled={sharingBusy} onClick={() => { setSharingBusy(true); setError(""); void shareSavedPlan("private").then(() => { setSharingBusy(false); setSharingOpen(false); }).catch((shareError) => { setError(personFacingError(shareError, "Sharing not changed. Try again.")); setSharingBusy(false); }); }}>Make private again</button> : null}
               </div>
             )}
           </section>
         ) : null}
         {isGround && existing?.totalCents && linkedExpense && openLinkedExpense ? <div className="stay-expense-link"><p><strong>Recorded for reimbursement</strong><span>{formatMoney(linkedExpense.amountCents, linkedExpense.currency)} · Confirmation PDF attached</span></p><button type="button" onClick={openLinkedExpense}>View expense</button></div> : null}
         {isGround && existing?.totalCents && !linkedExpense && recordExpense ? <div className="stay-expense-link"><p><strong>No expense recorded</strong><span>Review the payer and split before adding it to Money.</span></p><button type="button" onClick={recordExpense}>Record as expense</button></div> : null}
-        {existing ? <div className="stay-delete">{confirmDelete ? <div><p>Remove this {["car_rental", "transport"].includes(existing.kind) ? "rental" : `${existing.kind} plan`}? Linked expenses remain recorded.</p><button type="button" onClick={() => { setBusy(true); setError(""); void remove(existing.id).catch((removeError) => { setError(removeError instanceof Error ? removeError.message : "Travel plan not removed. Try again."); setBusy(false); }); }} disabled={busy}>Remove travel plan</button><button type="button" onClick={() => setConfirmDelete(false)} disabled={busy}>Keep plan</button></div> : <button type="button" onClick={() => setConfirmDelete(true)}>Remove travel plan</button>}</div> : null}
+        {existing ? <div className="stay-delete">{confirmDelete ? <div><p>Remove this {["car_rental", "transport"].includes(existing.kind) ? "rental" : `${existing.kind} plan`}? Linked expenses remain recorded.</p><button type="button" onClick={() => { setBusy(true); setError(""); void remove(existing.id).catch((removeError) => { setError(personFacingError(removeError, "Travel plan not removed. Try again.")); setBusy(false); }); }} disabled={busy}>Remove travel plan</button><button type="button" onClick={() => setConfirmDelete(false)} disabled={busy}>Keep plan</button></div> : <button type="button" onClick={() => setConfirmDelete(true)}>Remove travel plan</button>}</div> : null}
       </section>
     </EditorSurface>
   );
@@ -3891,7 +3892,7 @@ export function CommonsApp({
       setPendingPhotos(photos);
       setSheet("photo-mapping");
     } catch (error) {
-      notify(error instanceof Error ? error.message : "Photos not added. Try different files.");
+      notify(personFacingError(error, "Photos not added. Try different files."));
     }
   }
 

@@ -1,6 +1,7 @@
 "use client";
 import type { PollDetail } from "@commons/contracts";
 import { useRef, useState } from "react";
+import { personFacingError } from "@/lib/person-facing-error";
 
 export function PollAudienceReview({ slug, pollId, audience, people }: { slug: string; pollId: string; audience: NonNullable<PollDetail["audienceReview"]>; people: Array<{ id: string; name: string }> }) {
   const [selected, setSelected] = useState<{ kind: "person" | "email"; recipient: string; label: string } | null>(null);
@@ -22,7 +23,7 @@ export function PollAudienceReview({ slug, pollId, audience, people }: { slug: s
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Access not changed.");
       window.location.reload();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Access not changed. Try again."); setBusy(false); }
+    } catch (cause) { setError(personFacingError(cause, "Access not changed. Try again.")); setBusy(false); }
   }
   return <section className="poll-responses"><h2>Who can answer?</h2><p>Only these accounts, the creator, and organizers. Share the poll link with them. Response-only guests can’t open the trip.</p>
     <ul className="event-attendance-list">{recipients.map(recipient => <li key={`${recipient.kind}:${recipient.recipient}`}><span>{recipient.label} · {recipient.kind === "person" ? "Trip participant" : "Response only"}</span><button type="button" className="cm-action cm-action--quiet" disabled={busy} onClick={() => { setSelected(recipient); command.current = null; }}>Remove access</button></li>)}</ul>

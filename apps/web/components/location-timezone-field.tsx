@@ -16,7 +16,7 @@ export function LocationTimezoneField({ value, onChange, label = "Timezone", ini
       try {
         const response = await fetch(`/api/v1/location-timezones/?q=${encodeURIComponent(query)}`, { signal: controller.signal, cache: "no-store" });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error);
+        if (!response.ok) throw new Error(data.error ?? "Location search is unavailable. Enter the timezone below.");
         if (!controller.signal.aborted) setResult({ query, matches: data.matches });
       } catch {
         if (!controller.signal.aborted) setResult({ query, matches: [], error: "Location search is unavailable. Enter the timezone below." });

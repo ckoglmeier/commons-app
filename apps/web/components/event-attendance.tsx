@@ -4,6 +4,7 @@ import { EventAttendanceSchema, type EventAttendance, type CommonsParticipant } 
 import { PeopleResults } from "./people-results";
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { personFacingError } from "@/lib/person-facing-error";
 
 const labels = { helping: "Helping plan", attending: "Attending", declined: "Declined", needs_confirmation: "Dates changed · please confirm again" };
 
@@ -34,7 +35,7 @@ export function EventAttendancePanel({ eventId, readOnly = false, participants =
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "Attendance unavailable.");
       setData(EventAttendanceSchema.parse(body));
-    }).catch(cause => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Attendance unavailable."); });
+    }).catch(cause => { if (!controller.signal.aborted) setError(personFacingError(cause, "Attendance unavailable.")); });
     return () => controller.abort();
   }, [endpoint, reloadVersion]);
   async function save(answer: "helping" | "attending" | "declined" | null = review) {
@@ -50,7 +51,7 @@ export function EventAttendancePanel({ eventId, readOnly = false, participants =
       setData({ ...data, people: data.people.map(person => person.personId === data.currentPersonId ? { ...person, state: answer } : person) });
       setReview(null); setChanging(false); command.current = null; setSaved(true); onSaved?.();
       window.dispatchEvent(new CustomEvent("commons-attendance-saved", { detail: eventId }));
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Attendance not saved. Try again."); }
+    } catch (cause) { setError(personFacingError(cause, "Attendance not saved. Try again.")); }
     finally { busy.current = false; setSaving(false); }
   }
   if (readOnly) return <><PeopleResults participants={participants} attendance={data} />{error ? <p role="status">Attendance unavailable. Joined status is shown instead.</p> : null}</>;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { personFacingError } from "@/lib/person-facing-error";
 
 type Mode = "invited" | "domains" | "anyone";
 
@@ -27,7 +28,7 @@ export function JoinSettingsForm({ initialMode, initialDomains }: { initialMode:
       setDomains((payload.allowedDomains ?? []).join(", "));
       setMessage("Saved.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Not saved. Try again.");
+      setMessage(personFacingError(error, "Not saved. Try again."));
     } finally { setPending(false); }
   }
 

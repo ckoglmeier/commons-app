@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { personFacingError } from "@/lib/person-facing-error";
 
 type Delivery = { fingerprint: string; recipients: Array<{ email: string; personId: string | null; status: string; errorCode: string | null }>; missingPersonIds: string[] };
 const statusLabels: Record<string, string> = { not_sent: "Not sent", queued: "Queued", processing: "Sending", sent: "Sent", failed: "Needs attention", cancelled: "Cancelled" };
@@ -23,7 +24,7 @@ export function PollDeliveryReview({ slug, pollId, people, includesMessage = fal
       if (!response.ok) throw new Error(payload.error ?? "Delivery could not be updated.");
       setDelivery(payload.delivery); command.current = null;
       if (send) setNotice("Delivery requested. Refresh to check progress. Links already sent aren’t sent again.");
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Delivery could not be updated."); }
+    } catch (cause) { setError(personFacingError(cause, "Delivery could not be updated.")); }
     finally { locked.current = false; setBusy(false); }
   }
   return <section className="poll-delivery" aria-label="Poll email delivery">

@@ -33,3 +33,15 @@ test("only the exact server deployment origin is trusted for previews", async ()
     await assert.rejects(groupInvitationBody(request("http://trips.example.test")));
   } finally { for (const key of Object.keys(process.env)) if (!(key in saved)) delete process.env[key]; Object.assign(process.env,saved); }
 });
+
+test("an invitation failure carries Commons's own words, never a driver's query", async (t) => {
+  const { groupInvitationFailure } = await import("./group-invitation-http");
+  const { CommonsMembershipRequiredError } = await import("./commons-access-errors");
+  t.mock.method(console, "error", () => {});
+  const outsider = groupInvitationFailure(new CommonsMembershipRequiredError());
+  assert.equal(outsider.status, 403);
+  assert.equal((await outsider.json()).error, "You aren’t on this trip.");
+  const driver = groupInvitationFailure(Object.assign(new Error("Failed query: select \"id\" from \"people\"\nparams: 1"), { query: "select", params: [] }));
+  assert.equal(driver.status, 500);
+  assert.doesNotMatch((await driver.json()).error, /select|Failed query/);
+});

@@ -14,6 +14,7 @@ import { PollAvailabilityEditor, newAvailabilityQuestion } from "@/components/po
 import { PlusIcon } from "@/components/icons";
 import { trackProductEvent } from "@/lib/product-analytics";
 import { framingRevision } from "@/lib/poll-framing-apply";
+import { personFacingError } from "@/lib/person-facing-error";
 
 type StayPollOption = { id: string; name: string; address: string; url: string | null; startsOn?: string; endsOn?: string; description?: string | null };
 
@@ -141,7 +142,7 @@ export function PollStarter({ linkOnly = false, bigQuestion, slug, eventName, ti
       if (firstSave) trackProductEvent("poll_draft_started", { commonsSlug: slug, properties: { source: sourcePoll ? "follow_up" : stayPoll ? "stays" : transportPoll ? "transport" : activityPoll ? "activities" : templateId ? "template" : "blank", optionCount: questions.reduce((total, question) => total + ("options" in question ? question.options.length : 0), 0) } });
       return draft;
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Draft not saved. Your edits are still here. Try again.");
+      setError(personFacingError(cause, "Draft not saved. Your edits are still here. Try again."));
     } finally { inFlight.current = false; setBusy(false); }
   }
   /** Applies a reviewed suggestion through the normal draft save. Nothing changes here unless the save succeeds against the current version. */
@@ -188,7 +189,7 @@ export function PollStarter({ linkOnly = false, bigQuestion, slug, eventName, ti
       // The destination loads fresh data. Refreshing the old route here can race navigation.
       router.push(href);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Poll not created. Your draft is still here. Try again.");
+      setError(personFacingError(cause, "Poll not created. Your draft is still here. Try again."));
       // Retry the reviewed command, not a fresh command after an uncertain result.
     } finally { inFlight.current = false; setBusy(false); }
   }

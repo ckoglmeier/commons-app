@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { GroupInvitationSchema, type GroupInvitation } from "@commons/contracts";
 import { groupInvitationPath } from "@/lib/group-invitation";
 import { stableCommand } from "@/lib/stable-command";
+import { personFacingError } from "@/lib/person-facing-error";
 
 export function GroupInvitationPanel({ slug }: { slug: string }) {
   const [enabled, setEnabled] = useState(false), [link, setLink] = useState<GroupInvitation | null>(null);
@@ -19,7 +20,7 @@ export function GroupInvitationPanel({ slug }: { slug: string }) {
       if (!response.ok) throw new Error("The invite link couldn’t load. Reopen People to try again.");
       if (abort.signal.aborted) return;
       setEnabled(data.enabled === true); setLink(data.invitation ? GroupInvitationSchema.parse(data.invitation) : null); setLoadedSlug(slug);
-    }).catch(cause => { if (!abort.signal.aborted) setError(cause instanceof Error ? cause.message : "Invite link unavailable."); });
+    }).catch(cause => { if (!abort.signal.aborted) setError(personFacingError(cause, "Invite link unavailable.")); });
     return () => abort.abort();
   }, [endpoint, slug]);
 
@@ -47,7 +48,7 @@ export function GroupInvitationPanel({ slug }: { slug: string }) {
       } catch {
         setFallbackURL(url); setError("Couldn’t copy automatically. Select and copy the link below.");
       }
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "The invite link couldn’t be confirmed. Try again."); }
+    } catch (cause) { setError(personFacingError(cause, "The invite link couldn’t be confirmed. Try again.")); }
     finally { pending.current = false; setBusy(false); }
   }
 

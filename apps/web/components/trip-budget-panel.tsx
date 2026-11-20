@@ -6,6 +6,7 @@ import { GroupBudgetWorksheet } from "@/lib/budget/budget-worksheet";
 import { prefillTripBudget, tripBudgetLodgingReference } from "@/lib/trip-budget/prefill";
 import { type BudgetInputs } from "@/lib/budget/budget-calculations";
 import css from "./trip-budget-panel.module.css";
+import { personFacingError } from "@/lib/person-facing-error";
 
 const COST_BASIS = { shared: "Everyone shares", per_person: "Each person pays", optional: "Only people who opt in" } as const;
 
@@ -58,7 +59,7 @@ function TripBudgetEditor({ tripId, destinationName, startsOn, endsOn, travelerC
         }
         if (active) { setSaved(view); setInputs(view.inputs ?? initial); setError(""); setConflict(false); }
       } catch (cause) {
-        if (active) setError(cause instanceof Error ? cause.message : "Couldn’t load the saved budget. Try again.");
+        if (active) setError(personFacingError(cause, "Couldn’t load the saved budget. Try again."));
       } finally { if (active) setLoading(false); }
     }
     void load();
@@ -83,7 +84,7 @@ function TripBudgetEditor({ tripId, destinationName, startsOn, endsOn, travelerC
         view = { inputs: sent, version: saved.version + 1, updatedAt: new Date().toISOString(), canEdit };
       }
       setSaved(view);
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Couldn’t confirm the save. Your edits are still here."); }
+    } catch (cause) { setError(personFacingError(cause, "Couldn’t confirm the save. Your edits are still here.")); }
     finally { setSaving(false); }
   }
   if (loading) return <p role="status">Loading trip budget…</p>;

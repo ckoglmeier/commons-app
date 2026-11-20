@@ -9,6 +9,7 @@ import { PollTypedAnswer } from "@/components/poll-typed-answer";
 import { PollHousingFacts, PollPropertyFacts } from "@/components/poll-housing-facts";
 import { updatePollChoiceSelection } from "@/lib/poll-selection";
 import { pollAnswerLabel, pollResponseError, SavedPollResponseSchema } from "@/lib/poll-response";
+import { personFacingError } from "@/lib/person-facing-error";
 
 type SavedResponse = { receiptToken: string; respondentName: string; answers: PollAnswer[] };
 
@@ -141,7 +142,7 @@ export function PollResponseForm({ token, initialPoll, showHeading = true, offer
         }
       } catch { /* The committed receipt remains usable in this open page. */ }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Response not saved. Try again.");
+      setError(personFacingError(cause, "Response not saved. Try again."));
     } finally {
       inFlight.current = false;
       setBusy(false);

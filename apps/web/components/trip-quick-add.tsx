@@ -4,6 +4,7 @@ import type { CommonsSummary, ItineraryItem, LinkPreview, Stay } from "@commons/
 import { isRentalListing } from "../lib/trip-map";
 import { CloseIcon } from "./icons";
 import { ModalLayer } from "./modal-layer";
+import { personFacingError } from "@/lib/person-facing-error";
 
 export type QuickAddInput = { name: string; address: string; url: string | null; pin: LinkPreview["pin"] | null; startsOn: string; endsOn: string; commandId: string };
 type Found = { note: string; pin: LinkPreview["pin"] | null; url: string | null };
@@ -49,7 +50,7 @@ export function TripQuickAddSheet({ kind, commons, stays, itinerary, lookUp, rea
     } catch (lookupError) {
       lookedUp.current = "";
       setFound(null);
-      setError(lookupError instanceof Error ? `${lookupError.message} You can still add it by name.` : "That link couldn’t be read. You can still add it by name.");
+      setError(`${personFacingError(lookupError, "That link couldn’t be read.")} You can still add it by name.`);
     } finally { setBusy(null); }
   }
 
@@ -62,7 +63,7 @@ export function TripQuickAddSheet({ kind, commons, stays, itinerary, lookUp, rea
       if (hints.url && !link.trim()) { setLink(hints.url); await lookUpLink(hints.url); }
       if (!hints.readable) setError(hints.title ? "Commons used the file name. Check it, and add a link if you have one." : "Commons couldn’t read text from that file. Add the name, and a link if you have one.");
     } catch (fileError) {
-      setError(fileError instanceof Error ? fileError.message : "That file couldn’t be read. Add the name instead.");
+      setError(personFacingError(fileError, "That file couldn’t be read. Add the name instead."));
     } finally {
       setBusy(null);
       if (fileInput.current) fileInput.current.value = "";
@@ -79,7 +80,7 @@ export function TripQuickAddSheet({ kind, commons, stays, itinerary, lookUp, rea
       const id = await save({ name: name.trim(), address: address.trim(), url, pin: found?.pin ?? null, ...dates, commandId: commandId.current });
       if (id) setSaved({ id, name: name.trim() }); else close();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Not added. Try again.");
+      setError(personFacingError(saveError, "Not added. Try again."));
     } finally { setBusy(null); }
   }
 

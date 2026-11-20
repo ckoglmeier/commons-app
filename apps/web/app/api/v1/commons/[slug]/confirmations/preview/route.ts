@@ -1,6 +1,7 @@
 import { ConfirmationDraftSchema, ConfirmationPreviewResponseSchema, type ConfirmationDraft } from "@commons/contracts";
 import { parseConfirmationText } from "@commons/domain";
 import { NextResponse } from "next/server";
+import { errorTextForResponse } from "@/lib/server/error-response";
 import { createHash } from "node:crypto";
 import {
   CommonsAuthenticationRequiredError,
@@ -95,6 +96,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     if (error instanceof CommonsMembershipRequiredError) return NextResponse.json({ error: "This confirmation belongs to another trip." }, { status: 403 });
     if (error instanceof UploadTooLargeError) return NextResponse.json({ error: error.message }, { status: 413 });
     console.error("Commons confirmation preview failed", error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : "That confirmation could not be read." }, { status: 400 });
+    return NextResponse.json({ error: errorTextForResponse(error, "That confirmation could not be read.") }, { status: 400 });
   }
 }

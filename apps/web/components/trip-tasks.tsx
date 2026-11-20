@@ -7,6 +7,7 @@ import { CloseIcon } from "./icons";
 import { thingsToDo, nextSteps, type ThingToDo } from "@commons/domain";
 import { useTripTaskIntakes } from "./use-trip-task-intakes";
 import { commonsViewPath, itemDetailPath } from "@/lib/commons-route";
+import { personFacingError } from "@/lib/person-facing-error";
 export type TripTaskContext = {
     people: CommonsParticipant[];
     state: CommonsState;
@@ -102,7 +103,7 @@ export function TripTasks({ slug, actorId, context, onOpenPollResults, onTasksLo
             const response = await fetch(`/api/v1/commons/${slug}/tasks`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(pendingRequest.current.body) });
             const value = await response.json();
             if (!response.ok)
-                throw new Error(value.error);
+                throw new Error(value.error ?? "To-do not saved. Try again.");
             const saved = TripTaskSchema.parse(value.task);
             pendingRequest.current = null;
             try {
@@ -119,7 +120,7 @@ export function TripTasks({ slug, actorId, context, onOpenPollResults, onTasksLo
             }
         }
         catch (cause) {
-            setError(cause instanceof Error ? cause.message : "To-do not saved.");
+            setError(personFacingError(cause, "To-do not saved. Try again."));
         }
         finally {
             setBusy(false);

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { errorTextForResponse } from "./error-response";
 import { ZodError } from "zod";
 import { CommandAccessError, CommandConflictError, GroupInvitationUnavailableError } from "@commons/database";
 import { CommonsAuthenticationRequiredError, CommonsMembershipRequiredError } from "./commons-access-errors";
 export const groupInvitationHeaders = { "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer" };
 export function groupInvitationFailure(error: unknown) {
   const status = error instanceof CommonsAuthenticationRequiredError ? 401 : error instanceof CommandAccessError || error instanceof CommonsMembershipRequiredError ? 403 : error instanceof ZodError ? 400 : error instanceof CommandConflictError || error instanceof GroupInvitationUnavailableError ? 409 : 500;
-  const message = status === 500 ? "Couldn’t confirm this invitation change. Reload before trying again." : status === 400 ? "Check the invitation and try again." : error instanceof Error ? error.message : "Invitation unavailable.";
+  const message = status === 500 ? "Couldn’t confirm this invitation change. Reload before trying again." : status === 400 ? "Check the invitation and try again." : errorTextForResponse(error, "Invitation unavailable.");
   return NextResponse.json({ error: message }, { status, headers: groupInvitationHeaders });
 }
 export async function groupInvitationBody(request: Request) {

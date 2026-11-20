@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import type { CommonsSummary, ItineraryItem, PlacePin, Stay, TravelPlan } from "@commons/contracts";
 import { directionsUrl, distanceKm, distanceLabel, filterTripMapPlaces, isRentalListing, pinSourceLabel, placeLocationNote, stayDistances, tripMapDays, tripMapPlaces, type TripMapFilter, type TripMapPlace } from "../lib/trip-map";
 import { TripMapCanvas, type MarkedPlace } from "./trip-map-canvas";
+import { personFacingError } from "@/lib/person-facing-error";
 
 type Point = { latitude: number; longitude: number };
 const dayLabel = (day: string) => new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`));
@@ -52,7 +53,7 @@ export function TripMapView({ commons, stays, itinerary, transport = [], canEdit
       setPlacing(null);
       setMessage(pin ? `${place.name} is on the map.` : `${place.name} was removed from the map.`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Location not saved. Try again.");
+      setMessage(personFacingError(error, "Location not saved. Try again."));
     } finally {
       setBusy(false);
     }

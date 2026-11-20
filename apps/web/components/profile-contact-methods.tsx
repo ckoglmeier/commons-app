@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { personFacingError } from "@/lib/person-facing-error";
 
 export function ProfileContactMethods({ email, passwordSignIn = false }: { email: string | null; passwordSignIn?: boolean }) {
   const [editing, setEditing] = useState(false);
@@ -32,7 +33,7 @@ export function ProfileContactMethods({ email, passwordSignIn = false }: { email
         ? "Check both your current and new email to confirm the change."
         : "Check your email to confirm this address.");
     } catch (updateError) {
-      setError(updateError instanceof Error ? updateError.message : "Contact method not updated.");
+      setError(personFacingError(updateError, "Contact method not updated. Try again."));
     } finally {
       setPending(false);
     }
