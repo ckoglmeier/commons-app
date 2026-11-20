@@ -41,7 +41,7 @@ export const skiWeekendTemplate: PlanTemplate = {
 
 ### `key` and `version`
 
-`key` is stored on each plan, so never change it once people use it. Use 3 to 48 lowercase letters, numbers or dashes. Bump `version` when a change should only apply to plans created afterward. If a plan's key isn't bundled in your copy, it falls back to the trip template.
+`key` is stored on each plan, so never change it once people use it. Use 3 to 48 lowercase letters, numbers or dashes, starting with a letter. Bump `version` when a change should only apply to plans created afterward. If a plan's key isn't bundled in your copy, it falls back to the trip template.
 
 ### `label` and `description`
 
@@ -83,7 +83,7 @@ Ready-made polls the organizer can start from. A poll with `forQuestion` is the 
 ```
 
 - Question and option ids are UUIDs, unique across the template. Pick a prefix no other template uses.
-- Questions are `kind: "choice"` (with `selectionMode` `"single"` or `"multiple"`) or `kind: "text"`.
+- A poll has 1 to 20 questions. Questions are `kind: "choice"` (with `selectionMode` `"single"` or `"multiple"`) or `kind: "text"`.
 - Leave an option's label empty for the organizer to fill in. Don't invent places, prices or dates.
 
 ### `openQuestions`
@@ -92,7 +92,7 @@ Things the group usually needs to settle beyond where, when and who, such as "Wh
 
 ### `planSections`
 
-Plan has two sections with fixed roles: things the group does together (`activities`) and how people get there and where they sleep (`travel`). A template can rename them and suggest a short outline that shows while the plan is empty. The outline is a hint; it's never saved as plan items.
+Plan has two sections with fixed roles: things the group does together (`activities`) and how people get there and where they sleep (`travel`). A template can rename them and suggest a short outline, up to 10 lines, that shows while the plan is empty. The outline is a hint; it's never saved as plan items.
 
 ```ts
 planSections: {

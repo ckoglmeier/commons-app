@@ -19,7 +19,7 @@ After you deploy, [Self-hosting](self-hosting.md) covers settings, your own doma
 | --- | --- | --- |
 | Vercel Hobby | Non-commercial use only; scheduled jobs run at most once a day | Commons's one daily job fits. Use a paid plan for commercial use. |
 | Supabase Free | Projects pause after about a week with no activity; 500 MB database | Commons's daily job keeps the project awake. See "If Supabase paused your project". |
-| Resend Free | 100 emails a day, 3,000 a month; one sending domain | Resend refuses emails over the limit. Commons's daily job retries failed invitation and poll emails. |
+| Resend Free (optional) | 100 emails a day, 3,000 a month; 3 sending domains | Resend refuses emails over the limit. Commons's daily job retries failed invitation and poll emails. |
 
 These were checked in November 2026. Limits change, so check each provider's pricing page. Sources are in the [README](../README.md#what-it-costs).
 
@@ -73,8 +73,9 @@ Check: the deployment succeeds and the site opens. If the build fails, see "If t
 
 ## Step 5: Become the instance admin
 
-1. Open your site and choose **Sign in**. Enter your email.
-2. With Resend: open the link in the email. Without email: choose **Create account** and pick a password.
+1. Open your site and choose **Start a trip**.
+2. With Resend: enter your email and open the link Commons sends. Without email: enter your email, choose a password and select **Create account**.
+3. Enter your first name.
 
 The first account to sign in becomes the instance admin. By default, only people invited to a trip can create an account. To change that, open **Who can join** from your account menu and choose:
 
@@ -84,13 +85,13 @@ The first account to sign in becomes the instance admin. By default, only people
 
 Travelers you invite never see this choice. They follow their invitation and join.
 
-Check: your account menu shows **Who can join**.
+Check: your account menu (your initials) shows **Who can join**.
 
 ## Step 6: Try it
 
-1. Create a trip.
-2. Invite yourself at a second address, or a friend.
-3. Open the invitation, join, and open **Messages** to see the welcome from Commons.
+1. Create a trip and choose **We're going**.
+2. Open the trip's **Menu** and choose the travelers line (it reads **1 traveler**) to open **People**. With Resend: choose **Add traveler** and invite a second address of your own, or a friend. Without email: choose **Share an invite link**, which copies a link.
+3. Open the invitation or the link in a private browser window, join, turn on messages, and open **Messages** to see the welcome from Commons.
 
 ## Optional: your own domain
 

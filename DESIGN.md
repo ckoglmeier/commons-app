@@ -93,6 +93,8 @@ Working panels (status, forms, notes, confirmations) use one quiet style: a rule
 
 The persistent rail is a dark band (`--cm-shell-rail-*`) so navigation reads apart from the work beside it. Text on it is light and the active row is a lighter wash.
 
+Trip pages (Trip, Plan, Money and Photos) sit on the journal surface: a sage board, `--cm-journal-canvas` (`#DCE3D5`), behind cream paper, `--cm-journal-paper` (`#FFFDF5`), with `--cm-journal-line` for rules and `--cm-journal-secondary` for secondary text. Every other page uses the white canvas and the warm board.
+
 ## 6. Typography
 
 Use **Geist Sans** for everything. Geist Mono is for codes only. Use tabular numerals for times and money.
@@ -143,19 +145,19 @@ One shell holds every trip page. It has one navigation hierarchy.
 - **Desktop (1100px and wider):** a persistent left rail with the Commons mark, the trip identity, the destinations and the personal account control at the foot. Do not repeat the destinations in header tabs or a bottom bar.
 - **Below 1100px:** a compact header with the trip identity and a labeled **Menu** button. Menu opens a bounded native dialog with the same destinations, a mark for the current page, Escape to close and focus restored to the button.
 - **Destinations:** **Trip**, **Plan**, **Money** and **Photos**. The selected one is always marked in text and shape.
-- **Account:** the account control stays personal. Trip settings stay with the trip identity.
+- **Account:** the account control stays personal. Trip settings stay with the trip identity. The person who runs the copy (the instance admin) also finds **Who can join** there.
 - **Trip identity:** cover, trip name, dates and place, the travelers control and settings. Below 1100px the whole identity header is one keyboard-reachable button that opens Trip settings. Organizers see the settings form; travelers see a read-only explanation. Do not add a second details button.
 - **Content width:** pages use the shared page container and document width tokens. Content takes the room it needs; do not add a fourth column or an empty side panel.
 - **Mounted state:** moving between destinations keeps unsent text, open edits, scroll position and focus where it makes sense. Late results belong to the page that asked for them and do not change selection.
 - **Old links:** `section=` links and earlier route names keep working and land on the closest current page.
 
-The Trip, Plan, Money and Photos pages share the same reading style: a warm board behind one white paper, quiet edges, compact headings and rules between rows.
+The Trip, Plan, Money and Photos pages share the same reading style: the journal board behind one paper (see Color), quiet edges, compact headings and rules between rows.
 
 ## 9. Trip
 
 Trip is the home of a trip. It is read as a letter.
 
-**The trip letter.** One white paper on the warm board, in the shared document style. It has a dateline that says when saved content last changed, the trip name, the organizer's welcome, a short ruled list of facts (when, where, staying, first up), a permitted group photo and **Latest**. Every fact comes from saved records. Latest shows only real saved changes and is left out when there are none. On a new trip the organizer sees "Only you can see this page" until someone else has access.
+**The trip letter.** One paper on the journal board, in the shared document style. It has a dateline that says when saved content last changed, the trip name, the organizer's welcome, a short ruled list of facts (when, where, staying, first up), a permitted group photo and **Latest**. Every fact comes from saved records. Latest shows only real saved changes and is left out when there are none. On a new trip the organizer sees "Only you can see this page" until someone else has access.
 
 **Audience.** Travelers see the same letter through a permission-filtered view. They see only their own next steps and no organizer tools. Private notes, codes, source documents and drafts never appear.
 
@@ -216,7 +218,7 @@ A poll asks the group one decision or one piece of feedback. It begins as a read
 - After a poll is shared, replace the editor with a published receipt and a real **Open poll** link. Do not offer Publish again for that command. A failed or uncertain request keeps its retry identity.
 - **Revise poll** warns first. It closes the old poll, keeps its answers as history and starts a new draft with no carried votes.
 - Closing a poll is not deciding. When answers do not settle the question, say so, and offer two next steps: an organizer decision recorded with its reasons, or a revised round. Silence is never counted as agreement.
-- **Help me write this** can draft an introduction, questions and answer choices from a plain description. It uses permitted saved trip facts. Its output is labelled **Commons suggestion · Review before using**. It never publishes, messages anyone or changes the plan. If it is unavailable, manual editing is complete.
+- **Help me write this** can draft an introduction, questions and answer choices from a plain description. It uses permitted saved trip facts. Its output is labelled **Commons suggestion · Review before using**. It never publishes, messages anyone or changes the plan. If it is unavailable, manual editing is complete. On a copy with no AI key the control does not appear at all.
 - A poll can carry a short introduction that bridges earlier decisions to the current ask. A delivery note for a channel is separate and never shown on the poll page.
 
 **Participant.**
@@ -245,7 +247,7 @@ A to-do is a simple action with a title, a named owner and an open or done state
 People opens from the trip identity. It lists the roster with roles and archive controls.
 
 - **Invite your group:** one inline **Share an invite link** action. Selecting it creates and copies a 14-day link; opening People creates nothing. A short sentence says that anyone who gets the link can sign in and join as a traveler, never as an organizer. If copying fails, show a selectable URL and a true error. Joining needs sign-in and grants no attendance, expense or booking authority. A signed-out preview shows only the trip name, inviter and expiry.
-- **Personal invitations:** Traveler is the default role. Organizer is explained before saving and starts only after acceptance with the invited email. **Invite traveler** sends the invitation through the normal delivery path. Organizer invitations are prepared first and sent in a separate step. Show the true state: sent, queued, failed or not sent. Keep the traveler if delivery fails and offer retry. Editing never resends.
+- **Personal invitations:** Traveler is the default role. Organizer is explained before saving and starts only after acceptance with the invited email. **Invite traveler** sends the invitation through the normal delivery path. Organizer invitations are prepared first and sent in a separate step. Show the true state: sent, queued, failed or not sent. Keep the traveler if delivery fails and offer retry. Editing never resends. On a copy with no email set up nothing is sent: the invitation reads **Not sent**, it is not an error, and the organizer copies the person's private link.
 - Managed travelers (people without accounts) cannot be organizers and get no invitation email.
 - Keep protections for the last organizer and for demoting yourself.
 - Attaching an invited person to a plan item shows **Invited · attendance not confirmed**. Attaching never accepts an invitation or records attendance.
@@ -265,7 +267,7 @@ Money records what people spent and who owes whom. Commons calculates and record
 - The form does not ask for a confirmation number. Reservations belong on the meal, lodging or travel record.
 - **Convert to expense** on an activity opens this form with the activity's link, currency and remaining estimate filled in. The person reviews the amount and payer before **Record expense**. Cancel records nothing.
 - Budget-only estimates are not spending. Tracking-only costs do not split balances. Family mode records spending without balances.
-- **Add receipts** opens Money with the receipt form already open.
+- **Receipts** in the Add menu opens the expense form, to enter a cost from a receipt. Receipt files are not stored, and the form says so.
 
 **Budget calculator.** A shared calculator takes known destination, dates and headcount and saves all worksheet inputs to the trip. It feeds the forecast, set against saved planned and recorded costs without double counting. The optional spending target sits inside the calculator. An estimate never creates an expense, split or debt. A blank worksheet means no estimate yet, not an incomplete trip.
 
@@ -307,7 +309,7 @@ Itineraries, polls, the ledger and legal pages share one reading style.
 - Rows separated by rules, not a card for every item. Days are separated by more space than a title and its note.
 - Shared styles are in `packages/ui/src/documents.css`. Padding and page width are in `packages/ui/src/tokens.css`.
 - A read-only document adds no autosave, permission or editor behavior.
-- Legal pages use a narrow reading width, a title, version and effective date, numbered sections and an accessible contents list.
+- Legal pages use a narrow reading width, a title, who runs the copy and an effective date, numbered sections and an accessible contents list.
 - Shared documents never show private organizer material. Build a participant view from an explicit list of fields. Do not render the organizer's version with controls hidden.
 
 ## 18. Motion and accessibility

@@ -6,11 +6,11 @@ This guide covers running your own copy after you've deployed it. To deploy, sta
 
 Every setting is listed, with a comment, in [`.env.example`](../.env.example). On Vercel, the Supabase and Resend integrations fill in most of them. Change a setting in **Settings → Environment Variables** and redeploy.
 
-You must have these: the database connections, the Supabase URL and keys, `NEXT_PUBLIC_SITE_URL` (on Vercel the production address is used when it's empty), `CRON_SECRET`, Everything else is optional, including email: without `RESEND_API_KEY` and `COMMONS_EMAIL_FROM`, people sign in with a password and you share invite links yourself (see [Running without email](#running-without-email)).
+You must have these: the database connections, the Supabase URL and keys, `NEXT_PUBLIC_SITE_URL` (on Vercel the production address is used when it's empty) and `CRON_SECRET`. Everything else is optional, including email: without `RESEND_API_KEY` and `COMMONS_EMAIL_FROM`, people sign in with a password and you share invite links yourself (see [Running without email](#running-without-email)).
 
 ## Who can join
 
-The first account to sign in is the instance admin. Open **Who can join** from your account menu to choose:
+The first account to sign in is the instance admin. Open your account menu (your initials) and choose **Who can join**. It's also on your Profile. Then pick:
 
 - **Invited people only** (default). People join when someone invites them to a trip.
 - **People at these email domains.** Anyone with an email at the domains you list.
@@ -28,21 +28,23 @@ A `vercel.app` address works. To use your own:
 
 Sign-in links and invitations use `NEXT_PUBLIC_SITE_URL`.
 
-### Running without email
+## Running without email
 
 With no Resend settings, Commons sends no email at all:
 
 - People sign in with an email and a password. New people choose **Create account**.
-- Organizers share a trip's invite link (People → copy the private link, or **Share an invite link**). With **Invited people only**, a new account needs that link; an invitation sent to someone's address isn't enough, because nobody has proved they own it.
+- Organizers share links themselves. In a trip's **People**, **Share an invite link** copies one link the whole group can use. For one person, add them, open their row and choose **Copy private link**. Their row reads **Not sent** until they join, because Commons sent nothing.
+- With **Invited people only**, a new account needs one of those links. An invitation sent to someone's address isn't enough, because nobody has proved they own it.
 - Messages with Commons works in the app. People see new messages when they open Commons.
 - Forgotten passwords: the instance admin sets a temporary one under **Who can join → Reset someone's password**, and the person changes it on their Profile.
 - Email domain rules only check what people type, since addresses aren't confirmed.
+- Nobody's address is confirmed, so treat an account's email as a name the person chose. Share links only with people you mean to invite, and keep **Who can join** on invited people only unless you trust everyone who can reach your site.
 
-Add Resend at any time and redeploy. Sign-in switches to emailed links, and accounts made with a password keep working.
+Add Resend at any time and redeploy. Sign-in then switches to emailed links. Accounts made with a password keep working, as long as the email on the account is a real address the person can read.
 
-### Verify your domain in Resend
+## Adding email with Resend
 
-Resend needs a verified domain to email people other than yourself.
+In the Vercel project, add **Resend** from the **Integrations** tab (or create an API key at resend.com and add it as `RESEND_API_KEY`), then verify a domain. Resend needs a verified domain to email people other than yourself.
 
 1. In Resend, open **Domains → Add domain**.
 2. Add the DNS records Resend shows at your domain registrar.
@@ -102,7 +104,7 @@ Then check that `CRON_SECRET` is set and the daily job runs. Source: [Supabase o
 
 The Deploy button copied the repository to your GitHub account. To get new changes:
 
-1. Add the original repository as `upstream`: `git remote add upstream <the original repository URL>`.
+1. Add the original repository as `upstream`: `git remote add upstream https://github.com/ckoglmeier/commons-app.git`.
 2. Run `git fetch upstream` and `git merge upstream/main` on your main branch. Fix any conflicts.
 3. Push. Vercel builds and deploys.
 

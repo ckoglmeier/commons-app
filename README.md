@@ -28,7 +28,7 @@ The Trip home page shows where, when and who, and what still needs an answer. Un
 
 ### Invite people
 
-Invite by email, or share a reusable join link. People join with a link and an email address. They don't download anything. The organizer sees who has joined and who needs attention.
+Share a reusable invite link, or invite people one at a time. With email set up, Commons sends each invitation; without it, you copy the person's private link and send it yourself. People join with a link and an account. They don't download anything. The organizer sees who has joined and who hasn't yet.
 
 ### Polls and open questions
 
@@ -42,7 +42,7 @@ Plan has two sections: Activities, and Travel & stays. A map shows the places yo
 
 ### Messages with Commons
 
-Each traveler gets a private one-to-one thread with Commons in the app. Ask a question, or say "I covered dinner, $120" and Commons drafts the cost. Nothing is saved until you reply with the SAVE code it gives you. Each trip needs the traveler's consent first. STOP and START work, and there are quiet hours. People get one email notice until they read the message.
+Each traveler gets a private one-to-one thread with Commons in the app. Ask a question, or say "I covered dinner, $120" and Commons drafts the cost. Nothing is saved until you reply with the SAVE code it gives you. Each trip needs the traveler's consent first. STOP and START work, and there are quiet hours. If you've set up email, people get one email notice until they read the message.
 
 If you add Twilio, the same thread also works by text. It's optional.
 
@@ -50,13 +50,13 @@ If you add Twilio, the same thread also works by text. It's optional.
 
 ### Money and settling up
 
-Add costs, attach receipts, and choose who shares each one. A budget calculator helps before the trip. At the end, Commons shows who owes whom. Commons doesn't move money. People pay each other outside the app.
+Add costs and choose who shares each one. A budget calculator helps before the trip. At the end, Commons shows who owes whom. Commons doesn't move money. People pay each other outside the app.
 
 ![The Money page](docs/images/money.jpg)
 
 ### Photos and covers
 
-Add photos to the trip. Pick one of 12 bundled drawn covers for the trip home.
+Add photos to the trip. For the trip's cover, pick one of 12 bundled drawings, use a trip photo or upload your own.
 
 ![The Photos page](docs/images/photos.jpg)
 
@@ -73,7 +73,7 @@ Most groups use a group chat, a spreadsheet and a cost-splitting app. They work.
 | Where the plan lives | Scattered across chat, a sheet and an app | One trip, one page per part |
 | What's still open | Scroll back through the chat | "Still open" and "Needs you" on the trip home |
 | Polls | Chat polls that scroll away | Polls tied to the trip, with open questions |
-| Money | A separate app, often with each person signing up | Costs, receipts, budget and settling up inside the trip |
+| Money | A separate app, often with each person signing up | Costs, a budget and settling up inside the trip |
 | Who owns the data | Several companies | You, in your own accounts |
 | What it costs | Varies by app | $0 on free plans, and you host it |
 | Setup | None | You deploy it once |
@@ -98,7 +98,7 @@ On free plans, nothing. Here's what the free plans include.
 | --- | --- | --- | --- |
 | Vercel Hobby | Runs the site | Non-commercial use only. Scheduled jobs run at most once a day. Typical monthly use includes 1,000,000 function invocations and 100 GB of data transfer. | Vercel pauses Hobby projects that exceed included usage. Commons has one daily job, which fits. |
 | Supabase Free | Database, sign-in, photos | 500 MB database, 1 GB file storage, 5 GB egress, 2 active projects. Pauses after a week of low activity. | Commons's daily job keeps the project awake. If it pauses, [restore it](docs/self-hosting.md#if-supabase-paused-your-project). |
-| Resend Free | Sign-in, invitation and notice emails | 100 emails a day, 3,000 a month, 3 domains. You need a verified domain to email other people. | Resend refuses emails over the cap until the quota resets or you upgrade. |
+| Resend Free (optional) | Sign-in, invitation and notice emails | 100 emails a day, 3,000 a month, 3 domains. You need a verified domain to email other people. | Resend refuses emails over the cap until the quota resets or you upgrade. Without Resend, people sign in with a password and you share invite links yourself. |
 | Twilio (optional) | Texting | No free plan. US toll-free number $2.15 a month, about $0.0083 a text segment plus carrier fees of about half a cent. | You only pay if you add it. |
 
 Checked November 2026. Sources: [Vercel cron limits](https://vercel.com/docs/cron-jobs/usage-and-pricing), [Vercel Hobby plan](https://vercel.com/docs/plans/hobby), [Vercel plans](https://vercel.com/docs/plans), [Supabase pricing](https://supabase.com/pricing), [Supabase free project pausing](https://supabase.com/kb/faqs/platform/free-project-pausing), [Resend quotas](https://resend.com/docs/knowledge-base/account-quotas-and-limits), [Resend domains](https://resend.com/docs/dashboard/domains/introduction), [Twilio US SMS pricing](https://www.twilio.com/en-us/sms/pricing/us). Vercel's Hobby terms limit it to non-commercial use: check Vercel's current terms before relying on it. Limits change. Check each provider's page before you rely on a number.
@@ -109,9 +109,9 @@ If you run Commons for a business or charge for it, use a paid Vercel plan.
 
 1. Click **Deploy with Vercel** above, or follow the [deploy guide](docs/deploy-with-an-agent.md).
 2. Add Supabase when asked, and set `CRON_SECRET`.
-3. Sign in. The first account is the instance admin. With no email set up, people sign in with an email and a password, and you share trip invite links yourself.
+3. Open your site and choose **Start a trip**. With no email set up, you create an account with an email and a password. The first account is the instance admin, so do this before you share the address. Until you add email, people sign in with a password and you share trip invite links yourself.
 4. Optional: add **Resend** from the project's **Integrations** tab, set `COMMONS_EMAIL_FROM`, verify your sending domain in Resend, and redeploy. Then Commons emails sign-in links, invitations and new-message notices.
-5. Open **Who can join** from your account menu. Choose invited people only (the default), people at listed email domains, or anyone.
+5. Open your account menu (your initials) and choose **Who can join**. Pick invited people only (the default), people at listed email domains, or anyone.
 6. Optional: add your own domain, OpenAI for poll writing help, PostHog for analytics, or Twilio for texting.
 
 Details, settings, updating your copy and troubleshooting: [Self-hosting](docs/self-hosting.md). All settings are in [.env.example](.env.example).
@@ -131,30 +131,44 @@ You need Node 24 and Postgres.
 ```bash
 npm ci
 cp .env.example .env.local
+createdb commons
 ```
 
-For a quick look with made-up people and no Supabase account, set these in `.env.local`:
+For a quick look with made-up people and no Supabase account, set these in `.env.local`. Leave the three Supabase lines empty:
 
 ```bash
-DATABASE_URL=postgresql://postgres@127.0.0.1:5432/commons
-DATABASE_DIRECT_URL=postgresql://postgres@127.0.0.1:5432/commons
-COMMONS_INVITATION_TOKEN_KEY=   # openssl rand -base64 32
-COMMONS_DEV_SIGN_IN=true
+DATABASE_URL=postgresql://localhost:5432/commons
+DATABASE_DIRECT_URL=postgresql://localhost:5432/commons
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+COMMONS_DEV_SIGN_IN=true
+COMMONS_LOCAL_MOMENTS_DIR=.local/moments
 ```
 
-Then migrate and start:
+If your Postgres needs a user or a password, put them in both addresses, such as `postgresql://postgres:password@localhost:5432/commons`.
+
+Then run these in one terminal, so the settings you loaded stay in effect:
 
 ```bash
-set -a; source .env.local; set +a; npm run db:migrate
+set -a; source .env.local; set +a
+```
+
+```bash
+npm run db:test:bootstrap -w @commons/database
+```
+
+```bash
+npm run db:migrate
 ```
 
 ```bash
 npm run dev
 ```
 
-Open http://localhost:3000 and sign in with any made-up email. The local test sign-in works only with `npm run dev`, on localhost, with the Supabase settings empty. Emails print to the server log instead of sending.
+The second command adds the few pieces of Supabase that a plain Postgres database doesn't have. The tests use the same step.
+
+Open http://localhost:3000 and sign in with any made-up email. The first person you sign in as becomes the instance admin. The local test sign-in works only with `npm run dev`, on localhost, with the Supabase settings empty. Emails print to the server log instead of sending, and photos are kept in a folder on your computer. Saving a trip cover needs Supabase Storage, so that one thing can't be tried locally.
 
 ## Checks
 
@@ -162,7 +176,7 @@ Open http://localhost:3000 and sign in with any made-up email. The local test si
 npm run typecheck && npm run lint && npm test
 ```
 
-Database tests run when `COMMONS_RUN_DATABASE_TESTS=1` and `TEST_DATABASE_URL` points at a disposable local database whose name ends in `_test`.
+Database tests run when `COMMONS_RUN_DATABASE_TESTS=1` and `TEST_DATABASE_URL` points at a disposable local database on `127.0.0.1` whose name ends in `_test`. Prepare that database first with `npm run db:test:bootstrap -w @commons/database` and `npm run db:migrate`, with `DATABASE_DIRECT_URL` set to the same address.
 
 ## License
 

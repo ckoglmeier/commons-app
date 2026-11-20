@@ -11,8 +11,8 @@ Thanks for helping. Commons is a small project, so issues and focused pull reque
 ## Making a change
 
 1. Fork the repository and create a branch.
-2. `npm ci`, then copy `.env.example` to `.env.local`. For local work you can use the local test sign-in described in `docs/self-hosting.md`.
-3. Run `npm run typecheck`, `npm run lint` and `npm test` before you open a pull request. Database tests need a disposable Postgres whose database name ends in `_test`.
+2. Follow "Run it on your computer" in `README.md`. It sets up a local database and the local test sign-in, so you don't need a Supabase account.
+3. Run `npm run typecheck`, `npm run lint` and `npm test` before you open a pull request. Database tests need a disposable Postgres database whose name ends in `_test` (see "Checks" in `README.md`).
 4. Use synthetic people and trips in tests and screenshots. Never commit real names, emails, phone numbers or keys.
 
 ## Licensing and sign-off
