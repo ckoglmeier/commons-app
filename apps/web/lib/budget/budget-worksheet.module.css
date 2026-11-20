@@ -10,7 +10,7 @@
 .field label{font-weight:500;line-height:1.4}
 .hint{margin:0;color:var(--cm-color-text-secondary);font-size:var(--cm-text-utility);line-height:1.45}
 /* In a trip the worksheet sits on the journal canvas, where the usual secondary text falls below 4.5:1. */
-:global(.trip-shell) .hint{color:var(--cm-journal-secondary)}
+:global(.trip-shell) .hint,:global(.trip-shell) .detail,:global(.trip-shell) .note,:global(.trip-shell) .lines [data-status="not-added"] dd{color:var(--cm-journal-secondary)}
 .field input,.field select{font:inherit;font-size:16px;color:var(--cm-color-ink);background:var(--cm-color-paper);border:1px solid var(--cm-color-control-border);border-radius:6px;padding:10px 12px;min-height:48px;width:100%;box-sizing:border-box;font-variant-numeric:tabular-nums}
 .field input[aria-invalid="true"]{border:2px solid var(--cm-color-attention);background:var(--cm-color-attention-surface)}
 .error{margin:0;color:var(--cm-color-attention);font-size:var(--cm-text-utility);font-weight:500;line-height:1.45}

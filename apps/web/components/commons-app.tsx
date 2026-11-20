@@ -596,7 +596,7 @@ function TripArrival({
       </div>
       <div className="trip-arrival__identity">
         <span>Welcome to your trip.</span>
-        <strong id="trip-arrival-title">{commons.name}</strong>
+        <h1 id="trip-arrival-title">{commons.name}</h1>
         <p>{tripMeta}</p>
       </div>
       <footer className="trip-arrival__footer">

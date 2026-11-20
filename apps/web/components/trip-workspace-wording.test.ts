@@ -52,3 +52,22 @@ test("money wrap-up says what is true after the ledger closes and after a recap 
   assert.match(wrapUp, /Save draft hides it from the group until you share it again\./);
   assert.match(wrapUp, /Draft saved\. The group no longer sees the recap until you share it again\./);
 });
+
+test("the arrival screen's trip name is its heading", async () => {
+  const app = await read("./commons-app.tsx");
+  assert.match(app, /<h1 id="trip-arrival-title">\{commons\.name\}<\/h1>/);
+  const css = await read("../app/globals.css");
+  assert.match(css, /\.trip-arrival__identity h1 \{ margin: 0;/);
+  assert.doesNotMatch(css, /\.trip-arrival__identity strong/);
+});
+
+test("Mark complete in Needs you is a 44px target in both layouts of the list", async () => {
+  const css = await read("../app/globals.css");
+  assert.match(css, /\.home-next-steps__list \.text-action, \.trip-letter__needs \.text-action \{ min-height: var\(--cm-touch-target\);/);
+});
+
+test("inside a trip the budget worksheet's quiet text uses the journal's secondary colour", async () => {
+  const css = await read("../lib/budget/budget-worksheet.module.css");
+  for (const part of [".hint", ".detail", ".note"]) assert.ok(css.includes(`:global(.trip-shell) ${part}`), part);
+  assert.match(css, /:global\(\.trip-shell\) \.lines \[data-status="not-added"\] dd\{color:var\(--cm-journal-secondary\)\}/);
+});
