@@ -49,7 +49,7 @@ export function JoinSettingsForm({ initialMode, initialDomains }: { initialMode:
           <input id="signup-domains" value={domains} onChange={event => setDomains(event.target.value)} placeholder="example.com, family.net" autoComplete="off" spellCheck={false} />
         </label>
       ) : null}
-      <button className="cm-action" type="submit" disabled={pending}>{pending ? "Saving…" : "Save"}</button>
+      <button className="cm-action cm-action--primary" type="submit" disabled={pending}>{pending ? "Saving…" : "Save"}</button>
       <small role="status" aria-live="polite">{message}</small>
     </form>
   );

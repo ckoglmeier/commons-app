@@ -38,7 +38,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
-      <body><FeedbackEmailProvider email={instanceSettings().contactEmail}>{children}</FeedbackEmailProvider><ProductAnalytics /><PosthogAnalytics /></body>
+      <body><FeedbackEmailProvider email={instanceSettings().contactEmail}>{children}</FeedbackEmailProvider><ProductAnalytics vercelAnalytics={process.env.VERCEL === "1"} /><PosthogAnalytics /></body>
     </html>
   );
 }

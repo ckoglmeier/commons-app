@@ -1,5 +1,5 @@
 import {
-  consentedMembers, consentedNumber, markMessagesRead, enrolledTripsForNumber, enrollmentStatus, enrollPersonInTrip, getCommonsSnapshot, listCommonsMembershipsForPerson, membershipAttendance, MessagingEnrollmentError,
+  CommonsRepositoryError, consentedMembers, consentedNumber, markMessagesRead, enrolledTripsForNumber, enrollmentStatus, enrollPersonInTrip, getCommonsSnapshot, listCommonsMembershipsForPerson, membershipAttendance, MessagingEnrollmentError,
   organizerSharesSince, personAuth, recordInbound, threadForPhone, touchPhone, webAddressFor, withdrawFromTrip,
 } from "@commons/database";
 import { ORGANIZER_SHARE_MAX_LENGTH, ORGANIZER_SHARES_PER_DAY, sanitizeInbound, WEB_MESSAGES_CONSENT_TEXT, WEB_MESSAGES_CONSENT_WORDING } from "@commons/domain";
@@ -26,7 +26,11 @@ async function viewer() {
 }
 
 async function tripFor(slug: string, options: Awaited<ReturnType<typeof authenticatedConfirmationIntakeOptions>>) {
-  const snapshot = await getCommonsSnapshot(slug, options);
+  // Someone who isn't (or isn't yet) on the trip gets the same not-found as a wrong address.
+  const snapshot = await getCommonsSnapshot(slug, options).catch((error: unknown) => {
+    if (error instanceof CommonsRepositoryError && error.code === "actor_not_found") return null;
+    throw error;
+  });
   if (!snapshot) throw new CommonsMembershipRequiredError();
   return snapshot.commons;
 }

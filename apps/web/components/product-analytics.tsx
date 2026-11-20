@@ -18,7 +18,8 @@ function redactInvitationTokens(event: BeforeSendEvent): BeforeSendEvent | null 
   }
 }
 
-export function ProductAnalytics() {
+/** Vercel Web Analytics and Speed Insights load only on Vercel, and collect only if they are turned on for the project there. */
+export function ProductAnalytics({ vercelAnalytics = false }: { vercelAnalytics?: boolean }) {
   const pathname = usePathname();
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export function ProductAnalytics() {
   }, [pathname]);
 
   // Exclude sensitive authentication routes and local design experiments from analytics.
-  if (pathname && sensitiveAnalyticsPath(pathname)) return null;
+  if (!vercelAnalytics || (pathname && sensitiveAnalyticsPath(pathname))) return null;
 
   return (
     <>
