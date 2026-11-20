@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { LockIcon } from "./icons";
 
 /*
- * What's held for "We're going" (docs/TRIP-STAGES-DIRECTION.md). Visible on purpose, so an organizer can see what comes next.
+ * What's held for "We're going". Visible on purpose, so an organizer can see what comes next.
  * This is presentation, not a permission: nothing saved is hidden for good, and it opens the moment the trip is going.
  */
 

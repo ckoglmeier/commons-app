@@ -1810,7 +1810,7 @@ export const coordinatorThreadOutcomes = pgTable("coordinator_thread_outcomes", 
 ]).enableRLS();
 
 /*
- * Task goals (docs/COORDINATOR-TASK-AGENTS-PLAN.md): the durable unit an organizer sees as a task. Side tables again, so a database where migration 0075 has not
+ * Task goals: the durable unit an organizer sees as a task. Side tables again, so a database where migration 0075 has not
  * been applied keeps working for every existing query. A goal owns one focused conversation (a coordinator thread linked with kind 'task'), a finish line,
  * and ordered typed steps that reuse research runs, polls, reviewed Plan proposals and participant outreach. It adds no queue and no agent loop.
  */
@@ -2105,7 +2105,7 @@ export const tripTasks = pgTable("trip_tasks", {
 }, table => [index("trip_tasks_commons_owner_idx").on(table.commonsId, table.ownerPersonId), uniqueIndex("trip_tasks_brain_finding_unique").on(table.commonsId, table.brainFindingKey).where(sql`${table.brainFindingKey} IS NOT NULL`), check("trip_tasks_item_pair", sql`(${table.itemKind} IS NULL) = (${table.itemId} IS NULL)`)]).enableRLS();
 
 /*
- * Beta completion (docs/BETA-COMPLETION-STATUS.md). Every table below is additive, empty until COMMONS_BETA_REWORK_ENABLED is on, and read only by
+ * Beta completion. Every table below is additive, empty until COMMONS_BETA_REWORK_ENABLED is on, and read only by
  * server code behind that flag. Deleting a trip removes its rows. None of them holds booking details, messages, consent or private notes.
  */
 

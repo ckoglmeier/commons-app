@@ -1,6 +1,6 @@
 // Editable planning starting points captured November 6, 2026.
 // AirDNA public dollar figures use its default USD presentation; currency basis
-// and source limitations are recorded in docs/BUDGET-WORKSHEET-HANDOFF.md.
+// and source limitations are noted in the comments here.
 // Oahu uses AirROI’s explicitly USD trailing-12-month Honolulu ADR.
 // Market averages span rental sizes and room types. They do not establish a
 // price for a property sized to the group. Broad regions use named local markets.

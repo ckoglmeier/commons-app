@@ -3501,7 +3501,7 @@ export function CommonsApp({
   emailInvitations = true,
   instanceAdmin = false,
 }: {
-  /** Master flag for the two trip stages (docs/TRIP-STAGES-DIRECTION.md). Off: navigation and Trip are as before. */
+  /** Master flag for the two trip stages. Off: navigation and Trip are as before. */
   tripStagesOn?: boolean;
   initialSnapshot: CommonsSnapshot;
   dataMode: "database" | "demo";

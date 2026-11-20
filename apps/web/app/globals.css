@@ -779,7 +779,6 @@ section + section { margin-top: 2.4rem; }
 .trip-index-card__copy { min-width: 0; width: 100%; padding: var(--cm-space-4); position: relative; display: block; background: var(--cm-color-photo-caption); }
 .trip-index-card__copy::before { content: ""; position: absolute; inset: auto 0 100%; height: var(--cm-space-6); background: linear-gradient(180deg, transparent, var(--cm-color-photo-caption)); pointer-events: none; }
 .trip-index-phase { margin-bottom: .5rem; display: block; color: var(--cm-color-on-ink-secondary); font-size: var(--cm-text-micro); font-weight: 750; letter-spacing: .09em; text-transform: uppercase; }
-.trip-index-phase--demo { width: fit-content; padding: .28rem .48rem; border-radius: .42rem; background: var(--cm-color-paper); color: var(--cm-color-ink); letter-spacing: .08em; }
 .trip-index-card__copy > strong { display: block; overflow-wrap: anywhere; font-family: var(--cm-font-interface); font-size: var(--cm-text-section); font-weight: 500; line-height: 1.2; letter-spacing: -.025em; }
 .trip-index-card__copy > small { margin-top: var(--cm-space-2); display: block; overflow-wrap: anywhere; color: var(--cm-color-on-ink-secondary); font-size: var(--cm-text-meta); font-weight: 500; line-height: 1.5; }
 .trip-index-people { margin-top: var(--cm-space-2); display: block; color: var(--cm-color-on-ink-secondary); font-size: var(--cm-text-meta); font-weight: 500; }
