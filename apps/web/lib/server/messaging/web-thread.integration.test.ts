@@ -84,6 +84,14 @@ test("the thread and its consent page say what is true", () => {
   assert.doesNotMatch(page, /nothing goes to your phone/);
   assert.match(form, /on \? "Go to the trip" : "Not now, go to the trip"/);
   assert.equal(form.match(/Messages are on for/g)?.length, 1, "the on confirmation is written once");
+  assert.match(form, /: on \? <Link className="entry-footnote-link" href=\{trip\}>Back to the trip<\/Link> : <>Not for you\? Nothing changes\./, "once messages are on, the footer is only the way back");
+  const texts = source("trip/[slug]/enrollment-form.tsx");
+  assert.equal(texts.match(/Texts are on for/g)?.length, 1, "the texts-on confirmation is written once, in the live region");
+  assert.match(texts, /<div aria-live="polite">/);
+  assert.match(texts, /\{turnedOn \? " Commons’s first text arrives soon, or in the morning if it’s quiet hours for the trip\." : null\}/);
+  assert.doesNotMatch(texts, /shortly/, "the first text can wait for quiet hours");
+  assert.match(texts, /: enrolled \? <Link className="entry-footnote-link" href=\{trip\}>Back to the trip<\/Link> : <>Prefer not to text\? Nothing changes\./);
+  assert.doesNotMatch(page, /Prefer not to text/, "the texting footer follows the form's state");
 });
 
 test("the full conversation in Commons: welcome, attendance, a poll, the plan, money, STOP and START, and no SMS", { skip }, async () => {

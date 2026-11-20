@@ -70,8 +70,10 @@ test("organizer entry explains the separate send and does not claim queued deliv
 test("without email set up, adding a traveler reads as normal: a private link to share, not a failure", async () => {
   const base = { commons: pilotSnapshot.commons, currentPersonId: pilotSnapshot.currentActor.id, organizerName: "Synthetic organizer", people: [] as unknown[] };
   const added = (input: { displayName: string; email: string; role: string }) => ({ membershipId: "membership-new", personId: "new-traveler", displayName: input.displayName, email: input.email, role: input.role, membershipStatus: "invited", joinedAt: null, accessMode: "account", managedByPersonIds: null, canClaimAccess: false, removal: { blocked: false, moneyItems: 0, responsibilityItems: 0 }, invitation: { id: "new-invitation", status: "pending", deliveryState: "failed", deliveryErrorCode: "email_not_configured", message: null, sentAt: null, lastAttemptAt: null, expiresAt: null } });
+  const posted: Array<Record<string, unknown>> = [];
   const live = installFakeBrowserEnvironment({ fetch: async (_url, init) => {
     if (init?.method !== "POST") return Response.json({ people: base });
+    posted.push(JSON.parse(String(init.body)));
     return Response.json({ people: { ...base, people: [added(JSON.parse(String(init.body)))] } });
   } });
   const { PeopleSheet } = await import("./people-sheet");
@@ -83,12 +85,15 @@ test("without email set up, adding a traveler reads as normal: a private link to
     (renderer.find(node => node.type === "button" && textOf(node).trim() === "Add traveler").props.onClick as () => void)(); renderer.flush();
     assert.match(text(), /Email isn’t set up on this copy, so Commons won’t send an invitation\. Add them, then copy their private link and send it yourself\. They still need to accept; attendance is separate\./);
     assert.doesNotMatch(text(), /sends their invitation email automatically/);
+    assert.doesNotMatch(text(), /Invitation message/, "the message only travels in an email, so there is no field for it");
+    assert.equal(renderer.findAll(node => node.type === "textarea").length, 0);
     (renderer.find(node => node.type === "input" && node.props.maxLength === 80).props.onChange as (event: unknown) => void)({ target: { value: "Maya Rivera" } });
     (renderer.find(node => node.type === "input" && node.props.type === "email").props.onChange as (event: unknown) => void)({ target: { value: "maya@example.com" } });
     renderer.flush();
     (renderer.find(node => node.type === "form" && node.props.className === "people-form").props.onSubmit as (event: unknown) => void)({ preventDefault() {} });
     await settle(10); renderer.flush();
     assert.match(text(), /Maya Rivera was added\. Copy their private link and send it to them\./);
+    assert.equal(posted[0]?.message, null, "no invitation message is sent without email");
     assert.equal(renderer.findAll(node => node.props.role === "alert").length, 0);
     assert.doesNotMatch(text(), /Email isn’t set up yet|could not be sent|Retry invitation/);
     const counts = renderer.find(node => node.props["aria-label"] === "Traveler status");

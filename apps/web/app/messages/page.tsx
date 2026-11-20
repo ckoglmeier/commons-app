@@ -7,7 +7,7 @@ import { commonsSiteOrigin } from "@/lib/server/runtime-environment";
 import { WebThread } from "./web-thread";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Messages", robots: { index: false, follow: false }, referrer: "no-referrer" as const };
+export const metadata = { title: "Messages — Commons", robots: { index: false, follow: false }, referrer: "no-referrer" as const };
 
 /** A person's own conversation with Commons, across the trips they turned it on for. Nobody else sees it. */
 export default async function MessagesPage() {

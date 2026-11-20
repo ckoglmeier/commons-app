@@ -22,7 +22,7 @@ async function creatorAuthorized(tx: Pick<CommandTransaction, "select">, tripId:
   try { return await check(creator.authUserId, tripId); } catch { return false; }
 }
 export class GroupInvitationUnavailableError extends Error {
-  constructor(message = "This group invitation is no longer available. Ask the organizer for a new link.") { super(message); }
+  constructor(message = "This invite link is no longer available. Ask the organizer for a new one.") { super(message); }
 }
 
 export async function getGroupInvitation(identifier: string, options: Options, now = new Date()) {

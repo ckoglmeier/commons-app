@@ -78,6 +78,13 @@ test("return paths cannot escape invitation context; recipient display is masked
 test("landing is read-only; entry does not load analytics and has non-referring headers", () => {
   const page = readFileSync(new URL("../app/join/[token]/page.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(page, /verifyOtp|setSession|claimAuthenticatedInvitation/);
+  // A cancelled or expired personal invitation: nobody can join here, and the page doesn't name why.
+  assert.match(page, /<strong>This invitation was for \{preview\.recipientName\}\.<\/strong>/);
+  assert.match(page, /<strong>This invitation is no longer available\.<\/strong><p>Ask the organizer for a new one\. If you already joined, your trip is in your trips\.<\/p>/);
+  assert.match(page, /<Link className="sheet-secondary" href="\/trips\/">Open your trips<\/Link>/);
+  const unavailable = page.slice(page.lastIndexOf("  return ("));
+  assert.match(unavailable, /This invitation is no longer available/);
+  assert.doesNotMatch(unavailable, /Invitation \{preview\.status\}|revoked|expired|Joining adds your name/);
   const form = readFileSync(new URL("../app/join/[token]/invitation-entry-form.tsx", import.meta.url), "utf8");
   assert.match(form, /Use a different email/);
   assert.doesNotMatch(form, /name="email"/);

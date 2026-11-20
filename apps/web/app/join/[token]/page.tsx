@@ -136,12 +136,11 @@ export default async function JoinCommonsPage({
         </div>
         <div className="join-person">
           <span>{initials(preview.recipientName)}</span>
-          <p><strong>This invitation is for {preview.recipientName}.</strong><br />Join to see the trip and take part.</p>
+          <p><strong>This invitation was for {preview.recipientName}.</strong></p>
         </div>
-        <div className="entry-preview-note"><strong>Invitation {preview.status}</strong><p>Ask the organizer for a new link.</p></div>
-        <p className="entry-footnote">
-          Joining adds your name and trip activity to the group. Commons does not access your calendar.
-        </p>
+        {/* Nobody can join from here, so this says what is true and where to go, without naming why it stopped working. */}
+        <div className="entry-preview-note"><strong>This invitation is no longer available.</strong><p>Ask the organizer for a new one. If you already joined, your trip is in your trips.</p></div>
+        <Link className="sheet-secondary" href="/trips/">Open your trips</Link>
       </section>
     </main>
   );

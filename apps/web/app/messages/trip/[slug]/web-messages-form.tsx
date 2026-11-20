@@ -24,7 +24,7 @@ export function WebMessagesForm({ slug, tripName, consentText, on: initial, onPh
   // One polite live region that stays mounted whether messages are on or off, so turning them on is announced once and shown once.
   const status = <div aria-live="polite">{message ? <p className={message.tone === "error" ? "form-error" : "entry-footnote"} role={message.tone === "error" ? "alert" : undefined}>{message.text}</p> : on ? <p>Messages are on for {tripName}.</p> : null}</div>;
   const trip = `/c/${slug}/`;
-  const footer = <p className="entry-footnote">{justJoined ? <Link className="entry-footnote-link" href={trip}>{on ? "Go to the trip" : "Not now, go to the trip"}</Link> : <>Not for you? Nothing changes. {" "}<Link className="entry-footnote-link" href={trip}>Back to the trip</Link></>}</p>;
+  const footer = <p className="entry-footnote">{justJoined ? <Link className="entry-footnote-link" href={trip}>{on ? "Go to the trip" : "Not now, go to the trip"}</Link> : on ? <Link className="entry-footnote-link" href={trip}>Back to the trip</Link> : <>Not for you? Nothing changes. {" "}<Link className="entry-footnote-link" href={trip}>Back to the trip</Link></>}</p>;
 
   if (on) return <>
     <div className="review-actions">

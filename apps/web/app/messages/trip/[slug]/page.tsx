@@ -11,7 +11,7 @@ import { EnrollmentForm } from "./enrollment-form";
 import { WebMessagesForm } from "./web-messages-form";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Messages from Commons", robots: { index: false, follow: false }, referrer: "no-referrer" as const };
+export const metadata = { title: "Messages from Commons — Commons", robots: { index: false, follow: false }, referrer: "no-referrer" as const };
 
 /** Optional. The trip works the same on the web whether or not this is turned on. Consent is created here, for one trip, and nowhere else. */
 export default async function TextWithCommonsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ joined?: string; channel?: string }> }) {
@@ -38,8 +38,7 @@ export default async function TextWithCommonsPage({ params, searchParams }: { pa
         </> : <>
           <div className="entry-copy"><span className="view-kicker">{status.tripName}</span><h1 id="text-title">{justJoined ? "You’re in. Want to do this by text?" : "Text with Commons"}</h1>
             <p>Answer a few questions and send in bookings by text, instead of opening the app. Your texts to Commons aren’t posted to the group. You review anything before it is shared.</p></div>
-          <EnrollmentForm slug={slug} tripName={status.tripName} consentText={status.consentText} enrolled={status.enrolled} optedOut={status.optedOut} verifiedPhone={status.verifiedPhone} />
-          <p className="entry-footnote">{justJoined ? <Link className="entry-footnote-link" href={`/c/${slug}/`}>Not now, go to the trip</Link> : <>Prefer not to text? Nothing changes. {" "}<Link className="entry-footnote-link" href={`/c/${slug}/`}>Back to the trip</Link></>}</p>
+          <EnrollmentForm slug={slug} tripName={status.tripName} consentText={status.consentText} enrolled={status.enrolled} optedOut={status.optedOut} verifiedPhone={status.verifiedPhone} justJoined={justJoined} />
         </>}
       </section>
     </main>

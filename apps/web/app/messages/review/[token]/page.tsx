@@ -6,7 +6,7 @@ import { readReview } from "@/lib/server/messaging/web";
 import { ReviewActions } from "./review-actions";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Check a booking", robots: { index: false, follow: false }, referrer: "no-referrer" as const };
+export const metadata = { title: "Check a booking — Commons", robots: { index: false, follow: false }, referrer: "no-referrer" as const };
 
 /*
  * The secure page behind "text us your booking": review what Commons read, add or replace details, then save or discard. The address is not a
