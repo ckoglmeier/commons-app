@@ -1,5 +1,5 @@
 /*
- * Privacy-safe acquisition attribution (docs/plans/2026-10-26-free-beta-analytics-extension.md item 5).
+ * Privacy-safe acquisition attribution.
  * Campaign slugs, referral hostname, source category and a normalized landing route only.
  * No search terms, full referrer URLs, arbitrary query parameters or fingerprinting. Device is a coarse class from
  * the viewport width. Nothing is stored or attached when Do Not Track, Global Privacy Control or the Commons

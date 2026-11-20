@@ -1,5 +1,5 @@
 /*
- * Traveler messaging policy (Beta Rework BR-04). Pure and channel-neutral: no database, no provider, no clock except the one passed in.
+ * Traveler messaging policy. Pure and channel-neutral: no database, no provider, no clock except the one passed in.
  * Everything a reply can do is decided here from already-authorized inputs, then executed by the web service against the existing repositories.
  */
 

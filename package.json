@@ -25,10 +25,7 @@
     "test:ci:core": "npm run test -w @commons/database -w @commons/domain",
     "db:check": "npm run db:check -w @commons/database",
     "db:generate": "npm run db:generate -w @commons/database",
-    "db:migrate": "npm run db:migrate -w @commons/database",
-    "db:seed:pilot": "npm run db:seed:pilot -w @commons/database",
-    "db:provision:demo-user": "npm run db:provision:demo-user -w @commons/database",
-    "db:provision:emails": "npm run db:provision:emails -w @commons/database"
+    "db:migrate": "npm run db:migrate -w @commons/database"
   },
   "devDependencies": {
     "@eslint/js": "9.39.4",

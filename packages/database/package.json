@@ -19,9 +19,6 @@
     "db:migration:rehearse": "tsx src/migration-rehearsal.ts",
     "db:schema:audit": "tsx src/schema-audit.ts",
     "db:test:bootstrap": "tsx src/test-database-bootstrap.ts",
-    "db:seed:pilot": "tsx src/seed-pilot.ts",
-    "db:provision:demo-user": "tsx src/provision-demo-user.ts",
-    "db:provision:emails": "tsx src/provision-participant-emails.ts",
     "db:recovery:rehearse": "tsx src/recovery-rehearsal.ts"
   },
   "dependencies": {

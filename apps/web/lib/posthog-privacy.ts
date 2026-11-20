@@ -2,7 +2,7 @@ export { analyticsRoute } from './analytics-route';
 import { safeAcquisitionProperties } from './analytics-attribution';
 
 const events = new Set(['$pageview', 'event_creation_access_requested', 'account_identified', 'event_creation_viewed', 'event_description_submitted', 'event_setup_reviewed', 'event_creation_committed', 'trip_created', 'trip_tab_viewed', 'poll_published',
-  // Free beta: poll drafting help, participant-to-organizer entry and held-back links (counts and codes only).
+  // Poll drafting help, participant-to-organizer entry and held-back links (counts and codes only).
   'poll_draft_started', 'poll_assist_requested', 'poll_assist_applied', 'poll_assist_failed', 'participant_trip_start_clicked', 'held_feature_link_opened']);
 export function safeProductEvent(name: string, properties: Record<string, unknown> = {}) {
   if (!events.has(name)) return null;

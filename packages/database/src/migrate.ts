@@ -15,7 +15,7 @@ if (!directUrl) {
   throw new Error("DATABASE_DIRECT_URL or DATABASE_URL is required to run migrations.");
 }
 
-const client = postgres(directUrl, { max: 1, prepare: false, connect_timeout: 10 });
+const client = postgres(directUrl, { max: 1, prepare: false, connect_timeout: 10, onnotice: () => {} });
 
 try {
   const state = await runDatabaseMigrations(client, "./migrations");

@@ -1,5 +1,5 @@
 /*
- * Sanitized uncaught-server-error report for instrumentation.ts (docs/plans/2026-10-26-free-beta-analytics-extension.md).
+ * Sanitized uncaught-server-error report for instrumentation.ts.
  * Carries the route file pattern, route type, method, a closed error category, the React digest and the release.
  * Never the message, stack, request path or query, headers, trip text, tokens or model content.
  */

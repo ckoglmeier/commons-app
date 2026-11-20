@@ -12,7 +12,6 @@ export const ProductAnalyticsEventNameSchema = z.enum([
   "feedback_opened",
   "feedback_submitted",
   "sign_in_started",
-  "beta_access_started",
   "trip_create_started",
   "trip_created",
   "event_creation_viewed",
@@ -53,7 +52,7 @@ export const ProductAnalyticsEventNameSchema = z.enum([
   "group_message_sent",
   "concierge_import_opened",
   "concierge_import_email_clicked",
-  // Free beta (docs/plans/2026-10-26-free-beta-builder-handoff.md). Activation funnel facts that need deduplication
+  // Poll drafting and trip-entry events. Activation funnel facts that need deduplication
   // (first shared artifact, meaningful participant action, organizer return, repeats) are derived from saved records in
   // the daily report, not from these client events.
   "poll_draft_started",

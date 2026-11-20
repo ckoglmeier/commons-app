@@ -65,7 +65,7 @@ import {
     saveCommonsSetupTravelers,
     blockCommonsMemberRemoval,
 } from "@commons/database";
-import { CommonsPeopleSchema, InvitationDeliveryActionSchema, InvitationLinkSchema, SendSetupInvitationsResultSchema, type CommonsMembershipSummary, type CommonsSnapshot } from "@commons/contracts";
+import { CommonsPeopleSchema, formatTripDateRange, InvitationDeliveryActionSchema, InvitationLinkSchema, SendSetupInvitationsResultSchema, type CommonsMembershipSummary, type CommonsSnapshot } from "@commons/contracts";
 import type { PendingCommonsInvitationSummary } from "@commons/database";
 import { pilotSnapshot } from "@/lib/pilot-fixture";
 import {
@@ -614,7 +614,7 @@ function invitationDates(startsOn: string | null, endsOn: string | null) {
   });
   if (startsOn && !endsOn) return `Starts ${format.format(new Date(`${startsOn}T12:00:00Z`))}`;
   if (!startsOn && endsOn) return `Ends ${format.format(new Date(`${endsOn}T12:00:00Z`))}`;
-  return `${format.format(new Date(`${startsOn}T12:00:00Z`))}–${format.format(new Date(`${endsOn}T12:00:00Z`))}`;
+  return formatTripDateRange(startsOn!, endsOn!);
 }
 
 export async function loadAuthenticatedCommonsPeople(slug: string) {

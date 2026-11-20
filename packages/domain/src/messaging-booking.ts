@@ -1,5 +1,5 @@
 /*
- * Booking intake by message (Beta Rework BR-05). Pure: classification, uncertainty and the review text. Message content is untrusted data. Nothing in
+ * Booking intake by message. Pure: classification, uncertainty and the review text. Message content is untrusted data. Nothing in
  * it is ever read as an instruction; the only things taken from it are the supported booking fields, validated against ConfirmationDraftSchema.
  */
 import type { ConfirmationDraft, Stay, TravelPlan } from "@commons/contracts";

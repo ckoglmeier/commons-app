@@ -14,7 +14,7 @@ import {
 } from "./schema";
 
 /*
- * Beta completion repository (docs/BETA-COMPLETION-STATUS.md). Authorization is decided here from the saved membership, never from the caller's claim.
+ * Beta completion repository. Authorization is decided here from the saved membership, never from the caller's claim.
  */
 
 type Options = { databaseUrl?: string };

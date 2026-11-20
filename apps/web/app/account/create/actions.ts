@@ -67,7 +67,7 @@ export async function completeAccount(
 
   // Successful account setup is distinct from a later sign-in. Stable account key deduplicates retries.
   const requestHeaders = await headers();
-  if (completingSetup) recordOutcome({ event: "account_setup_completed", key: data.user.id, request: new Request("https://www.commons.travel/account/create", { headers: requestHeaders }) });
+  if (completingSetup) recordOutcome({ event: "account_setup_completed", key: data.user.id, request: new Request("https://commons.invalid/account/create", { headers: requestHeaders }) });
   const next = safeAuthNext(parsed.data.next);
   // Optional, and only once texts can actually be sent. The invitation or destination carries through it.
   if (completingSetup && textMessagingAvailable()) redirect(`/account/phone?next=${encodeURIComponent(next)}`);
