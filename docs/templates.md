@@ -1,8 +1,8 @@
-# Writing a template
+# Templates
 
-Commons coordinates group plans that have real dates, places and shared money: where everyone is going, when, who's in, what the plan is and who owes whom. A **template** decides what a new plan starts with. Trips are the first and best-supported template. A family reunion ships as a second example.
+Commons coordinates group plans with real dates, places and shared money. A **template** decides what a new plan starts with. Trips are the default template. A family reunion ships as an example.
 
-Templates change the starting questions, polls, plan section names, to-dos and money hints. They don't change how Commons works, and the interface still calls every plan a trip.
+A template sets the starting questions, polls, plan section names, to-dos and money hints. It doesn't change how Commons works. The app still calls every plan a trip.
 
 ## Where templates live
 
@@ -41,7 +41,7 @@ export const skiWeekendTemplate: PlanTemplate = {
 
 ### `key` and `version`
 
-`key` is stored on each plan, so never change it once people use it. Use 3 to 48 lowercase letters, numbers or dashes. Bump `version` when a change should only apply to plans created afterward. Plans whose key isn't bundled in a copy fall back to the trip template.
+`key` is stored on each plan, so never change it once people use it. Use 3 to 48 lowercase letters, numbers or dashes. Bump `version` when a change should only apply to plans created afterward. If a plan's key isn't bundled in your copy, it falls back to the trip template.
 
 ### `label` and `description`
 
@@ -49,7 +49,7 @@ What the organizer sees when choosing a template on **New trip**. Keep the label
 
 ### `welcomeQuestions`
 
-Every plan settles three questions before it's on: where, when and who. Their ids and order are fixed; a template words them.
+Every plan settles three questions before it's on: where, when and who. Their ids and order are fixed. A template words them.
 
 ```ts
 welcomeQuestions: [
@@ -61,7 +61,7 @@ welcomeQuestions: [
 
 ### `defaultPolls`
 
-Ready-made polls the organizer can start from. A poll with `forQuestion` is the one **Ask your group** opens for that welcome question, so give each of where, when and who one poll. Other polls open from `/c/<trip>/polls/new?template=<poll id>`; there's no button for them yet.
+Ready-made polls the organizer can start from. A poll with `forQuestion` is the one **Ask your group** opens for that welcome question, so give each of where, when and who one poll. Other polls open from `/c/<trip>/polls/new?template=<poll id>`; no button opens them yet.
 
 ```ts
 {
@@ -114,7 +114,7 @@ How each kind of cost is usually split:
 - `per_person`: each person pays their own, like travel to get there.
 - `optional`: only the people who opt in, like an outing.
 
-Money shows these as a guide, and the budget worksheet starts with the optional ones listed as optional extras. They don't change how any cost is recorded; whoever adds a cost still picks who shares it.
+Money shows these as a guide. The budget worksheet lists the optional ones as optional extras. They don't change how a cost is recorded. Whoever adds a cost still picks who shares it.
 
 ## Checking your template
 
@@ -123,6 +123,6 @@ Money shows these as a guide, and the budget worksheet starts with the optional 
 
 ## Keep in mind
 
-- Templates set a starting point. Everything they add can be changed by the organizer.
+- A template sets a starting point. The organizer can change everything it adds.
 - Write the way people talk to each other, in short plain sentences.
-- Don't add a template for something Commons doesn't support yet, such as ticketing or payments.
+- Don't write a template for something Commons doesn't do, such as ticketing or payments.

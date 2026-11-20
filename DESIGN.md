@@ -28,7 +28,7 @@ Commons is a web app for groups who plan something together. The production app 
 
 ## 1. Templates
 
-Plans start from templates. A template sets the starting questions, polls, plan section names, to-dos and money hints for a new plan. Templates live in `packages/domain/src/plan-templates`. The guide is `docs/writing-a-template.md`.
+Plans start from templates. A template sets the starting questions, polls, plan section names, to-dos and money hints for a new plan. Templates live in `packages/domain/src/plan-templates`. The guide is `docs/templates.md`.
 
 Trips are the first template. The interface always says "trip", whatever the template. A template changes what a plan starts with. It does not change how Commons works, so a template never adds new permissions, screens or actions.
 

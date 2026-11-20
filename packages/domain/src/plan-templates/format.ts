@@ -3,7 +3,7 @@ import type { PollQuestion } from "@commons/contracts";
 /*
  * Plan templates: how Commons is extended to new kinds of group plans. The engine coordinates group plans with real
  * dates, places and shared money; a template decides what a new plan starts with. Trips are the first template, and the
- * interface still calls every plan a trip. See docs/writing-a-template.md.
+ * interface still calls every plan a trip. See docs/templates.md.
  */
 
 /** The three questions every plan settles before it's on. Their ids are fixed; a template words them. */

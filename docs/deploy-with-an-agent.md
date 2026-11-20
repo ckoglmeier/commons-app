@@ -2,11 +2,13 @@
 
 This guide is written so you can hand it to an AI assistant (ChatGPT, Claude or another) and work through it together. Each step says what to do, where, and how to check it worked. It reaches the same result as the Deploy button in the README: your own copy of Commons on your own Vercel account, on free plans.
 
-You stay in control the whole way. The assistant should explain each step and wait for you; it should never ask for your passwords. You will paste a few values between dashboards yourself.
+You stay in control. The assistant explains each step and waits for you. It never asks for your passwords. You paste a few values between dashboards yourself.
+
+After you deploy, [Self-hosting](self-hosting.md) covers settings, your own domain, updates, backups and troubleshooting.
 
 ## What you'll end up with
 
-- A Commons site at a `vercel.app` address (or your own domain).
+- A Commons site at a `vercel.app` address, or your own domain.
 - A Supabase project holding the database, sign-in and private photos.
 - Resend sending sign-in links, invitations and new-message notices.
 - You as the instance admin: the first account to sign in.
@@ -17,9 +19,9 @@ You stay in control the whole way. The assistant should explain each step and wa
 | --- | --- | --- |
 | Vercel Hobby | Non-commercial use only; scheduled jobs run at most once a day | Commons's one daily job fits. Use a paid plan for commercial use. |
 | Supabase Free | Projects pause after about a week with no activity; 500 MB database | Commons's daily job keeps the project awake. See "If Supabase paused your project". |
-| Resend Free | 100 emails a day, 3,000 a month; one sending domain | Emails over the limit fail and are retried by the daily job. |
+| Resend Free | 100 emails a day, 3,000 a month; one sending domain | Resend refuses emails over the limit. Commons's daily job retries failed invitation and poll emails. |
 
-Check each provider's pricing page before relying on these numbers; they change.
+These were checked in November 2026. Limits change, so check each provider's pricing page. Sources are in the [README](../README.md#what-it-costs).
 
 ## Before you start
 
@@ -35,7 +37,7 @@ You need:
 1. Open the README's **Deploy** button, or go to `https://vercel.com/new` and import your copy of the Commons repository.
 2. Set **Root Directory** to `apps/web`. The Deploy button does this for you.
 3. When Vercel asks for environment variables, add `CRON_SECRET`. Make a value with `openssl rand -base64 32` in a terminal, or any password generator set to 40 or more characters.
-4. Don't deploy yet if Vercel lets you skip; otherwise the first build may fail until Step 2 is done. That's expected.
+4. If Vercel lets you skip the first deploy, skip it. If not, the first build may fail until Step 2 is done. That's expected.
 
 Check: the project appears in your Vercel dashboard.
 
@@ -48,7 +50,7 @@ The integration adds the database and Supabase settings. Commons reads the integ
 
 Check: **Settings → Environment Variables** lists `POSTGRES_URL` and `NEXT_PUBLIC_SUPABASE_URL`.
 
-If you'd rather create the Supabase project yourself at supabase.com, copy these into Vercel instead: the pooled connection string as `DATABASE_URL`, the direct connection string as `DATABASE_DIRECT_URL`, the project URL as `NEXT_PUBLIC_SUPABASE_URL`, the publishable (anon) key as `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and the secret (service role) key as `SUPABASE_SERVICE_ROLE_KEY`.
+To create the Supabase project yourself at supabase.com instead, copy these into Vercel: the pooled connection string as `DATABASE_URL`, the direct connection string as `DATABASE_DIRECT_URL`, the project URL as `NEXT_PUBLIC_SUPABASE_URL`, the publishable (anon) key as `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and the secret (service role) key as `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## Step 3: Add Resend
 
@@ -108,6 +110,8 @@ Each one stays off and hidden until its settings exist. Add them in Vercel and r
 - **Emails don't arrive:** check Resend's **Logs**. An unverified domain only delivers to your own address.
 
 ## If Supabase paused your project
+
+See also [Self-hosting](self-hosting.md#if-supabase-paused-your-project).
 
 Free Supabase projects pause after about a week without activity. Commons's daily job makes one small database request to prevent that, but a project can still pause if the job stopped running (for example, if `CRON_SECRET` is missing).
 
