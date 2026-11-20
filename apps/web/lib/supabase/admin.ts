@@ -1,12 +1,13 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
-import { getSupabaseAuthConfig } from "./config";
+import { getSupabaseAuthConfig, isSupabaseAuthConfigured } from "./config";
 import { readCommonsRuntimeEnvironment } from "@/lib/server/runtime-environment";
 import { safeAuthNext } from "@/lib/auth-flow";
 
+/** The secret key is only usable with the project it belongs to, so a key without the Supabase URL and publishable key counts as not set up. */
 export function isSupabaseAdminConfigured() {
-  return Boolean(readCommonsRuntimeEnvironment().SUPABASE_SERVICE_ROLE_KEY);
+  return isSupabaseAuthConfigured() && Boolean(readCommonsRuntimeEnvironment().SUPABASE_SERVICE_ROLE_KEY);
 }
 
 function createSupabaseAdminClient(requiredFor: string) {

@@ -45,6 +45,32 @@ test("local demo mode permits an intentionally absent database and auth provider
   assert.equal(commonsSiteOrigin("http://localhost:3000/path", environment), "http://localhost:3000");
 });
 
+test("a setting left blank counts as not set, as an env file copied from .env.example leaves several", () => {
+  const environment = {
+    NODE_ENV: "development",
+    DATABASE_URL: "postgresql://postgres@127.0.0.1:5432/commons",
+    NEXT_PUBLIC_SUPABASE_URL: "",
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "",
+    SUPABASE_SERVICE_ROLE_KEY: "  ",
+    CRON_SECRET: "",
+    COMMONS_INVITATION_TOKEN_KEY: "",
+    COMMONS_EMAIL_SEND_MODE: "",
+    RESEND_API_KEY: "",
+    COMMONS_EMAIL_FROM: "",
+  } satisfies NodeJS.ProcessEnv;
+  const parsed = readCommonsRuntimeEnvironment(environment);
+  assert.equal(parsed.DATABASE_URL, "postgresql://postgres@127.0.0.1:5432/commons");
+  for (const name of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SERVICE_ROLE_KEY", "CRON_SECRET", "COMMONS_INVITATION_TOKEN_KEY", "COMMONS_EMAIL_SEND_MODE"] as const) {
+    assert.equal(parsed[name], undefined, `${name} is blank, so it is unset`);
+  }
+  // A blank secret is still a missing secret: the daily job stays closed.
+  assert.deepEqual(authorizeCommonsCronRequest(new Request("http://localhost:3000/api/internal/daily/"), environment), { authorized: false, status: 503, error: "CRON_SECRET is not configured." });
+  // A real problem is still reported.
+  assert.throws(() => readCommonsRuntimeEnvironment({ ...environment, NEXT_PUBLIC_SUPABASE_URL: "not a url" }), /Invalid Commons server configuration/);
+  // On Vercel a blank required setting is still a missing one.
+  assert.throws(() => readCommonsRuntimeEnvironment({ ...productionEnvironment, CRON_SECRET: " " }), /CRON_SECRET is required on Vercel/);
+});
+
 test("site origins are canonicalized from validated configuration", () => {
   assert.equal(commonsSiteOrigin(undefined, productionEnvironment), "https://www.commons.travel");
 });

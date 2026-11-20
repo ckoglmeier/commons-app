@@ -80,12 +80,17 @@ const RuntimeEnvironmentSchema = z.object({
 
 export type CommonsRuntimeEnvironment = z.infer<typeof RuntimeEnvironmentSchema>;
 
+function withoutBlankSettings(environment: NodeJS.ProcessEnv) {
+  return Object.fromEntries(Object.entries(environment).filter(([, value]) => typeof value !== "string" || value.trim() !== ""));
+}
+
 export function readCommonsRuntimeEnvironment(
   environment: NodeJS.ProcessEnv = process.env,
 ): CommonsRuntimeEnvironment {
   // Marketplace integration names (POSTGRES_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, ...) fill Commons's names when those are empty.
   if (environment === process.env) applyEnvironmentAliases(process.env as Record<string, string | undefined>);
-  const result = RuntimeEnvironmentSchema.safeParse(environment);
+  // A setting left blank (`CRON_SECRET=` in an env file, as .env.example ships) is the same as not setting it.
+  const result = RuntimeEnvironmentSchema.safeParse(withoutBlankSettings(environment));
   // With an OpenAI key and no model chosen, writing help uses the "auto" model choice.
   if (result.success) return { ...result.data, COMMONS_POLL_MODEL: result.data.COMMONS_POLL_MODEL ?? (result.data.OPENAI_API_KEY ? "auto" : undefined) };
   const details = result.error.issues.map((issue) => issue.message).join(" ");
