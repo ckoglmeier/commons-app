@@ -73,6 +73,19 @@ test("messages are worded for their channel where they are written, not rewritte
   assert.deepEqual(direct, []);
 });
 
+test("the thread and its consent page say what is true", () => {
+  const source = (path: string) => readFileSync(new URL(`../../../app/messages/${path}`, import.meta.url), "utf8");
+  const thread = source("web-thread.tsx"), page = source("trip/[slug]/page.tsx"), form = source("trip/[slug]/web-messages-form.tsx");
+  assert.match(thread, /thread\.waitingForMorning \? <p className="entry-footnote" role="status">Commons has a message for you\. It’s quiet hours for that trip, so it arrives in the morning\.<\/p>/);
+  assert.match(thread, /Nothing yet\. Commons will write when there’s something to ask\./);
+  assert.match(thread, /messageParts\(body, siteOrigin\)/, "Commons's links are split by the same-origin helper");
+  assert.match(thread, /hydrated \? time\(message\.at\) : null/, "times are written only after hydration");
+  assert.match(page, /Nothing is texted to you, and nothing you send is posted to the group\.\{emailNotice \? " When something new is waiting, Commons sends you one short email until you’ve read it\. You can turn that off in your profile\." : null\}/);
+  assert.doesNotMatch(page, /nothing goes to your phone/);
+  assert.match(form, /on \? "Go to the trip" : "Not now, go to the trip"/);
+  assert.equal(form.match(/Messages are on for/g)?.length, 1, "the on confirmation is written once");
+});
+
 test("the full conversation in Commons: welcome, attendance, a poll, the plan, money, STOP and START, and no SMS", { skip }, async () => {
   const w = await setup();
   try {
@@ -132,6 +145,24 @@ test("a thread is private to its person", { skip }, async () => {
     await send("hello");
     actAs(w.ids.maya);
     assert.ok(!(await read()).body?.messages.some((message: { body: string }) => message.body === "hello"));
+  } finally { await teardown(w); }
+});
+
+test("a welcome held for quiet hours shows as waiting, never as sent, and is listed in the morning", { skip }, async () => {
+  const w = await setup();
+  try {
+    actAs(w.ids.maya);
+    assert.equal((await read()).body?.waitingForMorning, false, "nothing is on yet, so nothing waits");
+    w.clock.set("2026-11-05T07:00:00Z"); // 23:00 in Los Angeles
+    assert.equal((await turnOn(w)).status, 200);
+    const night = await read();
+    assert.equal(night.body?.waitingForMorning, true);
+    assert.equal(night.body?.messages.filter((message: { from: string }) => message.from === "commons").length, 0, "the held welcome isn't listed");
+    assert.ok(!JSON.stringify(night.body).includes("this is Commons"), "the held message's words aren't in the thread");
+    w.clock.set("2026-11-05T17:00:00Z"); // 09:00 in Los Angeles
+    const morning = await read();
+    assert.match(latest(morning), /^Hi Maya, this is Commons/);
+    assert.equal(morning.body?.waitingForMorning, false);
   } finally { await teardown(w); }
 });
 

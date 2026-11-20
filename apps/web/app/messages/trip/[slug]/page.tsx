@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CommonsWordmark } from "@commons/ui";
+import { emailDeliveryAvailable } from "@/lib/email/resend";
 import { EntryForm } from "@/app/sign-in/entry-form";
 import { CommonsAuthenticationRequiredError, CommonsMembershipRequiredError } from "@/lib/server/commons-access-errors";
 import { readEnrollment } from "@/lib/server/messaging/web";
@@ -38,7 +39,7 @@ export default async function TextWithCommonsPage({ params, searchParams }: { pa
           <div className="entry-copy"><span className="view-kicker">{status.tripName}</span><h1 id="text-title">{justJoined ? "You’re in. Want to do this by text?" : "Text with Commons"}</h1>
             <p>Answer a few questions and send in bookings by text, instead of opening the app. Your texts to Commons aren’t posted to the group. You review anything before it is shared.</p></div>
           <EnrollmentForm slug={slug} tripName={status.tripName} consentText={status.consentText} enrolled={status.enrolled} optedOut={status.optedOut} verifiedPhone={status.verifiedPhone} />
-          <p className="entry-footnote">{justJoined ? <Link href={`/c/${slug}/`}>Not now, go to the trip</Link> : <>Prefer not to text? Nothing changes. {" "}<Link href={`/c/${slug}/`}>Back to the trip</Link></>}</p>
+          <p className="entry-footnote">{justJoined ? <Link className="entry-footnote-link" href={`/c/${slug}/`}>Not now, go to the trip</Link> : <>Prefer not to text? Nothing changes. {" "}<Link className="entry-footnote-link" href={`/c/${slug}/`}>Back to the trip</Link></>}</p>
         </>}
       </section>
     </main>
@@ -53,6 +54,8 @@ async function WebMessagesPage({ slug, justJoined }: { slug: string; justJoined:
     if (!(error instanceof CommonsMembershipRequiredError)) throw error;
   }
   if (justJoined && status?.on) redirect(`/c/${slug}/`);
+  // When this copy can send email, a new message brings one short notice by email, so the intro says so.
+  const emailNotice = emailDeliveryAvailable();
   return (
     <main className="entry-shell" data-analytics-exclude="true">
       <section className="entry-card" aria-labelledby="messages-trip-title">
@@ -62,9 +65,8 @@ async function WebMessagesPage({ slug, justJoined }: { slug: string; justJoined:
           <Link className="sheet-secondary" href="/trips/">Open your trips</Link>
         </> : <>
           <div className="entry-copy"><span className="view-kicker">{status.tripName}</span><h1 id="messages-trip-title">{justJoined ? "You’re in. Want Commons to keep you posted?" : "Messages from Commons"}</h1>
-            <p>Commons asks one thing at a time, like whether you’re coming or which dinner works, and answers questions about the saved plan. It’s a private conversation in Commons: nothing goes to your phone, and nothing you send is posted to the group.</p></div>
-          <WebMessagesForm slug={slug} tripName={status.tripName} consentText={status.consentText} on={status.on} onPhone={status.onPhone} />
-          <p className="entry-footnote">{justJoined ? <Link href={`/c/${slug}/`}>Not now, go to the trip</Link> : <>Not for you? Nothing changes. {" "}<Link href={`/c/${slug}/`}>Back to the trip</Link></>}</p>
+            <p>Commons asks one thing at a time, like whether you’re coming or which dinner works, and answers questions about the saved plan. It’s a private conversation here in Commons. Nothing is texted to you, and nothing you send is posted to the group.{emailNotice ? " When something new is waiting, Commons sends you one short email until you’ve read it. You can turn that off in your profile." : null}</p></div>
+          <WebMessagesForm slug={slug} tripName={status.tripName} consentText={status.consentText} on={status.on} onPhone={status.onPhone} justJoined={justJoined} />
         </>}
       </section>
     </main>

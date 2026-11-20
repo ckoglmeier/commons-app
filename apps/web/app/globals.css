@@ -879,12 +879,13 @@ section + section { margin-top: 2.4rem; }
 .entry-preview-note p { margin: .25rem 0 .55rem; color: var(--cm-color-mineral); font-size: var(--cm-text-meta); line-height: 1.45; }
 .entry-preview-note a { min-height: var(--cm-touch-target); display: inline-flex; align-items: center; color: var(--cm-color-green); font-size: var(--cm-text-meta); font-weight: 750; }
 .entry-footnote { margin: 1rem 0 0; color: var(--cm-color-mineral); font-size: var(--cm-text-micro); line-height: 1.5; }
+.entry-footnote-link { min-height: var(--cm-touch-target); display: inline-flex; align-items: center; color: var(--cm-color-green); font-size: var(--cm-text-utility); text-decoration: underline; text-underline-offset: .16rem; }
 .welcome-shell, .profile-shell { min-height: 100dvh; padding: max(1rem, env(safe-area-inset-top)) var(--cm-gutter-mobile) max(3rem, env(safe-area-inset-bottom)); background: var(--cm-color-sand); }
 .welcome-shell > header, .profile-shell > header { min-height: var(--cm-touch-target); display: flex; align-items: center; justify-content: space-between; }
 .welcome-shell > header a, .profile-shell > header a { min-height: var(--cm-touch-target); display: inline-flex; align-items: center; gap: .55rem; color: var(--cm-color-ink); font-size: var(--cm-text-meta); font-weight: 750; text-decoration: none; }
-.welcome-shell > header a > span, .profile-shell > header a:first-child > span { width: 2rem; height: 2rem; display: grid; place-items: center; border-radius: .7rem; background: var(--cm-color-ink); color: var(--cm-color-paper); }
 /* A short header link (Done) still gets a full 44px target; the wordmark link is already wider. */
 .profile-shell > header a { min-width: var(--cm-touch-target); justify-content: center; }
+.welcome-shell > header a > span, .profile-shell > header a:first-child > span { width: 2rem; height: 2rem; display: grid; place-items: center; border-radius: .7rem; background: var(--cm-color-ink); color: var(--cm-color-paper); }
 .welcome-shell > header svg, .profile-shell > header svg { width: .75rem; }
 .welcome-hero, .profile-heading, .profile-contact, .profile-notifications, .profile-origin, .traveler-preferences { width: min(100%, 42rem); margin-right: auto; margin-left: auto; }
 .welcome-hero, .profile-heading { padding: clamp(3.5rem, 14vh, 8rem) 0 2.4rem; }
@@ -2589,6 +2590,9 @@ section + section { margin-top: 2.4rem; }
 .message-thread-author { font-weight: 600; }
 .message-thread-composer { display: grid; gap: .5rem; }
 .message-thread-composer textarea { width: 100%; height: auto; min-height: 5rem; padding: .75rem .85rem; font-size: 16px; line-height: 1.5; resize: vertical; }
+.message-thread-on { font-size: var(--cm-text-utility); }
+.message-thread-on a { min-height: var(--cm-touch-target); display: inline-flex; align-items: center; color: var(--cm-color-green); text-decoration: underline; text-underline-offset: .16rem; }
+.message-thread-link { color: var(--cm-color-green); text-decoration: underline; text-underline-offset: .16rem; overflow-wrap: anywhere; }
 
 /* The free stage: the big questions are the whole Trip page. */
 .big-questions-page { width: min(100%, 44rem); margin-inline: auto; }

@@ -1,5 +1,5 @@
 /*
- * What Commons says by text. The speaker is Commons, not a persona. Short, warm, one useful question at a time (COPY.md): sentence case, contractions,
+ * What Commons says by text. The speaker is Commons, not a persona. Short, warm, one useful question at a time (DESIGN.md §3): sentence case, contractions,
  * no exclamation marks, no emoji, dates and times as numerals. Every message that asks for something names its trip.
  */
 import { tripLabel, type RoutableTrip } from "./messaging";
@@ -19,8 +19,9 @@ function dates(startsOn: string | null, endsOn: string | null) {
 type Say = (strings: TemplateStringsArray, ...values: unknown[]) => string;
 
 function copyWith(say: Say) { return {
+  // The dates are left out when the question already says them ("Are you in for Feb 12 to Feb 15?").
   welcome: (input: { firstName: string; tripName: string; startsOn: string | null; endsOn: string | null; question: string }) =>
-    say`Commons: Hi ${input.firstName}, this is Commons, an automated assistant for ${input.tripName}${input.startsOn ? ` (${dates(input.startsOn, input.endsOn)})` : ""}. Save this number as Commons. ${input.question.charAt(0).toUpperCase()}${input.question.slice(1)} Reply STOP to opt out, HELP for help.`,
+    say`Commons: Hi ${input.firstName}, this is Commons, an automated assistant for ${input.tripName}${input.startsOn && !input.question.includes(dates(input.startsOn, input.endsOn)) ? ` (${dates(input.startsOn, input.endsOn)})` : ""}. Save this number as Commons. ${input.question.charAt(0).toUpperCase()}${input.question.slice(1)} Reply STOP to opt out, HELP for help.`,
   attendance: (tripName: string, startsOn: string | null, endsOn: string | null) =>
     say`${tripName}: are you in${startsOn ? ` for ${dates(startsOn, endsOn)}` : ""}? Reply YES, NO or MAYBE.`,
   attendanceSaved: (tripName: string, value: "attending" | "maybe") =>
@@ -52,7 +53,10 @@ function copyWith(say: Say) { return {
   noMembership: (tripName: string) => say`${tripName}: I can't act on this trip for you anymore. Open Commons on the web to check your access.`,
   unknownSender: (signInUrl: string) => say`Commons: I don't recognize this number yet. Sign in at ${signInUrl} and turn on Text with Commons for your trip. Reply STOP to opt out.`,
   notEnrolled: (url: string) => say`Commons: texts aren't turned on for any of your trips yet. Open a trip at ${url} and choose Text with Commons. Reply STOP to opt out.`,
-  help: (supportEmail: string) => say`Commons: I'm an automated assistant for the trips you've joined by text. Ask about the saved plan, or text me a booking. Reply STOP to opt out. Help: ${supportEmail}`,
+  // With no contact email configured, callers pass a phrase ("the trip organizer") instead of an address.
+  help: (supportEmail: string) => supportEmail.includes("@")
+    ? say`Commons: I'm an automated assistant for the trips you've joined by text. Ask about the saved plan, or text me a booking. Reply STOP to opt out. Help: ${supportEmail}`
+    : say`Commons: I'm an automated assistant for the trips you've joined by text. Ask about the saved plan, or text me a booking. Reply STOP to opt out. For help, ask your trip organizer.`,
   startBack: (count: number, url: string) => count > 0
     ? say`Commons: you're back on. I'll text about ${count === 1 ? "your trip" : `your ${count} trips`} again. Reply STOP to opt out.`
     : say`Commons: you're back on. To get texts about a trip, open it at ${url} and choose Text with Commons.`,
@@ -77,7 +81,7 @@ function copyWith(say: Say) { return {
     const unsure = input.uncertain.length ? `\nCheck: ${input.uncertain.slice(0, 3).join(" ")}` : "";
     return say`${head}\n${input.lines.join("\n")}\n${input.sharing}${unsure}\nReply SAVE ${input.code} to save, or DISCARD to drop it. Edit first: ${input.reviewUrl}`;
   },
-  reviewStaleCode: (tripName: string, code: string) => say`${tripName}: that code is for an older version of the summary. The current code is ${code}. Reply SAVE ${code} if the latest summary is right.`,
+  reviewStaleCode: (tripName: string, code: string) => say`${tripName}: that code doesn't match the latest summary. The current code is ${code}. Reply SAVE ${code} if the latest summary is right.`,
   reviewSaved: (tripName: string, what: "saved" | "updated" | "removed") =>
     what === "removed" ? say`Done. I removed that booking from ${tripName}.` : say`Done. ${what === "updated" ? "I updated" : "I saved"} your booking for ${tripName}. You can edit it on the Travel page.`,
   reviewDiscarded: (tripName: string) => say`Okay. I discarded those booking details for ${tripName}. Nothing was saved.`,
@@ -147,3 +151,27 @@ export const messagingCopy = copyWith(plain);
  */
 export const webMessagingCopy: MessagingCopy = copyWith(web);
 export type MessagingCopy = ReturnType<typeof copyWith>;
+
+export type MessagePart = { text: string; href?: string };
+/**
+ * A message from Commons as text and links, for the web thread. Only http(s) links to this site's own origin become links; any other URL, and
+ * everything when the origin is unknown, stays text. Punctuation that ends a sentence is never part of a link.
+ */
+export function messageParts(body: string, siteOrigin: string | null | undefined): MessagePart[] {
+  let origin: string | null = null;
+  try { origin = siteOrigin ? new URL(siteOrigin).origin : null; } catch { origin = null; }
+  if (!origin) return [{ text: body }];
+  const parts: MessagePart[] = [];
+  let last = 0;
+  for (const match of body.matchAll(/https?:\/\/[^\s<>"]+/g)) {
+    const url = match[0].replace(/[.,)!?]+$/, ""), start = match.index!;
+    let same = false;
+    try { same = new URL(url).origin === origin; } catch { same = false; }
+    if (!same) continue;
+    if (start > last) parts.push({ text: body.slice(last, start) });
+    parts.push({ text: url, href: url });
+    last = start + url.length;
+  }
+  if (last < body.length || !parts.length) parts.push({ text: body.slice(last) });
+  return parts;
+}

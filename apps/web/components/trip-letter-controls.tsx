@@ -76,7 +76,7 @@ export function TripLetterShareUpdate({ slug, canText, canWrite = false, text, r
       const response = await fetch(`/api/v1/commons/${encodeURIComponent(slug)}/messaging/web`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ share: { id: shareId.current, body } }) });
       const value = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(value.error?.message ?? "Not sent. Try again.");
-      setStatus(value.recipients ? `Sent to ${value.recipients === 1 ? "1 traveler" : `${value.recipients} travelers`} with messages on. Commons holds it until morning during quiet hours.` : "Nobody has messages on for this trip yet, so nothing was sent.");
+      setStatus(value.recipients ? `On its way to ${value.recipients === 1 ? "1 traveler" : `${value.recipients} travelers`} with messages on. If it’s quiet hours for the trip, Commons holds it until morning.` : "Nobody has messages on for this trip yet, so nothing was sent.");
       setOwn(""); shareId.current = null;
     } catch (cause) { setStatus(cause instanceof Error ? cause.message : "Not sent. Try again."); }
     finally { setSending(false); }
@@ -92,7 +92,7 @@ export function TripLetterShareUpdate({ slug, canText, canWrite = false, text, r
       const value = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof value.error === "string" ? value.error : value.error?.message ?? "Not queued. Try again.");
       setStatus(canWrite
-        ? value.queued ? `Sent to ${value.queued === 1 ? "1 traveler" : `${value.queued} travelers`} with messages on. Commons holds it until morning during quiet hours.` : "Nobody new to send to. Only travelers with messages on get these."
+        ? value.queued ? `On its way to ${value.queued === 1 ? "1 traveler" : `${value.queued} travelers`} with messages on. If it’s quiet hours for the trip, Commons holds it until morning.` : "Nobody new to send to. Only travelers with messages on get these."
         : value.queued ? `Queued for ${value.queued}. Queued isn’t delivered. Commons sends these outside quiet hours.` : "Nobody new to text. Only people who opted in get these.");
     } catch (cause) { setStatus(cause instanceof Error ? cause.message : "Not queued. Try again."); }
     finally { setSending(false); }

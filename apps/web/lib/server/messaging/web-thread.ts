@@ -48,9 +48,12 @@ export async function readWebThread() {
   // What Commons has said appears once it goes out, as it would on a phone: something held for quiet hours or pacing isn't shown early.
   // Opening the thread counts as reading it: the next new message may bring one email notice again (notices.ts).
   await markMessagesRead(options.actorPersonId, deps.now(), deps.databaseUrl).catch(() => undefined);
-  const messages = (await threadForPhone(address, 200, dbOptions(deps))).filter(message => message.direction === "inbound" || ["sent", "delivered"].includes(message.status));
+  const thread = await threadForPhone(address, 200, dbOptions(deps));
+  const messages = thread.filter(message => message.direction === "inbound" || ["sent", "delivered"].includes(message.status));
   return {
     optedOut: state.optedOut,
+    // Only that something is held for quiet hours, never its words or when it goes out: the thread says it's waiting, not sent.
+    waitingForMorning: thread.some(message => message.direction === "outbound" && message.status === "queued" && message.statusDetail === "quiet_hours"),
     trips: memberships.map(item => ({ id: item.commons.id, name: item.commons.name, on: state.trips.some(trip => trip.id === item.commons.id) })),
     // In the order the person saw them: a message held overnight sits where it went out, not where it was written.
     messages: messages.map(message => ({ id: message.id, from: message.direction === "inbound" ? "you" as const : "commons" as const, body: message.body, at: (message.direction === "outbound" ? message.sentAt ?? message.createdAt : message.createdAt).toISOString() }))

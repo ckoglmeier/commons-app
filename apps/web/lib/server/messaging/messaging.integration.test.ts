@@ -213,7 +213,7 @@ test("opt-out suppresses everything across trips, web access stays, and START re
     const granted = (await w.q(db => db.select().from(messagingConsents))).filter(row => row.personId === w.ids.maya && row.status === "granted");
     assert.deepEqual(new Set(granted.map(row => row.commonsId)), new Set([w.ids.sonoma]));
     assert.ok(granted.every(row => row.method === "sms_reply"));
-    assert.equal(w.provider.outbox.filter(item => /Sonoma Weekend \(/.test(item.body) && /this is Commons/.test(item.body)).length, 1, "the welcome is not resent");
+    assert.equal(w.provider.outbox.filter(item => /this is Commons, an automated assistant for Sonoma Weekend\b/.test(item.body)).length, 1, "the welcome is not resent");
   } finally { await w.cleanup(); }
 });
 

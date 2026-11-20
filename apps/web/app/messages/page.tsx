@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { CommonsWordmark } from "@commons/ui";
 import { CommonsAuthenticationRequiredError, CommonsMembershipRequiredError } from "@/lib/server/commons-access-errors";
 import { readWebThread } from "@/lib/server/messaging/web-thread";
+import { commonsSiteOrigin } from "@/lib/server/runtime-environment";
 import { WebThread } from "./web-thread";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,9 @@ export default async function MessagesPage() {
     if (error instanceof CommonsMembershipRequiredError) notFound();
     throw error;
   }
+  // Only Commons's links to this site become links. Without a configured origin every message stays plain text.
+  let siteOrigin: string | null = null;
+  try { siteOrigin = commonsSiteOrigin(); } catch { siteOrigin = null; }
   return (
     <main className="entry-shell" data-analytics-exclude="true">
       <section className="entry-card message-thread-card" aria-labelledby="messages-title">
@@ -25,7 +29,7 @@ export default async function MessagesPage() {
           <h1 id="messages-title">Messages</h1>
           <p>Your conversation with Commons, an automated assistant. Answer its questions, ask about the saved plan, or tell it what you paid. Only you see this, and nothing is saved until you approve it.</p>
         </div>
-        <WebThread initial={thread} />
+        <WebThread initial={thread} siteOrigin={siteOrigin} />
         <Link className="sheet-secondary" href="/trips/">Your trips</Link>
       </section>
     </main>
