@@ -8,8 +8,11 @@ import {
   loadCurrentCommonsMemberships,
   loadCurrentPendingInvitations,
 } from "@/lib/server/commons";
+import { currentPersonIsInstanceAdmin } from "@/lib/server/instance-access";
+import { currentSignInMethod } from "@/lib/server/sign-in-method";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Your trips — Commons" };
 
 export default async function TripsPage() {
   const identity = await getCurrentCommonsIdentity();
@@ -29,6 +32,8 @@ export default async function TripsPage() {
     throw error;
   }
   const accountInitials = await getCurrentAccountInitials(identity);
+  const instanceAdmin = await currentPersonIsInstanceAdmin().catch(() => false);
+  const passwordSignIn = (await currentSignInMethod()) === "password";
   const joinedCommonsIds = new Set(memberships.map((membership) => membership.commons.id));
 
   return (
@@ -39,6 +44,8 @@ export default async function TripsPage() {
       accountInitials={accountInitials}
       signedIn={Boolean(identity)}
       organizesTrips={memberships.some((membership) => membership.role === "organizer")}
+      passwordSignIn={passwordSignIn}
+      instanceAdmin={instanceAdmin}
     />
   );
 }

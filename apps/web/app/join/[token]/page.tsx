@@ -13,10 +13,10 @@ import { commonsWorkspacePath } from "@/lib/commons-route";
 import { InvitationEntryForm } from "./invitation-entry-form";
 import { EntryForm } from "@/app/sign-in/entry-form";
 import { currentSignInMethod } from "@/lib/server/sign-in-method";
-import { DemoInviteRedeemForm, JoinAction } from "./join-action";
+import { JoinAction } from "./join-action";
 
 export const dynamic = "force-dynamic";
-export const metadata = { robots: { index: false, follow: false }, referrer: "no-referrer" as const };
+export const metadata = { title: "Trip invitation — Commons", robots: { index: false, follow: false }, referrer: "no-referrer" as const };
 
 function displayDates(startsOn: string | null, endsOn: string | null) {
   if (!startsOn && !endsOn) return "Dates to be decided";
@@ -68,24 +68,11 @@ export default async function JoinCommonsPage({
   const query = await searchParams;
   const requestedPoll = query.poll;
   const pollPublicId = requestedPoll && /^[0-9a-f]{12}$/.test(requestedPoll) ? requestedPoll : undefined;
-  const demo = token.startsWith("demo-invitation-");
-  const preview = demo
-    ? {
-        commonsName: "Cape Cod Couples Week",
-        startsOn: "2027-07-18",
-        endsOn: "2027-07-25",
-        locationName: "Falmouth, Massachusetts",
-        coverImageUrl: "/moments/cape-beach.jpg",
-        inviterName: "Jordan",
-        recipientName: "Maya",
-        status: "pending" as const,
-        managedTraveler: false,
-      }
-    : await loadInvitationPreview(token);
+  const preview = await loadInvitationPreview(token);
   if (!preview) notFound();
   const identity = await getCurrentCommonsIdentity();
   const dbUrl = commonsDatabaseUrl();
-  const entryContext = !demo && dbUrl ? await getInvitationEntryContext(token, dbUrl) : null;
+  const entryContext = dbUrl ? await getInvitationEntryContext(token, dbUrl) : null;
   if (entryContext && identity && entryContext.acceptedAuthUserId === identity.authUserId) {
     redirect(pollPublicId ? `/c/poll/${pollPublicId}` : commonsWorkspacePath(entryContext.commonsId));
   }
@@ -116,14 +103,11 @@ export default async function JoinCommonsPage({
         </section>
         <footer className="invite-arrival__footer">
           {identity && sameAccount && preview.status === "pending" ? <>
-            <div>{preview.managedTraveler ? <p>Accept to manage your own profile and take part directly. Your trip history stays with you, and your organizer’s access to your private profile ends.</p> : null}<span>Welcome, {welcomeName}</span><strong>{pollPublicId ? "Join to help shape this event." : "Your place in the trip is ready."}</strong>{pollPublicId ? <p>Joining gives you event access. It does not confirm you’re attending.</p> : null}</div>
+            <div>{preview.managedTraveler ? <p>Accept to manage your own profile and take part directly. Your trip history stays with you, and your organizer’s access to your private profile ends.</p> : null}<span>Welcome, {welcomeName}</span><strong>{pollPublicId ? "Join to help shape this trip." : "Your place in the trip is ready."}</strong>{pollPublicId ? <p>Joining gives you trip access. It does not confirm you’re attending.</p> : null}</div>
             <div className="invite-arrival__actions">
-              <JoinAction token={token} signedIn demo={demo} label={preview.managedTraveler ? "Accept invitation" : pollPublicId ? "Help shape this trip" : "View the trip"} pollPublicId={pollPublicId} textMessagingOffered className="invite-arrival__primary" />
+              <JoinAction token={token} signedIn label={preview.managedTraveler ? "Accept invitation" : pollPublicId ? "Help shape this trip" : "View the trip"} pollPublicId={pollPublicId} textMessagingOffered className="invite-arrival__primary" />
             </div>
-          </> : demo ? <div className="invite-arrival__redeem">
-            <div><span>This invitation is for {preview.recipientName}</span><strong>Redeem it to enter the trip.</strong></div>
-            <DemoInviteRedeemForm />
-          </div> : <div className="invite-arrival__redeem">
+          </> : <div className="invite-arrival__redeem">
             <div><span>{preview.status === "accepted" ? "Welcome back" : `Invited: ${preview.recipientName}`}</span><strong>{emailLabel}</strong>
               {query.entry && !freshEntry ? <p>The sign-in link expired or was already used. Your invitation is still here.</p> : null}
             </div>
@@ -131,7 +115,7 @@ export default async function JoinCommonsPage({
               currentAccountId={identity?.authUserId} currentEmail={identity ? identity.email ?? identity.displayName ?? "your current account" : undefined} next={next} enabled={isSignInConfigured()} />
               : <EntryForm next={next} intent="invited" />}
             {identity && preview.status === "pending" && !preview.managedTraveler ? <div className="invite-arrival__actions">
-              <JoinAction token={token} signedIn demo={false} label={`Join as ${identity.email ?? identity.displayName ?? "your current account"}`} pollPublicId={pollPublicId} textMessagingOffered className="invite-arrival__secondary" />
+              <JoinAction token={token} signedIn label={`Join as ${identity.email ?? identity.displayName ?? "your current account"}`} pollPublicId={pollPublicId} textMessagingOffered className="invite-arrival__secondary" />
             </div> : null}
           </div>}
         </footer>
@@ -146,8 +130,8 @@ export default async function JoinCommonsPage({
           <CommonsWordmark />
         </Link>
         <div className="join-invitation">
-          <span className="view-kicker">{demo ? `[DEMO] Invited by ${preview.inviterName}` : `Invited by ${preview.inviterName}`}</span>
-          <h1>{demo ? `[DEMO] ${preview.commonsName}` : preview.commonsName}</h1>
+          <span className="view-kicker">Invited by {preview.inviterName}</span>
+          <h1>{preview.commonsName}</h1>
           <p>{displayDates(preview.startsOn, preview.endsOn)}{preview.locationName ? ` · ${preview.locationName}` : ""}</p>
         </div>
         <div className="join-person">

@@ -37,7 +37,6 @@ function formatTripDates(startsOn: string | null, endsOn: string | null) {
 }
 
 function tripPhase(trip: CommonsMembershipSummary) {
-  if (trip.commons.slug === "cape-cod-couples-week") return "[DEMO]";
   if (trip.commons.setupCompletedAt === null) return "Private draft";
   if (trip.commons.status === "active") return "Happening now";
   if (trip.commons.status === "closing" || trip.commons.status === "archived") {
@@ -73,10 +72,10 @@ function TripCard({ trip, priority = false, showRole = true, openLabel = "Open" 
     ? commonsSetupPath(trip.commons.id)
     : commonsWorkspacePath(trip.commons.id);
   return (
-    <Link className="trip-index-card" href={href} data-analytics-event={trip.commons.slug === "cape-cod-couples-week" ? "demo_opened" : "trip_opened"} data-analytics-commons={trip.commons.slug} data-analytics-detail="trip_card">
+    <Link className="trip-index-card" href={href} data-analytics-event="trip_opened" data-analytics-commons={trip.commons.slug} data-analytics-detail="trip_card">
       <TripArtwork trip={trip} priority={priority} />
       <span className="trip-index-card__copy">
-        <span className={`trip-index-phase${trip.commons.slug === "cape-cod-couples-week" ? " trip-index-phase--demo" : ""}`}>{tripPhase(trip)}</span>
+        <span className="trip-index-phase">{tripPhase(trip)}</span>
         <strong>{trip.commons.name}</strong>
         <small>
           {formatTripDates(trip.commons.startsOn, trip.commons.endsOn)}
@@ -100,6 +99,8 @@ export function TripsIndex({
   signedIn,
   publicPage = false,
   organizesTrips = true,
+  passwordSignIn = false,
+  instanceAdmin = false,
 }: {
   memberships: CommonsMembershipSummary[];
   pendingInvitations?: PendingCommonsInvitationSummary[];
@@ -109,23 +110,26 @@ export function TripsIndex({
   publicPage?: boolean;
   /** False for a signed-in person who is not an organizer of any trip: offers a quiet path to their own trip. */
   organizesTrips?: boolean;
+  /** True when this copy signs people in with a password: no invitation email exists. */
+  passwordSignIn?: boolean;
+  /** True for the signed-in instance admin: adds Who can join to the account menu. */
+  instanceAdmin?: boolean;
 }) {
   if (publicPage || !signedIn) {
     return (
       <main className="trips-shell public-trips-shell">
         <header className="global-nav global-nav--index">
-          <Link className="brand-lockup homepage-brand" href="/" aria-label="Commons homepage" aria-describedby="homepage-beta-status">
+          <Link className="brand-lockup homepage-brand" href="/" aria-label="Commons homepage">
             <CommonsWordmark />
-            <span className="homepage-brand__beta" id="homepage-beta-status">Beta</span>
           </Link>
           <div className="workspace-actions public-header-actions">
             {signedIn ? (
               <>
-                <AccountMenu initials={accountInitials} canSignOut={canSignOut} />
+                <AccountMenu initials={accountInitials} canSignOut={canSignOut} instanceAdmin={instanceAdmin} />
               </>
             ) : (
               <>
-                <Link href="/sign-in?next=%2Ftrips&intent=invited" data-analytics-event="sign_in_started" data-analytics-detail="header">Sign in</Link>
+                <Link href="/sign-in?next=%2Ftrips" data-analytics-event="sign_in_started" data-analytics-detail="header">Sign in</Link>
               </>
             )}
           </div>
@@ -140,7 +144,7 @@ export function TripsIndex({
           {!signedIn ? (
             <div className="homepage-invitation">
               <Link className="homepage-primary" href="/sign-in?next=%2Fnew&intent=create" data-analytics-event="event_creation_viewed" data-analytics-detail="homepage_start_trip">Start a trip</Link>
-              <p>Free to start. Begin with a title; add dates, places and people when you’re ready.</p>
+              <p>Begin with a name. Add dates, places and people when you’re ready.</p>
             </div>
           ) : (
             <div className="homepage-invitation">
@@ -148,10 +152,12 @@ export function TripsIndex({
               {signedIn ? null : <p>Use the email your invitation was sent to.</p>}
             </div>
           )}
-          <section className="homepage-beta" aria-label={signedIn ? "Start a trip" : "Invited to a trip"}>
+          <section className="homepage-secondary" aria-label={signedIn ? "Start a trip" : "Invited to a trip"}>
             {signedIn
               ? <p>Planning a trip? <Link href="/new" data-analytics-event="event_creation_viewed" data-analytics-detail="homepage_beta">Start a trip</Link></p>
-              : <p>Invited to a trip? <Link href="/sign-in?next=%2Ftrips&intent=invited" data-analytics-event="sign_in_started" data-analytics-detail="invited_router">Sign in to your trip</Link> with the email your invitation was sent to.</p>}
+              : passwordSignIn
+                ? <p>Invited to a trip? Open the invite link your organizer sent you. Already joined? <Link href="/sign-in?next=%2Ftrips" data-analytics-event="sign_in_started" data-analytics-detail="invited_router">Sign in</Link>.</p>
+                : <p>Invited to a trip? <Link href="/sign-in?next=%2Ftrips&intent=invited" data-analytics-event="sign_in_started" data-analytics-detail="invited_router">Sign in to your trip</Link> with the email your invitation was sent to.</p>}
           </section>
           <p className="homepage-support"><Link href="/support">Support and your data</Link></p>
         </div>
@@ -173,7 +179,7 @@ export function TripsIndex({
         </Link>
         <div className="workspace-actions trips-header__actions">
           {!creationIsPrimary ? <Link className="new-trip-link" href="/new"><PlusIcon /> New trip</Link> : null}
-          <AccountMenu initials={accountInitials} canSignOut={canSignOut} />
+          <AccountMenu initials={accountInitials} canSignOut={canSignOut} instanceAdmin={instanceAdmin} />
         </div>
       </header>
 
@@ -211,7 +217,7 @@ export function TripsIndex({
                     <h3>{invitation.commons.name}</h3>
                     <p>{formatTripDates(invitation.commons.startsOn, invitation.commons.endsOn)}{invitation.commons.locationName ? ` · ${invitation.commons.locationName}` : ""}</p>
                   </div>
-                  <JoinAction token={invitation.token} signedIn demo={false} label="Accept invitation" className="trip-invitation-accept" />
+                  <JoinAction token={invitation.token} signedIn label="Accept invitation" className="trip-invitation-accept" />
                 </article>
               ))}
             </div>

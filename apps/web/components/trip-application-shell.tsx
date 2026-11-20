@@ -16,6 +16,8 @@ export type ShellAccount = {
   /** "Organizer" | "Traveler" */
   roleLabel: string;
   signInHref: string;
+  /** True for the signed-in instance admin: the account menu adds Who can join. */
+  instanceAdmin?: boolean;
 };
 
 const DESKTOP_QUERY = "(min-width: 1100px)";
@@ -98,7 +100,7 @@ export function TripApplicationShell({ tripStage = null, commonsId, view, naviga
           {newTrip}
           {yourTrips}
           {account.signedIn
-            ? <AccountMenu variant="rail" showTrips={false} initials={account.actorInitials} label={account.actorName} roleLabel={account.roleLabel} canSignOut />
+            ? <AccountMenu variant="rail" showTrips={false} initials={account.actorInitials} label={account.actorName} roleLabel={account.roleLabel} canSignOut instanceAdmin={account.instanceAdmin} />
             : <Link className="trip-shell__sign-in" href={account.signInHref}>Sign in</Link>}
         </div>
       </aside>
@@ -117,7 +119,7 @@ export function TripApplicationShell({ tripStage = null, commonsId, view, naviga
         <section className="trip-shell__menu-account" aria-label="Account">
           <h3>{account.signedIn ? account.actorName : "Account"}{account.signedIn ? <small>{account.roleLabel}</small> : null}</h3>
           {account.signedIn
-            ? <AccountMenu inline showTrips={false} initials={account.actorInitials} label={account.actorName} canSignOut />
+            ? <AccountMenu inline showTrips={false} initials={account.actorInitials} label={account.actorName} canSignOut instanceAdmin={account.instanceAdmin} />
             : <nav aria-label="Account navigation"><Link href={account.signInHref}>Sign in</Link></nav>}
         </section>
       </dialog>

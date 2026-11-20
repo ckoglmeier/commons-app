@@ -11,12 +11,13 @@ import {
   loadAuthenticatedEventDraft,
   loadRecentEventsForCreation,
 } from "@/lib/server/event-creation";
+import { currentPersonIsInstanceAdmin } from "@/lib/server/instance-access";
 import { EventCreationFlow } from "./event-creation-flow";
 import { DEFAULT_PLAN_TEMPLATE_KEY, knownPlanTemplateKey } from "@commons/domain";
 import { parseTripEntryContext, tripEntryPath } from "@/lib/trip-entry/context";
 
 export const dynamic = "force-dynamic";
-export const metadata = { robots: { index: false, follow: false } };
+export const metadata = { title: "New trip — Commons", robots: { index: false, follow: false } };
 
 export default async function NewEventPage({
   searchParams,
@@ -36,6 +37,7 @@ export default async function NewEventPage({
     : [[], null];
   const entryContext = parseTripEntryContext(query);
   const initials = await getCurrentAccountInitials(identity);
+  const instanceAdmin = identity ? await currentPersonIsInstanceAdmin().catch(() => false) : false;
 
   return (
     <main className="creation-shell event-creation-shell">
@@ -45,7 +47,7 @@ export default async function NewEventPage({
         </Link>
         <div className="event-creation-nav">
           {identity ? <Link href="/trips">Your trips</Link> : <Link href={`/sign-in?${new URLSearchParams({ next: tripEntryPath(entryContext, draftId) })}`}>Sign in</Link>}
-          <AccountMenu initials={initials} canSignOut={getCommonsDataMode() === "database" && Boolean(identity)} />
+          <AccountMenu initials={initials} canSignOut={getCommonsDataMode() === "database" && Boolean(identity)} instanceAdmin={instanceAdmin} />
         </div>
       </header>
       <div className="event-creation-content">

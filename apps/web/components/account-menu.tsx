@@ -1,12 +1,10 @@
 "use client";
 
-import { CommonsMark } from "@commons/ui";
 import Link from "next/link";
-import { commonsPath, PUBLIC_DEMO_COMMONS_ID } from "@/lib/commons-route";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { feedbackHref, useFeedbackEmail } from "./feedback-sheet";
-import { LogInIcon, LogOutIcon, MessageIcon, PlusIcon, RouteIcon } from "./icons";
+import { LogInIcon, LogOutIcon, MessageIcon, PlusIcon, RouteIcon, UsersIcon } from "./icons";
 
 export function AccountMenu({
   initials,
@@ -16,16 +14,19 @@ export function AccountMenu({
   showTrips = true,
   variant = "avatar",
   roleLabel,
+  instanceAdmin = false,
 }: {
   initials: string;
   label?: string;
   canSignOut: boolean;
   inline?: boolean;
-  /** Off where the page already shows "Your trips" (the trip rail and Menu). */
+  /** Off where the page already shows "Start a new trip" and "Your trips" (the trip rail and Menu); hides both items here. */
   showTrips?: boolean;
   /** "rail" shows the name and role beside the initials (persistent rail foot); behavior is unchanged. */
   variant?: "avatar" | "rail";
   roleLabel?: string;
+  /** True for the instance admin: adds "Who can join" (/settings/join). */
+  instanceAdmin?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const feedbackEmail = useFeedbackEmail();
@@ -76,10 +77,10 @@ export function AccountMenu({
   }, [open]);
 
   const items = <>
-    <Link href="/new" role="menuitem" onClick={() => setOpen(false)} data-analytics-event="event_creation_viewed" data-analytics-detail="account_menu"><PlusIcon /><span>Start new event</span></Link>
+    {showTrips ? <Link href="/new" role="menuitem" onClick={() => setOpen(false)} data-analytics-event="event_creation_viewed" data-analytics-detail="account_menu"><PlusIcon /><span>Start a new trip</span></Link> : null}
     {showTrips ? <Link href="/trips" role="menuitem" onClick={() => setOpen(false)}><RouteIcon /><span>Your trips</span></Link> : null}
     {canSignOut ? <Link href="/profile" role="menuitem" onClick={() => setOpen(false)}><span aria-hidden="true">○</span><span>Your profile</span></Link> : null}
-    {pathname !== commonsPath(PUBLIC_DEMO_COMMONS_ID) ? <Link href={commonsPath(PUBLIC_DEMO_COMMONS_ID)} role="menuitem" onClick={() => setOpen(false)} data-analytics-event="demo_opened" data-analytics-commons="cape-cod-couples-week" data-analytics-detail="account_menu"><CommonsMark /><span>View demo</span></Link> : null}
+    {instanceAdmin ? <Link href="/settings/join" role="menuitem" onClick={() => setOpen(false)}><UsersIcon /><span>Who can join</span></Link> : null}
     {canSignOut && feedbackEmail ? <a href={`mailto:${feedbackEmail}`} role="menuitem" onClick={event => { event.currentTarget.href = feedbackHref(feedbackEmail); setOpen(false); }}><MessageIcon /><span>Give feedback</span></a> : null}
     {canSignOut ? <form action="/auth/sign-out" method="post"><button type="submit" role="menuitem"><LogOutIcon /><span>Sign out</span></button></form> : <Link href={`/sign-in?next=${encodeURIComponent(pathname)}`} role="menuitem" onClick={() => setOpen(false)} data-analytics-event="sign_in_started" data-analytics-detail="account_menu"><LogInIcon /><span>Sign in</span></Link>}
   </>;

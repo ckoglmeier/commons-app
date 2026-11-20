@@ -3,7 +3,6 @@
 .trips-shell.public-trips-shell { padding-bottom: 0; }
 .public-trips-shell .global-nav { background: var(--cm-color-canvas); backdrop-filter: none; }
 .public-trips-shell .homepage-brand { max-width: 100%; flex-wrap: wrap; column-gap: var(--cm-space-2); row-gap: var(--cm-space-3); padding-block: var(--cm-space-1); }
-.public-trips-shell .homepage-brand > .homepage-brand__beta { width: auto; height: auto; padding: var(--cm-space-1) var(--cm-space-2); position: relative; top: -.3rem; align-self: flex-start; display: inline-block; border: 0; border-radius: var(--cm-radius-compact); background: var(--cm-color-coral); color: var(--cm-color-ink); font-size: var(--cm-text-meta); font-weight: 600; line-height: 1.35; letter-spacing: .02em; transform: rotate(-12deg); }
 .public-trips-shell .public-header-actions a { min-height: var(--cm-touch-target); padding-inline: var(--cm-space-2); font-size: var(--cm-text-utility); font-weight: 550; }
 .public-trips-shell .public-header-actions a:last-child:not(.profile-avatar) { background: transparent; color: var(--cm-color-ink); }
 .public-trips-shell .public-header-actions a:hover { text-decoration: underline; text-underline-offset: .25em; }
@@ -21,11 +20,11 @@
 .homepage-primary:hover { background: var(--cm-color-action-hover); }
 .homepage-primary:active { background: var(--cm-color-action-pressed); transform: translateY(1px); }
 .homepage-invitation p { margin: var(--cm-space-2) 0 0; color: var(--cm-color-mineral); font-size: var(--cm-text-utility); line-height: 1.5; }
-.homepage-sample, .homepage-beta a { min-height: var(--cm-touch-target); display: inline-flex; align-items: center; gap: var(--cm-space-2); color: var(--cm-color-green); font-size: var(--cm-text-body); font-weight: 500; text-decoration: underline; text-underline-offset: .25em; }
+.homepage-sample, .homepage-secondary a { min-height: var(--cm-touch-target); display: inline-flex; align-items: center; gap: var(--cm-space-2); color: var(--cm-color-green); font-size: var(--cm-text-body); font-weight: 500; text-decoration: underline; text-underline-offset: .25em; }
 .homepage-sample { margin-top: var(--cm-space-3); }
-.homepage-sample:hover, .homepage-beta a:hover { color: var(--cm-color-ink); text-decoration-thickness: 2px; }
-.public-trips-content .homepage-beta { margin-top: var(--cm-space-8); padding: 0; border: 0; }
-.homepage-beta p { margin: var(--cm-space-1) 0 0; color: var(--cm-color-ink); font-size: var(--cm-text-body); line-height: 1.6; }
+.homepage-sample:hover, .homepage-secondary a:hover { color: var(--cm-color-ink); text-decoration-thickness: 2px; }
+.public-trips-content .homepage-secondary { margin-top: var(--cm-space-8); padding: 0; border: 0; }
+.homepage-secondary p { margin: var(--cm-space-1) 0 0; color: var(--cm-color-ink); font-size: var(--cm-text-body); line-height: 1.6; }
 /* Keep the beach group in the stacked crop, not below a tall blank sky area. */
 .homepage-coast {
   /* Broader fog on phones, ending above the family as the crop widens.
@@ -55,7 +54,7 @@
   .public-trips-shell .global-nav { padding-inline: var(--cm-space-16); }
   .public-trips-shell .public-trips-content { padding: var(--cm-space-16); }
   .public-trips-shell .public-trips-pitch { max-width: min(30rem, 42vw); }
-  .homepage-beta { max-width: min(32rem, 42vw); }
+  .homepage-secondary { max-width: min(32rem, 42vw); }
   .homepage-coast { max-width: none; height: auto; margin: 0; position: absolute; inset: 0; mask-image: linear-gradient(to right, transparent, black 65%); }
   /* A taller text layout must not enlarge and crop the family into the copy. */
   .homepage-coast img { object-fit: contain; object-position: right bottom; }

@@ -6,7 +6,7 @@ import { getCurrentCommonsIdentity } from "@/lib/server/commons";
 import { AccountNameForm } from "./account-name-form";
 
 export const dynamic = "force-dynamic";
-export const metadata = { robots: { index: false, follow: false }, referrer: "no-referrer" as const };
+export const metadata = { title: "Create your account — Commons", robots: { index: false, follow: false }, referrer: "no-referrer" as const };
 
 export default async function CreateAccountPage({
   searchParams,
@@ -28,7 +28,7 @@ export default async function CreateAccountPage({
         <div className="entry-copy">
           <span className="view-kicker">Create account</span>
           <h1>What should we call you?</h1>
-          <p>Add the first name people will see in events you join.</p>
+          <p>Add the first name people will see on trips you join.</p>
         </div>
         <AccountNameForm next={next} />
       </section>
