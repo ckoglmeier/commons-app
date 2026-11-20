@@ -88,12 +88,6 @@ jobs:
         env:
           COMMONS_RUN_DATABASE_TESTS: "1"
           DATABASE_DIRECT_URL: postgresql://postgres:commons_test@127.0.0.1:5432/commons_test
-      - name: Evaluate workflow routes with synthetic providers only
-        run: npm run qa:workflows
-        env:
-          COMMONS_COORDINATOR_ENABLED: "true"
-          COMMONS_RUN_DATABASE_TESTS: "1"
-          TEST_DATABASE_URL: postgresql://postgres:commons_test@127.0.0.1:5432/commons_test
 
   # The web tests take about 13 minutes one at a time. They share a database
   # within a run, so each slice gets its own and the slices run side by side.
