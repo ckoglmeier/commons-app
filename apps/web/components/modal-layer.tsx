@@ -15,7 +15,7 @@ export function ModalLayer({ close, children }: { close: () => void; children: R
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const focusTimer = window.setTimeout(() => {
-      layerRef.current?.querySelector<HTMLElement>(".sheet button:not(:disabled), .sheet input:not(:disabled), .sheet [href], .sheet [tabindex]:not([tabindex='-1'])")?.focus();
+      layerRef.current?.querySelector<HTMLElement>(".sheet button:not(:disabled):not([tabindex='-1']), .sheet input:not(:disabled):not([tabindex='-1']), .sheet [href]:not([tabindex='-1']), .sheet [tabindex]:not([tabindex='-1'])")?.focus();
     }, 0);
 
     function onKeyDown(event: KeyboardEvent) {
@@ -24,8 +24,9 @@ export function ModalLayer({ close, children }: { close: () => void; children: R
         return;
       }
       if (event.key !== "Tab" || !layerRef.current) return;
+      // Elements with tabindex="-1" (the scrim, hidden file inputs) are never Tab stops, so they can't be the trap's first or last stop.
       const focusable = Array.from(new Set([
-        ...layerRef.current.querySelectorAll<HTMLElement>("button:not(:disabled):not([tabindex='-1']), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [href], [tabindex]:not([tabindex='-1'])"),
+        ...layerRef.current.querySelectorAll<HTMLElement>("button:not(:disabled):not([tabindex='-1']), input:not(:disabled):not([tabindex='-1']), select:not(:disabled):not([tabindex='-1']), textarea:not(:disabled):not([tabindex='-1']), summary:not([tabindex='-1']), [href]:not([tabindex='-1']), [tabindex]:not([tabindex='-1'])"),
         ...document.querySelectorAll<HTMLElement>("[data-modal-accessory] button:not(:disabled), button[data-modal-accessory]:not(:disabled)"),
       ])).filter(element => !element.closest("[inert]") && element.getClientRects().length > 0);
       if (focusable.length === 0) return;
