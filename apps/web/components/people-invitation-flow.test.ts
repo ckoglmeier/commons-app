@@ -66,3 +66,57 @@ test("organizer entry explains the separate send and does not claim queued deliv
     assert.doesNotMatch(renderer.tree.map(textOf).join(" "), /Invitation email queued/);
   } finally { renderer.unmount(); live.restore(); }
 });
+
+test("without email set up, adding a traveler reads as normal: a private link to share, not a failure", async () => {
+  const base = { commons: pilotSnapshot.commons, currentPersonId: pilotSnapshot.currentActor.id, organizerName: "Synthetic organizer", people: [] as unknown[] };
+  const added = (input: { displayName: string; email: string; role: string }) => ({ membershipId: "membership-new", personId: "new-traveler", displayName: input.displayName, email: input.email, role: input.role, membershipStatus: "invited", joinedAt: null, accessMode: "account", managedByPersonIds: null, canClaimAccess: false, removal: { blocked: false, moneyItems: 0, responsibilityItems: 0 }, invitation: { id: "new-invitation", status: "pending", deliveryState: "failed", deliveryErrorCode: "email_not_configured", message: null, sentAt: null, lastAttemptAt: null, expiresAt: null } });
+  const live = installFakeBrowserEnvironment({ fetch: async (_url, init) => {
+    if (init?.method !== "POST") return Response.json({ people: base });
+    return Response.json({ people: { ...base, people: [added(JSON.parse(String(init.body)))] } });
+  } });
+  const { PeopleSheet } = await import("./people-sheet");
+  const renderer = createHookRenderer({ expand: [PeopleSheet] });
+  const text = () => renderer.tree.map(textOf).join(" ");
+  try {
+    renderer.render(createElement(PeopleSheet, { slug: base.commons.slug, tripName: base.commons.name, tripStatus: "planning", participants: [], currentPersonId: base.currentPersonId, canManage: true, close: () => {}, emailInvitations: false }));
+    await settle(10); renderer.flush();
+    (renderer.find(node => node.type === "button" && textOf(node).trim() === "Add traveler").props.onClick as () => void)(); renderer.flush();
+    assert.match(text(), /Email isn’t set up on this copy, so Commons won’t send an invitation\. Add them, then copy their private link and send it yourself\. They still need to accept; attendance is separate\./);
+    assert.doesNotMatch(text(), /sends their invitation email automatically/);
+    (renderer.find(node => node.type === "input" && node.props.maxLength === 80).props.onChange as (event: unknown) => void)({ target: { value: "Maya Rivera" } });
+    (renderer.find(node => node.type === "input" && node.props.type === "email").props.onChange as (event: unknown) => void)({ target: { value: "maya@example.com" } });
+    renderer.flush();
+    (renderer.find(node => node.type === "form" && node.props.className === "people-form").props.onSubmit as (event: unknown) => void)({ preventDefault() {} });
+    await settle(10); renderer.flush();
+    assert.match(text(), /Maya Rivera was added\. Copy their private link and send it to them\./);
+    assert.equal(renderer.findAll(node => node.props.role === "alert").length, 0);
+    assert.doesNotMatch(text(), /Email isn’t set up yet|could not be sent|Retry invitation/);
+    const counts = renderer.find(node => node.props["aria-label"] === "Traveler status");
+    assert.match(textOf(counts), /1\s*Invited/);
+    assert.match(textOf(counts), /0\s*Needs attention/);
+    assert.equal(renderer.findAll(node => node.type === "article" && String(node.props.className).includes("people-row--attention")).length, 0);
+    const status = renderer.find(node => node.type === "span" && String(node.props.className).startsWith("people-status "));
+    assert.equal(textOf(status), "Not sent");
+    assert.match(String(status.props.className), /people-status--not_sent/);
+    assert.match(text(), /Copy their private link and send it yourself\./);
+    (renderer.find(node => node.type === "button" && node.props.className === "people-row__summary").props.onClick as () => void)(); renderer.flush();
+    const actions = renderer.find(node => node.props.className === "people-row__actions");
+    assert.doesNotMatch(textOf(actions), /Resend email|Send email|Send invitation|Retry invitation/);
+    assert.match(textOf(actions).trim(), /^Copy private link/);
+  } finally { renderer.unmount(); live.restore(); }
+});
+
+test("with email set up, a failed invitation still needs attention and offers a retry", async () => {
+  const base = { commons: pilotSnapshot.commons, currentPersonId: pilotSnapshot.currentActor.id, organizerName: "Synthetic organizer", people: [{ membershipId: "membership-sam", personId: "sam", displayName: "Sam Lee", email: "sam@example.com", role: "member", membershipStatus: "invited", joinedAt: null, accessMode: "account", managedByPersonIds: null, canClaimAccess: false, removal: { blocked: false, moneyItems: 0, responsibilityItems: 0 }, invitation: { id: "sam-invitation", status: "pending", deliveryState: "failed", deliveryErrorCode: "email_not_configured", message: null, sentAt: null, lastAttemptAt: null, expiresAt: null } }] as unknown[] };
+  const live = installFakeBrowserEnvironment({ fetch: async () => Response.json({ people: base }) });
+  const { PeopleSheet } = await import("./people-sheet");
+  const renderer = createHookRenderer({ expand: [PeopleSheet] });
+  try {
+    renderer.render(createElement(PeopleSheet, { slug: base.commons.slug, tripName: base.commons.name, tripStatus: "planning", participants: [], currentPersonId: base.currentPersonId, canManage: true, close: () => {} }));
+    await settle(10); renderer.flush();
+    assert.match(textOf(renderer.find(node => node.props["aria-label"] === "Traveler status")), /1\s*Needs attention/);
+    assert.match(renderer.tree.map(textOf).join(" "), /Email isn’t set up yet\. Copy the private link instead\./);
+    (renderer.find(node => node.type === "button" && node.props.className === "people-row__summary").props.onClick as () => void)(); renderer.flush();
+    assert.match(textOf(renderer.find(node => node.props.className === "people-row__actions")), /^Retry invitation/);
+  } finally { renderer.unmount(); live.restore(); }
+});

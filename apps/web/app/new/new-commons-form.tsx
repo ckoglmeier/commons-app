@@ -252,7 +252,7 @@ export function NewCommonsForm({
           <p className="setup-lede">Add the people you want to invite. You’ll review the list before anything is sent.</p>
           <div className="setup-cover-picker">
             <button type="button" className="setup-cover-preview" onClick={() => fileInputRef.current?.click()}>{coverPreview ? <Image src={coverPreview} alt={`${setup.commons.name} cover preview`} fill sizes="(max-width: 767px) 100vw, 30rem" unoptimized /> : <span><ImageIcon /><strong>Add a cover photo</strong></span>}{coverPreview ? <em>Change cover</em> : null}</button>
-            <input ref={fileInputRef} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => chooseCover(event.target.files?.[0] ?? null)} />
+            <input ref={fileInputRef} className="sr-only" tabIndex={-1} type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => chooseCover(event.target.files?.[0] ?? null)} />
           </div>
           <div className="setup-travelers">
             {travelers.map((traveler, index) => <div className="setup-traveler-row" key={index}><span className="setup-traveler-icon"><UsersIcon /></span><label className="field"><span>Name</span><input value={traveler.displayName} onChange={(event) => updateTraveler(index, { displayName: event.target.value })} placeholder="Traveler name" /></label><label className="field"><span>Email</span><input value={traveler.email} onChange={(event) => updateTraveler(index, { email: event.target.value })} placeholder="name@example.com" type="email" /></label><button type="button" aria-label={`Remove traveler ${index + 1}`} onClick={() => setTravelers((current) => current.filter((_, position) => position !== index))}><CloseIcon /></button></div>)}

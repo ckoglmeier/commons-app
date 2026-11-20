@@ -31,8 +31,16 @@ async function responseJson(response: Response, fallback: string) {
   return payload ?? {};
 }
 
-function deliveryLabel(person: CommonsPerson) {
+// On a copy without email, Commons never sends invitations. An invitation it could not send for that reason is the normal path, not a failure.
+function linkOnly(person: CommonsPerson, emailInvitations: boolean) {
+  if (emailInvitations || person.invitation?.status !== "pending") return false;
+  const code = person.invitation.deliveryErrorCode;
+  return person.invitation.deliveryState === "not_sent" || (person.invitation.deliveryState === "failed" && (code === "delivery_disabled" || code === "email_not_configured"));
+}
+
+function deliveryLabel(person: CommonsPerson, emailInvitations = true) {
   if (person.membershipStatus === "active") return "Joined";
+  if (linkOnly(person, emailInvitations)) return "Not sent";
   if (person.invitation?.status === "expired") return "Needs attention";
   const delivery = person.invitation?.deliveryState;
   if (delivery === "failed") return "Needs attention";
@@ -41,10 +49,11 @@ function deliveryLabel(person: CommonsPerson) {
   return "Not sent";
 }
 
-function deliveryHelp(person: CommonsPerson) {
+function deliveryHelp(person: CommonsPerson, emailInvitations = true) {
   if (person.invitation?.status === "expired") {
     return "This legacy invitation needs a new private link.";
   }
+  if (linkOnly(person, emailInvitations)) return "Copy their private link and send it yourself.";
   const code = person.invitation?.deliveryErrorCode;
   if (code === "delivery_disabled" || code === "email_not_configured") {
     return "Email isn’t set up yet. Copy the private link instead.";
@@ -87,8 +96,11 @@ export function PeopleSheet({
   onPeopleChanged,
   attendance,
   decidingStage = false,
+  emailInvitations = true,
 }: {
   decidingStage?: boolean;
+  /** False when this copy has no email set up: organizers share private links themselves. */
+  emailInvitations?: boolean;
   slug: string;
   tripName: string;
   tripStatus: "planning" | "active" | "closing" | "archived";
@@ -160,10 +172,10 @@ export function PeopleSheet({
     return {
       joined: people.filter((person) => person.membershipStatus === "active").length,
       managed: people.filter((person) => person.accessMode === "managed").length,
-      invited: people.filter((person) => person.invitation?.status === "pending" && person.invitation.deliveryState !== "failed").length,
-      attention: people.filter((person) => person.invitation?.deliveryState === "failed" || person.invitation?.status === "expired").length,
+      invited: people.filter((person) => person.invitation?.status === "pending" && (person.invitation.deliveryState !== "failed" || linkOnly(person, emailInvitations))).length,
+      attention: people.filter((person) => (person.invitation?.deliveryState === "failed" && !linkOnly(person, emailInvitations)) || person.invitation?.status === "expired").length,
     };
-  }, [canManage, data, participants]);
+  }, [canManage, data, emailInvitations, participants]);
 
   function beginEdit(person: CommonsPerson) {
     setClaimingId(null);
@@ -213,8 +225,8 @@ export function PeopleSheet({
       setData(savedPeople);
       void onPeopleChanged?.().catch(() => { /* The next event refresh can retry. */ });
       const invitation = savedPeople.people.find(person => claimingId ? person.personId === claimingId : person.email?.toLowerCase() === email.trim().toLowerCase())?.invitation;
-      setNotice(editingId ? "Invitation updated." : accessMode === "managed" ? `${displayName.trim()} was added without an account.` : invitation?.deliveryState === "sent" ? `${displayName.trim()} was added. Invitation email sent.` : invitation?.deliveryState === "queued" ? `${displayName.trim()} was added. Invitation email queued.` : invitation?.deliveryState === "failed" ? `${displayName.trim()} was added, but the invitation email could not be sent. Use Retry invitation to try again.` : inviteRole === "organizer" && !claimingId ? `${displayName.trim()}’s organizer invitation is ready. No email sent yet.` : `${displayName.trim()} was added, but the invitation email was not sent. Use Send invitation to retry.`);
-      if (!editingId && accessMode === "account" && invitation?.deliveryState === "failed") setError(deliveryErrorHelp(invitation.deliveryErrorCode));
+      setNotice(editingId ? "Invitation updated." : accessMode === "managed" ? `${displayName.trim()} was added without an account.` : !emailInvitations ? inviteRole === "organizer" && !claimingId ? `${displayName.trim()}’s organizer invitation is ready. Copy their private link and send it to them.` : `${displayName.trim()} was added. Copy their private link and send it to them.` : invitation?.deliveryState === "sent" ? `${displayName.trim()} was added. Invitation email sent.` : invitation?.deliveryState === "queued" ? `${displayName.trim()} was added. Invitation email queued.` : invitation?.deliveryState === "failed" ? `${displayName.trim()} was added, but the invitation email could not be sent. Use Retry invitation to try again.` : inviteRole === "organizer" && !claimingId ? `${displayName.trim()}’s organizer invitation is ready. No email sent yet.` : `${displayName.trim()} was added, but the invitation email was not sent. Use Send invitation to retry.`);
+      if (emailInvitations && !editingId && accessMode === "account" && invitation?.deliveryState === "failed") setError(deliveryErrorHelp(invitation.deliveryErrorCode));
       resetForm();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Changes not saved. Try again.");
@@ -345,7 +357,7 @@ export function PeopleSheet({
             {!editingId && !claimingId ? <fieldset className="people-access-choice"><legend>Access</legend><label aria-label="Invite with an account"><input type="radio" name="access-mode" checked={accessMode === "account"} onChange={() => setAccessMode("account")} /><span><strong>Invite with an account</strong><small>For someone who has their own email and will use Commons.</small></span></label><label aria-label="Add without an account"><input type="radio" name="access-mode" checked={accessMode === "managed"} onChange={() => setAccessMode("managed")} /><span><strong>Add without an account</strong><small>For a child or someone whose plans the organizer will manage.</small></span></label></fieldset> : null}
             {accessMode === "account" ? <><label className="field"><span>Email</span><input ref={inviteEmailRef} value={email} onChange={(event) => setEmail(event.target.value)} type="email" maxLength={254} required /></label><label className="field"><span>Invitation message <small>Optional</small></span><textarea value={message} onChange={(event) => setMessage(event.target.value)} maxLength={500} placeholder="Add a note" /></label></> : null}
             {!editingId && !claimingId && accessMode === "account" ? <label className="field"><span>Trip role</span><select aria-label="Trip role" aria-describedby="invite-role-help" value={inviteRole} onChange={event => setInviteRole(event.target.value as "member" | "organizer")}><option value="member">Traveler</option><option value="organizer">Organizer</option></select><small id="invite-role-help">{inviteRole === "organizer" ? "After joining, they can use Workspace, edit trip details, invite people, and manage organizer access." : "They can join plans, answer polls, and contribute to the trip."}</small></label> : null}
-            <p>{claimingId ? "Inviting this traveler sends an email now. After verifying this email and accepting, they’ll keep their trip history, answer polls, and manage their own private profile. Your access to their private profile will end." : editingId ? "The message is included the next time you send the invitation. Changing the email also replaces the private link." : accessMode === "managed" ? "They appear in the trip, but do not receive an invitation or need to take action." : inviteRole === "organizer" ? "This prepares an organizer invitation. Send it separately when you’re ready. Organizer access begins after acceptance." : "Inviting this traveler sends their invitation email automatically. They still need to accept; attendance is separate."}</p>
+            <p>{!emailInvitations && accessMode === "account" ? claimingId ? "Email isn’t set up on this copy, so Commons won’t send an invitation. Copy their private link and send it yourself. After they sign in with this email and accept, they’ll keep their trip history, answer polls, and manage their own private profile. Your access to their private profile will end." : editingId ? "Email isn’t set up on this copy, so the message isn’t sent. Changing the email also replaces the private link." : inviteRole === "organizer" ? "This prepares an organizer invitation. Email isn’t set up on this copy, so copy their private link and send it yourself when you’re ready. Organizer access begins after acceptance." : "Email isn’t set up on this copy, so Commons won’t send an invitation. Add them, then copy their private link and send it yourself. They still need to accept; attendance is separate." : claimingId ? "Inviting this traveler sends an email now. After verifying this email and accepting, they’ll keep their trip history, answer polls, and manage their own private profile. Your access to their private profile will end." : editingId ? "The message is included the next time you send the invitation. Changing the email also replaces the private link." : accessMode === "managed" ? "They appear in the trip, but do not receive an invitation or need to take action." : inviteRole === "organizer" ? "This prepares an organizer invitation. Send it separately when you’re ready. Organizer access begins after acceptance." : "Inviting this traveler sends their invitation email automatically. They still need to accept; attendance is separate."}</p>
             <div><button type="button" onClick={resetForm}>Cancel</button><button type="submit" disabled={busy === "save"}>{busy === "save" ? "Saving…" : editingId ? "Save changes" : claimingId || (accessMode === "account" && inviteRole === "member") ? "Invite traveler" : accessMode === "account" ? "Prepare organizer invitation" : "Add traveler"}</button></div>
           </form>
   );
@@ -423,11 +435,11 @@ export function PeopleSheet({
                   .filter(Boolean)
                   .join(" and ");
                 return (
-                  <article key={person.membershipId} className={`people-row${person.invitation?.deliveryState === "failed" ? " people-row--attention" : ""}`}>
+                  <article key={person.membershipId} className={`people-row${person.invitation?.deliveryState === "failed" && !linkOnly(person, emailInvitations) ? " people-row--attention" : ""}`}>
                     <button className="people-row__summary" type="button" onClick={() => { setSelectedId(selected ? null : person.personId); setManagedProfile(null); setRoleConfirm(null); }} aria-expanded={selected}>
                       <span className="people-avatar">{initials(person.displayName)}</span>
-                      <span><strong>{person.displayName}{person.role === "organizer" ? <em>Organizer</em> : null}</strong><small>{person.accessMode === "managed" ? `Managed${managerNames ? ` by ${managerNames}` : ""} · no account` : person.role === "organizer" ? "Trip organizer" : deliveryHelp(person)}</small></span>
-                      <span className={`people-status people-status--${person.invitation?.status === "expired" ? "failed" : person.invitation?.deliveryState ?? "joined"}`}>{person.accessMode === "managed" ? pending ? "Invitation pending" : "Managed" : deliveryLabel(person)}</span>
+                      <span><strong>{person.displayName}{person.role === "organizer" ? <em>Organizer</em> : null}</strong><small>{person.accessMode === "managed" ? `Managed${managerNames ? ` by ${managerNames}` : ""} · no account` : person.role === "organizer" ? "Trip organizer" : deliveryHelp(person, emailInvitations)}</small></span>
+                      <span className={`people-status people-status--${person.invitation?.status === "expired" ? "failed" : linkOnly(person, emailInvitations) ? "not_sent" : person.invitation?.deliveryState ?? "joined"}`}>{person.accessMode === "managed" ? pending ? "Invitation pending" : "Managed" : deliveryLabel(person, emailInvitations)}</span>
                       <ChevronRightIcon />
                     </button>
                     {person.membershipStatus === "active" ? renderPersonTravel?.(person.personId) : null}
@@ -440,10 +452,10 @@ export function PeopleSheet({
                           <>
                             <div className="people-role-note">
                               <strong>Joining as {person.role === "organizer" ? "an organizer" : "a traveler"}</strong>
-                              {person.accessMode === "managed" ? <><p>Managed until they accept. Their trip history stays with them.</p><p>{deliveryHelp(person)}</p></> : confirmingRole ? <><p>{proposedRole === "organizer" ? "After joining, they can use Workspace, edit trip details, invite people, and manage organizer access." : "They’ll join as a traveler without organizer access."} Their existing invitation link stays valid. No email will be sent.</p><div className="people-role-confirm"><button type="button" onClick={() => setRoleConfirm(null)} disabled={Boolean(busy)}>Cancel</button><button type="button" onClick={() => void updateRole(person, proposedRole)} disabled={Boolean(busy)}>{busy === `role-${person.personId}` ? "Saving…" : proposedRole === "organizer" ? "Invite as organizer" : "Invite as traveler"}</button></div></> : <button className="sheet-secondary" type="button" onClick={() => setRoleConfirm({ personId: person.personId, role: proposedRole })} disabled={Boolean(busy)}>{proposedRole === "organizer" ? "Change to organizer" : "Change to traveler"}</button>}
+                              {person.accessMode === "managed" ? <><p>Managed until they accept. Their trip history stays with them.</p><p>{deliveryHelp(person, emailInvitations)}</p></> : confirmingRole ? <><p>{proposedRole === "organizer" ? "After joining, they can use Workspace, edit trip details, invite people, and manage organizer access." : "They’ll join as a traveler without organizer access."} Their existing invitation link stays valid. No email will be sent.</p><div className="people-role-confirm"><button type="button" onClick={() => setRoleConfirm(null)} disabled={Boolean(busy)}>Cancel</button><button type="button" onClick={() => void updateRole(person, proposedRole)} disabled={Boolean(busy)}>{busy === `role-${person.personId}` ? "Saving…" : proposedRole === "organizer" ? "Invite as organizer" : "Invite as traveler"}</button></div></> : <button className="sheet-secondary" type="button" onClick={() => setRoleConfirm({ personId: person.personId, role: proposedRole })} disabled={Boolean(busy)}>{proposedRole === "organizer" ? "Change to organizer" : "Change to traveler"}</button>}
                             </div>
                             {mayInvite ? <div className="people-row__actions">
-                              <button type="button" onClick={() => void send(person.invitation!.id)} disabled={Boolean(busy) || person.invitation?.deliveryState === "queued"}>{busy === `send-${person.invitation!.id}` ? "Sending…" : person.invitation?.deliveryState === "queued" ? "Email queued" : person.invitation?.deliveryState === "sent" ? "Resend email" : person.invitation?.deliveryState === "failed" ? "Retry invitation" : "Send invitation"}</button>
+                              {emailInvitations ? <button type="button" onClick={() => void send(person.invitation!.id)} disabled={Boolean(busy) || person.invitation?.deliveryState === "queued"}>{busy === `send-${person.invitation!.id}` ? "Sending…" : person.invitation?.deliveryState === "queued" ? "Email queued" : person.invitation?.deliveryState === "sent" ? "Resend email" : person.invitation?.deliveryState === "failed" ? "Retry invitation" : "Send invitation"}</button> : null}
                               <button type="button" onClick={() => void copyLink(person.invitation!.id)} disabled={Boolean(busy)}>{busy === `copy-${person.invitation!.id}` ? "Copying…" : "Copy private link"}</button>
                               <button type="button" onClick={() => beginEdit(person)} disabled={Boolean(busy)}><EditIcon /> Edit</button>
                               <button type="button" onClick={() => void rotateLink(person.invitation!.id)} disabled={Boolean(busy)}>Replace link</button>

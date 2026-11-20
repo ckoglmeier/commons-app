@@ -1,5 +1,7 @@
 :root {
   color-scheme: light;
+  /* Native checkboxes and radios that no component rule covers use the brand color, not the browser's blue. */
+  accent-color: var(--cm-color-action);
 
   /* Quiet travel journal: scoped to trip workspaces. */
   --cm-journal-canvas: #dce3d5;

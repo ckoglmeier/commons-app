@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 import { CommonsApp } from "@/components/commons-app";
 import { parseDecisionAction, decisionHandoffPath, resolveDecisionHandoff, type DecisionHandoff } from "@/lib/decision-handoff";
 import { loadAuthenticatedPoll } from "@/lib/server/polls";
 import { readCommonsRuntimeEnvironment, textMessagingAvailable } from "@/lib/server/runtime-environment";
+import { currentPersonIsInstanceAdmin } from "@/lib/server/instance-access";
+import { emailDeliveryAvailable } from "@/lib/email/resend";
 import { commonsPath, eventLocation, parsePlanSection, PUBLIC_DEMO_COMMONS_ID } from "@/lib/commons-route";
 import {
   getCommonsDataMode,
@@ -16,16 +19,18 @@ import {
 
 export const dynamic = "force-dynamic";
 
+// One snapshot load per request, shared by the title and the page.
+const loadTrip = cache(loadCommonsSnapshot);
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug: identifier } = await params;
-  if (isPublicDemoCommonsIdentifier(identifier)) {
-    return { title: "[DEMO] Cape Cod Couples Week — Commons" };
-  }
-  return { title: "Commons — Group travel with less group work." };
+  // The trip name appears only to someone who can open the trip; the loader enforces membership.
+  const snapshot = await loadTrip(identifier).catch(() => null);
+  return { title: snapshot ? `${snapshot.commons.name} — Commons` : "Trip — Commons" };
 }
 
 export default async function CommonsPage({
@@ -49,7 +54,7 @@ export default async function CommonsPage({
   if (identifier === "austin-weekend") redirect(entryPath(PUBLIC_DEMO_COMMONS_ID));
   let snapshot: Awaited<ReturnType<typeof loadCommonsSnapshot>>;
   try {
-    snapshot = await loadCommonsSnapshot(identifier);
+    snapshot = await loadTrip(identifier);
   } catch (error) {
     if (error instanceof CommonsAuthenticationRequiredError) {
       redirect(`/sign-in?next=${encodeURIComponent(entryPath(identifier))}`);
@@ -67,6 +72,7 @@ export default async function CommonsPage({
       if (poll) decisionHandoff = resolveDecisionHandoff(poll, action, snapshot.state.itinerary);
     } catch { /* Fail closed; no editor or poll data is exposed by a forged link. */ }
   }
+  const instanceAdmin = identity ? await currentPersonIsInstanceAdmin() : false;
   const environment = readCommonsRuntimeEnvironment();
   const newExperience = snapshot.commons.newExperience === true;
   return (
@@ -88,6 +94,8 @@ export default async function CommonsPage({
       showArrival={!entry.decisionPoll && !entry.view && entry.arrival !== "0" && !entry.travelExpense}
       confirmationIntakeEnabled={environment.COMMONS_CONFIRMATION_INTAKE_ENABLED === "true"}
       openTravelExpense={entry.travelExpense}
+      emailInvitations={emailDeliveryAvailable()}
+      instanceAdmin={instanceAdmin}
     />
   );
 }

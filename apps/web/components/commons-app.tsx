@@ -650,7 +650,7 @@ function TripDetailsEditorSheet({ experience, commons, close, save, inline = fal
         endsOn: endsOn || null,
       });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Event details not updated. Try again.");
+      setError(cause instanceof Error ? cause.message : "Trip details not updated. Try again.");
       setBusy(false);
     }
   }
@@ -658,16 +658,16 @@ function TripDetailsEditorSheet({ experience, commons, close, save, inline = fal
   return <EditorSurface close={close} inline={inline}>
     <section className="sheet trip-details-editor" role={inline ? undefined : "dialog"} aria-modal={inline ? undefined : true} aria-labelledby="trip-details-editor-title">
       <div className="sheet-handle" />
-      <header className="sheet-header"><div><span className="people-sheet-mark"><EditIcon /></span><span><small>Logistics</small><strong>Edit event</strong></span></div><button type="button" onClick={close} aria-label={inline ? "Cancel event editor" : "Close event editor"}>{inline ? "Cancel" : <CloseIcon />}</button></header>
+      <header className="sheet-header"><div><span className="people-sheet-mark"><EditIcon /></span><span><small>Logistics</small><strong>Edit trip</strong></span></div><button type="button" onClick={close} aria-label={inline ? "Cancel trip editor" : "Close trip editor"}>{inline ? "Cancel" : <CloseIcon />}</button></header>
       <h2 id="trip-details-editor-title">Trip settings</h2>
       {sampleOnly ? <p className="event-logistics-note">Sample only. Changes reset when you reload.</p> : null}
       <form className="trip-details-form" onSubmit={submit}>
-        <label className="field"><span>Event name</span><input required maxLength={100} value={title} onChange={(event) => setTitle(event.target.value)} /></label>
+        <label className="field"><span>Trip name</span><input required maxLength={100} value={title} onChange={(event) => setTitle(event.target.value)} /></label>
         <PlacesField value={locationNames} onChange={setLocationNames} />
         <div className="field-pair"><label className="field"><span>Start date <small>Optional</small></span><input type="date" value={startsOn} onChange={(event) => setStartsOn(event.target.value)} /></label><label className="field"><span>End date <small>Optional</small></span><input type="date" min={startsOn || undefined} value={endsOn} onChange={(event) => setEndsOn(event.target.value)} /></label></div>
         <LocationTimezoneField value={timezone} onChange={setTimezone} initialQuery={commons.locationName ?? ""} />
         <label className="field"><span>Trip currency</span><select value={currency} onChange={event => setCurrency(event.target.value)}>{!SUPPORTED_CURRENCIES.some(option => option.code === currency) ? <option value={currency} disabled>{currency} (saved currency)</option> : null}{SUPPORTED_CURRENCIES.map(option => <option key={option.code} value={option.code}>{currencyLabel(option.code)}</option>)}</select><small>Used for new costs. Existing costs keep their saved currency.</small></label>
-        <button className="sheet-primary" type="submit" disabled={busy || !title.trim()}>{busy ? "Saving…" : "Save event details"}</button>
+        <button className="sheet-primary" type="submit" disabled={busy || !title.trim()}>{busy ? "Saving…" : "Save trip details"}</button>
       </form>
       {experience ? <NewExperienceSetting slug={experience.slug} enabled={experience.enabled} /> : null}
       {error ? <p className="form-error" role="alert">{error}</p> : null}
@@ -757,7 +757,7 @@ function ConfirmationUploadControl({
   }
 
   return <section className="confirmation-upload" aria-label="Confirmation file">
-    <input ref={inputRef} className="sr-only" type="file" accept="application/pdf,.pdf,image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp,.txt,.eml" onChange={(event) => void preview(event.target.files?.[0])} />
+    <input ref={inputRef} className="sr-only" tabIndex={-1} type="file" accept="application/pdf,.pdf,image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp,.txt,.eml" onChange={(event) => void preview(event.target.files?.[0])} />
     <div><span className="confirmation-upload-mark"><FileTextIcon /></span><p><strong>{currentFileName ? "Confirmation ready" : "Add confirmation"}</strong><small>{currentFileName ?? "PDF or email: review extracted details. Images: attach and enter details."}</small></p></div>
     <button type="button" disabled={busy} onClick={() => inputRef.current?.click()}>{busy ? "Reading…" : currentFileName ? "Replace file" : "Choose file"}</button>
     {warnings?.length ? <ul className="confirmation-warnings">{warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul> : null}
@@ -1815,7 +1815,7 @@ function MomentsView({
           {downloadableMoments.length ? <button className="photo-download-all" onClick={downloadAll} disabled={archiveBusy}><DownloadIcon /><span>{archiveBusy ? "Preparing…" : "Download all"}</span></button> : null}
           <button className="photo-add-action" onClick={() => inputRef.current?.click()}><PlusIcon /><span>Add photos</span></button>
         </div>
-        <input ref={inputRef} className="sr-only" type="file" accept="image/*" multiple onChange={(event) => { choosePhotos(event.target.files); event.target.value = ""; }} />
+        <input ref={inputRef} className="sr-only" tabIndex={-1} type="file" accept="image/*" multiple onChange={(event) => { choosePhotos(event.target.files); event.target.value = ""; }} />
       </div>
 
       {importedArchive ? null : (
@@ -2126,7 +2126,7 @@ function CoverPickerSheet({
         <div className="cover-upload-divider"><span>Use another photo</span></div>
         <button className="cover-upload-action" type="button" disabled={Boolean(busyId)} onClick={() => inputRef.current?.click()}><PlusIcon /> {busyId === "upload" ? "Uploading…" : "Upload a cover photo"}</button>
 
-        <input ref={inputRef} className="sr-only" type="file" accept="image/*" onChange={(event) => upload(event.target.files?.[0])} />
+        <input ref={inputRef} className="sr-only" tabIndex={-1} type="file" accept="image/*" onChange={(event) => upload(event.target.files?.[0])} />
       </section>
     </ModalLayer>
   );
@@ -2280,7 +2280,7 @@ function MoneySettingsSheet({
 
         <label className={`money-family-setting${nextBalancesDisabled ? " money-family-setting--selected" : ""}`}>
           <input type="checkbox" aria-label="This is a family trip" checked={nextBalancesDisabled} onChange={(event) => setNextBalancesDisabled(event.target.checked)} />
-          <span><strong>This is a family trip</strong><small>Track spending and receipts without shares, reimbursements, or who owes whom.</small></span>
+          <span><strong>This is a family trip</strong><small>Track spending without shares, reimbursements, or who owes whom.</small></span>
         </label>
 
         {hidesExistingBalances ? <div className="money-settings-warning" role="note"><InfoIcon /><p><strong>{allocatedExpenseCount} recorded {allocatedExpenseCount === 1 ? "expense has" : "expenses have"} balances.</strong><span>Turning this on hides those balances. The expenses and splits stay saved, and they return if balances are turned on again.</span></p></div> : null}
@@ -2448,7 +2448,7 @@ export function ExpenseEditorSheet({
         <header className="sheet-header"><div><span className="expense-sheet-mark"><ReceiptIcon /></span><span><small>Shared ledger</small><strong>{editing ? "Edit expense" : "Add expense"}</strong></span></div><button onClick={close} aria-label={`Close ${editing ? "edit" : "add"} expense`}><CloseIcon /></button></header>
         <h2 id="expense-editor-title">{editing ? startAsRecorded ? `Record ${expense?.title}` : `Edit ${expense?.title}` : "Add a trip cost"}</h2>
         <p className="sheet-summary">{editing ? startAsRecorded ? "Confirm who paid and whether this should create balances." : "Update the cost, payer, or balance details." : defaultPlan ? `Add a cost for ${defaultPlan.title}. Confirm the amount and who paid. Saving links the expense to this plan.` : defaultStay ? `Confirm the cost for ${defaultStay.name}.` : defaultTravel ? "Confirm the travel cost." : "Record what was paid and how to share it."}</p>
-        {receiptEntry ? <p className="sheet-summary">Receipt uploads aren’t available here yet. Enter the details below.</p> : null}
+        {receiptEntry ? <p className="sheet-summary">Enter the cost from your receipt. Commons keeps the details, not the receipt itself.</p> : null}
         {(defaultStay?.confirmationDocumentFileName || defaultTravel?.confirmationDocumentFileName) ? <p className="expense-receipt-note"><ReceiptIcon /> The original confirmation will be attached as private receipt evidence.</p> : null}
 
 
@@ -3498,6 +3498,8 @@ export function CommonsApp({
   textMessagingEnabled = false,
   betaMapEnabled = false,
   betaCompletion,
+  emailInvitations = true,
+  instanceAdmin = false,
 }: {
   /** Master flag for the two trip stages (docs/TRIP-STAGES-DIRECTION.md). Off: navigation and Trip are as before. */
   tripStagesOn?: boolean;
@@ -3523,6 +3525,10 @@ export function CommonsApp({
   /** Sub-features for the Money wrap-up. Undefined (trip not on the new experience) renders nothing new. */
   betaCompletion?: { paymentReports: boolean; closure: boolean; recap: boolean; successor: boolean };
   confirmationIntakeEnabled?: boolean;
+  /** False when this copy has no email set up: People offers private links instead of invitation emails. */
+  emailInvitations?: boolean;
+  /** The signed-in person runs this copy (the account menu shows "Who can join"). */
+  instanceAdmin?: boolean;
 }) {
   const [planSection, setPlanSection] = useState<PlanSection>(initialPlanSection === "map" && !tripMapEnabled ? "schedule" : initialPlanSection);
   // Persistent shell: in-session places to return to. Exact selections live in the URL; these only remember where you were.
@@ -5291,7 +5297,7 @@ export function CommonsApp({
   return (
     <div className={`commons-shell commons-shell--persistent${arrivalOpen ? " commons-shell--arrival" : ""}`}>
       <TripApplicationShell tripStage={tripStage} commonsId={initialSnapshot.commons.id} view={tab} navigate={setTab} tripName={commonsSummary.name} inert={backgroundInert}
-        account={{ signedIn, actorName: initialSnapshot.currentActor.displayName, actorInitials, roleLabel: canManageTrip ? "Organizer" : "Traveler", signInHref: `/sign-in?next=${encodeURIComponent(commonsPath(initialSnapshot.commons.id))}` }}
+        account={{ signedIn, actorName: initialSnapshot.currentActor.displayName, actorInitials, roleLabel: canManageTrip ? "Organizer" : "Traveler", signInHref: `/sign-in?next=${encodeURIComponent(commonsPath(initialSnapshot.commons.id))}`, instanceAdmin }}
         identity={(placement, closeMenu) => <TripIdentity placement={placement} onAction={closeMenu} commons={commonsSummary} meta={[formatTripDates(commonsSummary.startsOn, commonsSummary.endsOn), formatTripPlaces(commonsSummary)].filter(Boolean).join(" · ")} coverImage={displayedCoverImage} participants={participants}
           openPeople={() => { trackProductEvent("people_opened", { commonsSlug: initialSnapshot.commons.slug }); setSheet("people"); }} openCoverPicker={() => setSheet("cover")}
           openSettings={canEditBasics ? () => setSheet("edit-trip-details") : undefined} openContext={canManageTrip && dataMode === "database" ? () => setSheet("trip-context") : undefined}
@@ -5304,7 +5310,7 @@ export function CommonsApp({
           </div>
         </TripApplicationShell>
       {arrivalOpen ? <TripArrival coverImage={displayedCoverImage} commons={commonsSummary} close={closeArrival} /> : null}
-      <input className="sr-only" aria-label="Choose trip photos" ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={event => { const files = Array.from(event.target.files ?? []); event.target.value = ""; if (files.length) void startPhotoUpload(files); }} />
+      <input className="sr-only" tabIndex={-1} aria-label="Choose trip photos" ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={event => { const files = Array.from(event.target.files ?? []); event.target.value = ""; if (files.length) void startPhotoUpload(files); }} />
       {sheet === "item-detail" ? detailItem || detailStay ? <TripItemDetail commons={commonsSummary} item={detailItem} stay={detailStay} close={closeItem} edit={detailItem ? () => { setSelectedPlanId(detailItem.id); setPlanScheduleDate(null); setSheet("edit-plan"); } : canManageStays && detailStay ? () => { setSelectedStayId(detailStay.id); setSheet("edit-stay"); } : undefined} addPhotos={detailItem ? () => addActivityPhotos(detailItem.id) : undefined} convertToExpense={detailItem && ledgerOpen && (detailItem.mealType || activityExpenseConversion(detailItem, state.expenses)) ? () => convertActivityToExpense(detailItem) : undefined} photoCount={detailItem ? [...state.moments, ...localMoments].filter(photo => photo.itineraryItemId === detailItem.id).length : 0} viewPhotos={() => setTab("moments")} /> : <ModalLayer close={closeItem}><section className="sheet" role="dialog" aria-modal="true" aria-labelledby="item-missing"><h2 id="item-missing">Item unavailable</h2><button type="button" className="sheet-secondary" onClick={closeItem}>Close</button></section></ModalLayer> : null}
       {sheet === "add-item" ? <ModalLayer close={() => setSheet(null)}><section className="sheet" role="dialog" aria-modal="true" aria-labelledby="add-item-title"><header className="sheet-header"><h2 id="add-item-title">Add to trip</h2><button type="button" onClick={() => setSheet(null)}>Close</button></header><LogisticsAddMenu canAddStay={canManageStays} choose={chooseTripAdd} /></section></ModalLayer> : null}
       {sheet === "add-plan" || sheet === "add-meal" ? <AddPlanSheet key={sheet} meal={sheet === "add-meal"} currency={commonsSummary.currency ?? "USD"} timeZone={initialSnapshot.commons.timezone} commonsSlug={initialSnapshot.commons.slug} days={days} defaultDate={selectedDay} participants={activePlanParticipants} currentActorId={initialSnapshot.currentActor.id} persistent={dataMode === "database"} close={() => setSheet(null)} save={savePlan} /> : null}
@@ -5332,7 +5338,7 @@ export function CommonsApp({
       {sheet === "edit-moment" && selectedMoment ? <MomentEditorSheet moment={selectedMoment} days={days} itinerary={state.itinerary} timeZone={initialSnapshot.commons.timezone} close={() => setSheet("moment")} save={updateMoment} remove={deleteMoment} /> : null}
       {sheet === "photo-mapping" && pendingPhotos.length ? <PhotoMappingSheet initialActivityId={photoActivityId} photos={pendingPhotos} itinerary={state.itinerary} timeZone={initialSnapshot.commons.timezone} actorId={initialSnapshot.currentActor.id} actorName={initialSnapshot.currentActor.displayName} close={closePhotoMapping} addMoment={persistNewMoment} notify={notify} persistent={dataMode === "database"} /> : null}
       {sheet === "trip-context" && canManageTrip ? <TripContextSheet tripId={initialSnapshot.commons.id} close={() => setSheet(null)} /> : null}
-      {sheet === "people" ? <PeopleSheet decidingStage={tripStage === "deciding"} slug={initialSnapshot.commons.slug} tripName={commonsSummary.name} tripStatus={commonsSummary.status} participants={participants} currentPersonId={initialSnapshot.currentActor.id} canManage={canManageTrip} persistent={dataMode === "database"} onPeopleChanged={refreshPeople} attendance={dataMode === "database" ? <EventAttendancePanel key={`${commonsSummary.id}:${commonsSummary.startsOn}:${commonsSummary.endsOn}`} eventId={commonsSummary.id} onSaved={() => setPeopleRevision(value => value + 1)} /> : undefined} close={() => { setSheet(null); setPeopleRevision(value => value + 1); }} /> : null}
+      {sheet === "people" ? <PeopleSheet decidingStage={tripStage === "deciding"} emailInvitations={emailInvitations} slug={initialSnapshot.commons.slug} tripName={commonsSummary.name} tripStatus={commonsSummary.status} participants={participants} currentPersonId={initialSnapshot.currentActor.id} canManage={canManageTrip} persistent={dataMode === "database"} onPeopleChanged={refreshPeople} attendance={dataMode === "database" ? <EventAttendancePanel key={`${commonsSummary.id}:${commonsSummary.startsOn}:${commonsSummary.endsOn}`} eventId={commonsSummary.id} onSaved={() => setPeopleRevision(value => value + 1)} /> : undefined} close={() => { setSheet(null); setPeopleRevision(value => value + 1); }} /> : null}
       {planReceipt && !sheet && !quickAdd ? <section className="plan-receipt" role="status" aria-label="Saved to Plan">
         <CheckIcon /><p><strong>{planReceipt.title}</strong><span>{planReceipt.status} · Saved to Plan</span></p>
         <div className="plan-receipt-actions"><Link className="cm-action" href={planReceipt.href} onClick={event => { if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); viewReceipt(planReceipt); } }}>View in Plan</Link>

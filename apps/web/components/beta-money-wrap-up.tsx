@@ -58,14 +58,14 @@ export function BetaMoneyWrapUp({ slug, currentActorId, isOrganizer, participant
     {features.paymentReports && moneyRelevant ? <PaymentReports slug={slug} currentActorId={currentActorId} isOrganizer={isOrganizer} participants={participants} reports={reports} nameOf={nameOf}
       defaultCurrency={defaultCurrency} ledgerClosed={ledgerClosed} balancesDisabled={balancesDisabled} problem={problem} reload={reload} onState={onState} /> : null}
     {features.closure && !balancesDisabled && moneyRelevant ? <section className="beta-wrap__block" aria-labelledby="beta-closure-title">
-      <h3 id="beta-closure-title">Before closing the ledger</h3>
+      <h3 id="beta-closure-title">{ledgerClosed ? "What’s still open" : "Before closing the ledger"}</h3>
       {readiness.reconciliation.length === 0 ? <p>No shared expenses are recorded.</p> : <ul className="beta-wrap__list">
         {readiness.reconciliation.map(row => <li key={row.currency}>
           <strong>{row.currency}</strong>
           <span>{row.reconciled ? "Settled" : `${money(row.openCents, row.currency)} still to be paid back`}{row.pendingReports.length ? ` · ${row.pendingReports.length} reported, not recorded` : ""}</span>
         </li>)}
       </ul>}
-      <p className="beta-wrap__meta">Each currency settles on its own. Commons doesn’t convert them, and a report doesn’t reduce what’s open. {ledgerClosed ? "The ledger is closed." : "An organizer closes the ledger above."}</p>
+      <p className="beta-wrap__meta">Each currency settles on its own. Commons doesn’t convert them, and a report doesn’t reduce what’s open. {ledgerClosed ? "The ledger is closed." : "An organizer closes the ledger once the group has added everything."}</p>
     </section> : null}
     {showRecap ? <RecapSection slug={slug} isOrganizer={isOrganizer} moments={moments} /> : null}
     {showNext ? <PlanNext slug={slug} /> : null}
@@ -122,7 +122,7 @@ function PaymentReports({ slug, currentActorId, isOrganizer, participants, repor
         <label>Amount<input inputMode="decimal" autoComplete="off" value={amount} onChange={event => setAmount(event.target.value)} placeholder="84.00" required /></label>
         <label>Currency<input value={currency} maxLength={3} autoCapitalize="characters" onChange={event => setCurrency(event.target.value.toUpperCase())} required /></label>
       </div>
-      <label>Note · optional<input value={note} maxLength={200} onChange={event => setNote(event.target.value)} placeholder="Venmo on Friday" /></label>
+      <label>Note · optional<input value={note} maxLength={200} onChange={event => setNote(event.target.value)} placeholder="Bank transfer on Friday" /></label>
       <button type="submit" className="cm-action cm-action--primary" disabled={!valid || busy}>{submitting ? "Saving…" : "Report payment"}</button>
     </form></details>}
     <p className="beta-wrap__status" role="status">{message || problem}</p>
@@ -162,7 +162,7 @@ function RecapSection({ slug, isOrganizer, moments }: { slug: string; isOrganize
     setBusy(true); setMessage("");
     try {
       const next = (await call<{ recap: Recap }>(`/api/v1/commons/${slug}/recap`, { method: "PUT", body: JSON.stringify({ expectedVersion: recap.version, summary, approvedMomentIds: chosen, share }) })).recap;
-      setRecap(next); setMessage(share ? "Recap shared with the group." : "Draft saved. Only organizers can see it.");
+      setRecap(next); setMessage(share ? "Recap shared with the group." : recap.status === "shared" ? "Draft saved. The group no longer sees the recap until you share it again." : "Draft saved. Only organizers can see it.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Recap not saved. Try again."); }
     finally { setBusy(false); }
   }
@@ -174,7 +174,7 @@ function RecapSection({ slug, isOrganizer, moments }: { slug: string; isOrganize
   </section> : null;
   return <section className="beta-wrap__block" aria-labelledby="beta-recap-title">
     <h3 id="beta-recap-title">Trip recap</h3>
-    <p className="beta-wrap__meta">{recap.status === "shared" ? "Shared with the group. Saving again updates what they see." : "Draft. Only organizers can see it until you share it."}</p>
+    <p className="beta-wrap__meta">{recap.status === "shared" ? "Shared with the group. Share recap again to update what they see. Save draft hides it from the group until you share it again." : "Draft. Only organizers can see it until you share it."}</p>
     <label className="beta-wrap__field">What to remember<textarea value={summary} maxLength={1200} rows={4} onChange={event => setSummary(event.target.value)} /></label>
     {moments.length ? <fieldset className="beta-wrap__choices"><legend>Photos to include</legend>
       {moments.slice(0, 24).map(moment => <label key={moment.id}><input type="checkbox" checked={chosen.includes(moment.id)} onChange={event => setChosen(current => event.target.checked ? [...current, moment.id] : current.filter(id => id !== moment.id))} /> {moment.caption || "Untitled photo"}</label>)}
