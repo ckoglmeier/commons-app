@@ -62,3 +62,34 @@ test("group routes enforce fresh verified identity, recipient auth, explicit sco
     await trip.cleanup(); if (joinedIds.length) for (const id of joinedIds) await db.db.delete(people).where(eq(people.id, id)); await db.close();
   }
 });
+
+test("under the local test sign-in (no Supabase), an organizer creates an invite link and a new person joins with it", { skip: !databaseTestsEnabled }, async () => {
+  const trip = await seedSyntheticTrip(), saved = { ...process.env }, db = createDatabase(testDatabaseUrl()), joinedIds: string[] = [];
+  const user = (id: string, name = "Riley") => ({ id, email: `${id}@example.com`, email_confirmed_at: new Date().toISOString(), user_metadata: { first_name: name } });
+  for (const key of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "VERCEL", "VERCEL_ENV", "COMMONS_PILOT_ACTOR_ID"]) delete process.env[key];
+  Object.assign(process.env, { NODE_ENV: "development", COMMONS_DEV_SIGN_IN: "true", COMMONS_INVITATION_TOKEN_KEY: saved.COMMONS_INVITATION_TOKEN_KEY || "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", DATABASE_URL: testDatabaseUrl() });
+  const management = await import("../../app/api/v1/commons/[slug]/group-invitation/route"), joining = await import("../../app/api/v1/group-invitations/[token]/join/route"), service = await import("./group-invitations");
+  const context = { params: Promise.resolve({ slug: trip.eventId }) }, create = { commandId: crypto.randomUUID(), action: "create", expectedVersion: 0, scopeAccepted: true, expiresInDays: 14 };
+  try {
+    // With no Supabase there is no provider to vouch for anyone: the organizer has no provider-verified email.
+    fixture.setUser(user(trip.organizerId, "Casey")); fixture.setVerifiedEmail(trip.organizerId, null);
+    const made = await management.POST(request("/manage", create), context); assert.equal(made.status, 200, await made.clone().text());
+    const link = (await made.json()).invitation;
+    assert.equal(link.state, "active"); assert.equal(typeof link.token, "string"); assert.ok(link.token.length > 0);
+    const token = link.token as string;
+    assert.equal((await service.publicGroupInvitationPreview(token))?.tripName, "Synthetic Breckenridge weekend", "the link stays usable without a provider check");
+    const newId = crypto.randomUUID(); fixture.setUser(user(newId, "Maya"));
+    const result = await joining.POST(request("/join", { commandId: crypto.randomUUID(), tripId: trip.eventId, linkId: link.id, version: link.version }), { params: Promise.resolve({ token }) });
+    assert.equal(result.status, 200, await result.clone().text());
+    assert.equal((await result.json()).destination, `/c/${trip.eventId}/`);
+    const [person] = await db.db.select().from(people).where(eq(people.authUserId, newId)); joinedIds.push(person.id);
+    assert.equal((await db.db.select().from(memberships).where(and(eq(memberships.commonsId, trip.eventId), eq(memberships.personId, person.id))))[0].role, "member");
+    fixture.setUser(user(trip.travelerId, "Sam"));
+    const revoke = { commandId: crypto.randomUUID(), action: "revoke", expectedVersion: link.version };
+    assert.notEqual((await management.POST(request("/manage", revoke), context)).status, 200, "a traveler still cannot manage the link");
+    assert.notEqual((await management.POST(request("/manage", { ...create, commandId: crypto.randomUUID() }), context)).status, 200, "a traveler still cannot create a link");
+  } finally {
+    fixture.setUser(null); for (const key of Object.keys(process.env)) if (!(key in saved)) delete process.env[key]; Object.assign(process.env, saved);
+    await trip.cleanup(); if (joinedIds.length) for (const id of joinedIds) await db.db.delete(people).where(eq(people.id, id)); await db.close();
+  }
+});
