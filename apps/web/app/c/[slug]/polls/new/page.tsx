@@ -9,6 +9,7 @@ import { pollAssistanceEnabled } from "@/lib/server/poll-inference";
 import { activityPollOptions } from "@/lib/activity-poll-options";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Ask the group — Commons" };
 
 export default async function NewPollPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ question?: string; stayIds?: string; transportIds?: string; activityIds?: string; template?: string; draft?: string; followUp?: string }> }) {
   const { slug } = await params;

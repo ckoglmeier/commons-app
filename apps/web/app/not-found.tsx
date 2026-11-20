@@ -1,6 +1,8 @@
 import { CommonsWordmark } from "@commons/ui";
 import Link from "next/link";
 
+export const metadata = { title: "Page not found — Commons" };
+
 // Also shown for a trip someone can't open, so the second line stays literal about both cases.
 export default function NotFound() {
   return (

@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ document: string }> }) {
   const { document } = await params;
   const item = policies[document as keyof typeof policies];
-  return { title: `${item?.title ?? 'Legal'} | Commons`, alternates: { canonical: `${siteOrigin()}/legal/${document}/` }, robots: { index: true, follow: true } };
+  return { title: `${item?.title ?? 'Legal'} — Commons`, alternates: { canonical: `${siteOrigin()}/legal/${document}/` }, robots: { index: true, follow: true } };
 }
 
 export default async function Page({ params }: { params: Promise<{ document: string }> }) {

@@ -6,6 +6,7 @@ import { getCurrentCommonsIdentity } from "@/lib/server/commons";
 import { loadAuthenticatedTravelerProfile } from "@/lib/server/profile";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Welcome — Commons" };
 
 export default async function WelcomePage() {
   const identity = await getCurrentCommonsIdentity();

@@ -5,6 +5,7 @@ import { CommonsAuthenticationRequiredError, CommonsMembershipRequiredError, get
 import { loadAuthenticatedPollDrafts } from "@/lib/server/polls";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Polls — Commons" };
 
 export default async function PollsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

@@ -13,7 +13,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Set up your trip",
+  title: "Set up your trip — Commons",
 };
 
 export default async function CommonsSetupPage({

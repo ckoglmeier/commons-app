@@ -19,6 +19,7 @@ import { ItineraryDocument } from "@/components/itinerary-document";
 import { ItineraryFeedbackResults } from "@/components/itinerary-feedback-results";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Poll — Commons" };
 
 export default async function PollDetailPage({ params }: { params: Promise<{ slug: string; pollId: string }> }) {
   const { slug, pollId } = await params;

@@ -8,7 +8,7 @@ import { textMessagingAvailable } from "@/lib/server/runtime-environment";
 import { AccountPhoneForm } from "./account-phone-form";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Add your mobile number", robots: { index: false, follow: false }, referrer: "no-referrer" as const };
+export const metadata = { title: "Add your mobile number — Commons", robots: { index: false, follow: false }, referrer: "no-referrer" as const };
 
 /** Optional, and never in the way of an invitation. Confirming a number here turns on nothing: texts are chosen per trip. */
 export default async function AccountPhonePage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {

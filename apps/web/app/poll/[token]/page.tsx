@@ -3,6 +3,7 @@ import { authenticatedPollViewer, loadPublicPoll } from "@/lib/server/polls";
 import { publicPollPath } from "@/lib/poll-route";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Poll — Commons" };
 
 export default async function PublicPollPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;

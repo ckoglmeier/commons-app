@@ -8,6 +8,7 @@ import { normalizePollPublicId, publicPollPath } from "@/lib/poll-route";
 import { authenticatedPollViewer, loadPublicPollByPublicId, pendingPollInvitation, pollEventNavigation } from "@/lib/server/polls";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Poll — Commons" };
 
 export default async function PublicPollPage({ params }: { params: Promise<{ publicId: string }> }) {
   const { publicId } = await params;
