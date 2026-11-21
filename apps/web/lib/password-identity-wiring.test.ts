@@ -31,3 +31,9 @@ test("on a password copy whoever holds the private link is offered the invitatio
   assert.match(page, /const passwordSignIn = isSupabaseAuthConfigured\(\) && await currentSignInMethod\(\) === "password";/);
   assert.match(page, /const sameAccount = identity && \(passwordSignIn \|\|/);
 });
+
+test("a password account's address never makes it a poll's response-only guest, and the editor doesn't offer guest emails", () => {
+  assert.match(read("./server/polls.ts"), /email: verified\.emailProvesIdentity === false \? null : verified\.email/);
+  assert.match(read("../app/c/[slug]/polls/new/page.tsx"), /guestEmailsAllowed=\{await currentSignInMethod\(\) !== "password"\}/);
+  assert.match(read("../app/c/[slug]/polls/new/poll-starter.tsx"), /guestEmails: guestEmailsAllowed \? /);
+});

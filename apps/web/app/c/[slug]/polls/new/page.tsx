@@ -7,6 +7,7 @@ import { stayComparison, stayPollDescription } from "@/lib/stay-compare";
 import { readCommonsRuntimeEnvironment } from "@/lib/server/runtime-environment";
 import { pollAssistanceEnabled } from "@/lib/server/poll-inference";
 import { activityPollOptions } from "@/lib/activity-poll-options";
+import { currentSignInMethod } from "@/lib/server/sign-in-method";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Ask the group — Commons" };
@@ -57,5 +58,5 @@ export default async function NewPollPage({ params, searchParams }: { params: Pr
   }
   const environment = readCommonsRuntimeEnvironment();
   const deciding = snapshot.commons.stage === "deciding";
-  return <PollStarter linkOnly={deciding} bigQuestion={deciding && (question === "where" || question === "when" || question === "who") ? question : undefined} key={draftId ?? followUp ?? "new"} slug={slug} eventName={snapshot.commons.name} defaultCurrency={snapshot.commons.currency ?? "USD"} timezone={snapshot.commons.timezone} startsOn={snapshot.commons.startsOn} canSuggest={snapshot.currentActor.role === "organizer"} suggestionsAvailable={Boolean(pollAssistanceEnabled() && environment.OPENAI_API_KEY && environment.COMMONS_POLL_MODEL)} people={snapshot.participants.map(person => ({ id: person.id, name: person.displayName }))} sourcePoll={sourcePoll ? { id: sourcePoll.id, title: sourcePoll.title } : undefined} stayOptions={stayOptions} transportOptions={transportOptions} activityOptions={activityOptions} templateId={template} templateKey={snapshot.commons.templateKey ?? null} prefillTitle={deciding && question && question !== "where" && question !== "when" && question !== "who" ? question.slice(0, 120) : undefined} initialDraft={draft} savedDrafts={drafts} />;
+  return <PollStarter guestEmailsAllowed={await currentSignInMethod() !== "password"} linkOnly={deciding} bigQuestion={deciding && (question === "where" || question === "when" || question === "who") ? question : undefined} key={draftId ?? followUp ?? "new"} slug={slug} eventName={snapshot.commons.name} defaultCurrency={snapshot.commons.currency ?? "USD"} timezone={snapshot.commons.timezone} startsOn={snapshot.commons.startsOn} canSuggest={snapshot.currentActor.role === "organizer"} suggestionsAvailable={Boolean(pollAssistanceEnabled() && environment.OPENAI_API_KEY && environment.COMMONS_POLL_MODEL)} people={snapshot.participants.map(person => ({ id: person.id, name: person.displayName }))} sourcePoll={sourcePoll ? { id: sourcePoll.id, title: sourcePoll.title } : undefined} stayOptions={stayOptions} transportOptions={transportOptions} activityOptions={activityOptions} templateId={template} templateKey={snapshot.commons.templateKey ?? null} prefillTitle={deciding && question && question !== "where" && question !== "when" && question !== "who" ? question.slice(0, 120) : undefined} initialDraft={draft} savedDrafts={drafts} />;
 }

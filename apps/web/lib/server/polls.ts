@@ -122,7 +122,8 @@ export async function authenticatedPollViewer() {
   }
   const verified = await getVerifiedAuthUser();
   if (!verified) return undefined;
-  return { authUserId: verified.authUserId, email: verified.email };
+  // With password sign-in the address is only what the person typed, so it never makes them a poll's response-only guest.
+  return { authUserId: verified.authUserId, email: verified.emailProvesIdentity === false ? null : verified.email };
 }
 
 export async function pendingPollInvitation(publicId: string) {

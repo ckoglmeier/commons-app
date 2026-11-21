@@ -24,13 +24,15 @@ function stayPollIntro(options: StayPollOption[]) {
   return `We’re choosing where to stay${same && first.startsOn && first.endsOn ? ` ${day(first.startsOn)}–${day(first.endsOn)}` : ""}. Pick every place that could work for you, then your first choice if you have one. Nothing is booked yet.`;
 }
 
-export function PollStarter({ linkOnly = false, bigQuestion, slug, eventName, timezone = "UTC", defaultCurrency = "USD", startsOn, canSuggest = false, suggestionsAvailable = false, people = [], sourcePoll, stayOptions = [], transportOptions = [], activityOptions = [], templateId, templateKey, prefillTitle, initialDraft, savedDrafts = [] }: {
+export function PollStarter({ guestEmailsAllowed = true, linkOnly = false, bigQuestion, slug, eventName, timezone = "UTC", defaultCurrency = "USD", startsOn, canSuggest = false, suggestionsAvailable = false, people = [], sourcePoll, stayOptions = [], transportOptions = [], activityOptions = [], templateId, templateKey, prefillTitle, initialDraft, savedDrafts = [] }: {
   /** The trip's plan template, so its own default polls are found. */
   templateKey?: string | null;
   /** A question from the template's "Also to settle" list, used as the poll title. */
   prefillTitle?: string;
   /** Free stage: a link poll. Nobody joins the trip, and Commons sends nothing. */
   linkOnly?: boolean;
+  /** False with password sign-in: a typed address proves nothing, so guests can't be named by email. */
+  guestEmailsAllowed?: boolean;
   /** Which big question this poll asks, when opened from Trip. */
   bigQuestion?: "where" | "when" | "who";
   slug: string; eventName: string; timezone?: string; defaultCurrency?: string; startsOn?: string | null; canSuggest?: boolean; suggestionsAvailable?: boolean; people?: Array<{ id: string; name: string }>; sourcePoll?: { id: string; title: string }; stayOptions?: StayPollOption[]; transportOptions?: Array<{ id: string; name: string; description: string | null }>; activityOptions?: Array<{ id: string; name: string; description: string | null }>; templateId?: string; initialDraft?: PollWorkingDraft; savedDrafts?: PollWorkingDraft[] }) {
@@ -46,7 +48,7 @@ export function PollStarter({ linkOnly = false, bigQuestion, slug, eventName, ti
   const [settledFacts, setSettledFacts] = useState(initialDraft?.data.settledFacts ?? "");
   const [recipientIds, setRecipientIds] = useState(initialDraft?.data.audience?.personIds ?? (sourcePoll ? [] : people.map(person => person.id)));
   const [guestEmails, setGuestEmails] = useState(initialDraft?.data.audience?.guestEmails.join(", ") ?? "");
-  const audience = { personIds: recipientIds, guestEmails: [...new Set(guestEmails.split(/[\s,;]+/).map(email => email.trim().toLowerCase()).filter(Boolean))] };
+  const audience = { personIds: recipientIds, guestEmails: guestEmailsAllowed ? [...new Set(guestEmails.split(/[\s,;]+/).map(email => email.trim().toLowerCase()).filter(Boolean))] : [] };
   const recipientNames = people.filter(person => recipientIds.includes(person.id)).map(person => person.name).join(", ");
   const [ballotMode, setBallotMode] = useState<CreatePollRequest["ballotMode"]>(initialDraft?.data.ballotMode ?? "transparent");
   const [questions, setQuestions] = useState<PollQuestion[]>(() => {
@@ -252,10 +254,10 @@ export function PollStarter({ linkOnly = false, bigQuestion, slug, eventName, ti
         <section aria-label="Sharing settings">
         <h2>Before you share</h2>
         <label className="fieldnotes-field"><span>Poll title</span><input value={title} onChange={event => { edit(); setTitle(event.target.value); }} maxLength={120} /></label>
-        {linkOnly ? <p className="fieldnotes-note"><strong>Anyone with the link can answer.</strong> They don’t sign in or join the trip. Commons doesn’t send it.</p> : <details className="fieldnotes-context"><summary>Who can answer · {recipientIds.length} trip participants · {audience.guestEmails.length} guests</summary>
-          <p>Guests can answer the poll but can’t open the trip.</p>
+        {linkOnly ? <p className="fieldnotes-note"><strong>Anyone with the link can answer.</strong> They don’t sign in or join the trip. Commons doesn’t send it.</p> : <details className="fieldnotes-context"><summary>Who can answer · {recipientIds.length} trip participants{guestEmailsAllowed ? ` · ${audience.guestEmails.length} guests` : ""}</summary>
+          {guestEmailsAllowed ? <p>Guests can answer the poll but can’t open the trip.</p> : null}
           {people.map(person => <label className="fieldnotes-toolbar" key={person.id}><input type="checkbox" checked={recipientIds.includes(person.id)} onChange={event => { edit(); setRecipientIds(event.target.checked ? [...recipientIds, person.id] : recipientIds.filter(id => id !== person.id)); }} />{person.name}</label>)}
-          <label className="fieldnotes-field"><span>Response-only guest emails · Optional</span><textarea value={guestEmails} onChange={event => { edit(); setGuestEmails(event.target.value); }} rows={2} maxLength={10000} /><small>Separate emails with commas.</small></label>
+          {guestEmailsAllowed ? <label className="fieldnotes-field"><span>Response-only guest emails · Optional</span><textarea value={guestEmails} onChange={event => { edit(); setGuestEmails(event.target.value); }} rows={2} maxLength={10000} /><small>Separate emails with commas.</small></label> : null}
         </details>}
         <label className="fieldnotes-field"><span>Answer visibility</span><select value={ballotMode} onChange={event => { edit(); setBallotMode(event.target.value as CreatePollRequest["ballotMode"]); }}><option value="transparent">Named answers</option><option value="secret">Secret ballot</option></select><small>Can’t change after you publish.</small></label>
         </section>
