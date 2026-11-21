@@ -1,5 +1,3 @@
-import exchangeRates from './exchange-rates.json';
-
 /**
  * Group budget worksheet arithmetic. Every amount is user-entered; nothing here
  * supplies, infers or looks up local prices. Money is handled in integer minor
@@ -11,6 +9,7 @@ export type LodgingBasis = 'property' | 'room';
 export type OptionalExtraInput = { id: string; label: string; perPerson: string; participants: string };
 
 export type BudgetInputs = {
+  /** Always the trip's currency. Saved worksheets keep the field so stored rows stay readable; see withTripCurrency. */
   currency: string;
   travelers: string;
   nights: string;
@@ -97,59 +96,19 @@ export function emptyBudgetInputs(currency = 'USD'): BudgetInputs {
   };
 }
 
-export const BUDGET_EXCHANGE_RATES = exchangeRates;
-
-export type CurrencyOriginals = Record<string, { amount: string; currency: string }>;
-
-/** Money fields only: counts, days and percentages never change with currency. */
-export function budgetMoneyValues(inputs: BudgetInputs): Record<string, string> {
-  return {
-    lodgingPerNight: inputs.lodgingPerNight,
-    mealsPerPersonPerDay: inputs.mealsPerPersonPerDay,
-    transportTotal: inputs.transportTotal,
-    activitiesTotal: inputs.activitiesTotal,
-    travelPerPerson: inputs.travelPerPerson,
-    ...Object.fromEntries(inputs.optional.map(o => [`optional.${o.id}.perPerson`, o.perPerson])),
-  };
+/**
+ * The worksheet works in the trip's currency, as the rest of Money does. A worksheet saved while the old
+ * currency selector existed may name another currency; that value is read without error and replaced.
+ */
+export function withTripCurrency(inputs: BudgetInputs, currency = 'USD'): BudgetInputs {
+  return inputs.currency === currency ? inputs : { ...inputs, currency };
 }
 
-/** Local snapshot conversion, rounded half up to the target currency's minor unit. */
-export function convertBudgetCurrency(inputs: BudgetInputs, currency: string, originals: CurrencyOriginals = {}): BudgetInputs | null {
-  const rates = exchangeRates.rates as Record<string, number>;
-  if (!rates[currency] || !rates[inputs.currency]) return null;
-  const targetDigits = currencyMinorDigits(currency);
-  const values: Record<string, string> = {};
-  for (const [key, value] of Object.entries(budgetMoneyValues(inputs))) {
-    const current = parseAmount(value, currencyMinorDigits(inputs.currency), inputs.currency);
-    if (current.kind === 'error') return null;
-    if (current.kind === 'blank') { values[key] = value; continue; }
-    const original = originals[key] ?? { amount: value, currency: inputs.currency };
-    const fromDigits = currencyMinorDigits(original.currency);
-    const parsed = parseAmount(original.amount, fromDigits, original.currency);
-    if (parsed.kind !== 'ok' || !rates[original.currency]) return null;
-    const numerator = BigInt(parsed.value) * BigInt(Math.round(rates[currency] * 1_000_000)) * 10n ** BigInt(targetDigits);
-    const denominator = BigInt(Math.round(rates[original.currency] * 1_000_000)) * 10n ** BigInt(fromDigits);
-    const minor = (numerator + denominator / 2n) / denominator;
-    if (minor > BigInt(BUDGET_LIMITS.amountMinor)) return null;
-    const raw = minor.toString().padStart(targetDigits + 1, '0');
-    values[key] = targetDigits ? `${raw.slice(0, -targetDigits)}.${raw.slice(-targetDigits)}` : raw;
-  }
-  return {
-    ...inputs, currency,
-    lodgingPerNight: values.lodgingPerNight,
-    mealsPerPersonPerDay: values.mealsPerPersonPerDay,
-    transportTotal: values.transportTotal,
-    activitiesTotal: values.activitiesTotal,
-    travelPerPerson: values.travelPerPerson,
-    optional: inputs.optional.map(o => ({ ...o, perPerson: values[`optional.${o.id}.perPerson`] })),
-  };
-}
-
-/** Empty worksheet with an optional USD base price converted locally when needed. */
+/** Empty worksheet. A nightly lodging reference is in US dollars, so it seeds only a USD worksheet. */
 export function startingBudgetInputs(currency = 'USD', startingLodgingUsd?: number): BudgetInputs {
-  const inputs = emptyBudgetInputs('USD');
-  if (startingLodgingUsd !== undefined) inputs.lodgingPerNight = String(startingLodgingUsd);
-  return currency === 'USD' ? inputs : convertBudgetCurrency(inputs, currency) ?? emptyBudgetInputs(currency);
+  const inputs = emptyBudgetInputs(currency);
+  if (startingLodgingUsd !== undefined && currency === 'USD') inputs.lodgingPerNight = String(startingLodgingUsd);
+  return inputs;
 }
 
 /** Number of minor-unit digits for a currency (USD 2, JPY 0, KWD 3). */

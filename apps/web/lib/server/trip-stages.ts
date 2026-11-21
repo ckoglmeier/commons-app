@@ -1,5 +1,5 @@
 import "server-only";
-import { attachBigQuestionPoll, decideBigQuestion, markTripGoing, readBigQuestions, saveTripBrief, setTripExperience } from "@commons/database";
+import { attachBigQuestionPoll, decideBigQuestion, markTripGoing, readBigQuestions, saveTripBrief } from "@commons/database";
 import { authenticatedCommonsRepositoryOptions } from "./commons";
 
 /** DESIGN.md §9 (Trip). */
@@ -14,5 +14,4 @@ export async function loadBigQuestions(slug: string) { return readBigQuestions(s
 export async function linkBigQuestionPoll(slug: string, input: unknown) { return attachBigQuestionPoll(slug, input, await options()); }
 export async function decideTripQuestion(slug: string, input: unknown) { return decideBigQuestion(slug, input, await options()); }
 export async function saveBrief(slug: string, input: unknown) { return saveTripBrief(slug, input, await options()); }
-export async function changeTripExperience(slug: string, input: unknown) { return setTripExperience(slug, input, await options()); }
 export async function declareTripGoing(slug: string) { return markTripGoing(slug, await options()); }

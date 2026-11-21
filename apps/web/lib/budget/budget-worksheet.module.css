@@ -53,7 +53,6 @@ p.detail{margin:0}
 
 .heading{display:flex;align-items:start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}
 .heading h2{flex:1 1 16rem}
-.currency{width:7rem;flex:0 0 7rem}
 .choice{display:flex!important;flex-wrap:wrap;gap:12px!important}
 .choice legend{width:100%}
 .radio{padding:10px 16px;border:1px solid var(--cm-color-control-border);border-radius:var(--cm-radius-compact);flex:1 1 10rem}

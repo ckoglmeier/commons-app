@@ -74,19 +74,14 @@ export default async function CommonsPage({
   }
   const instanceAdmin = identity ? await currentPersonIsInstanceAdmin() : false;
   const environment = readCommonsRuntimeEnvironment();
-  const newExperience = snapshot.commons.newExperience === true;
   return (
     <CommonsApp
-      tripStagesOn={newExperience}
       key={`${snapshot.commons.id}:${snapshot.currentActor.id}:${snapshot.currentActor.role}:${decisionHandoff?.pollId ?? ""}:${decisionHandoff?.action ?? ""}`}
       initialSnapshot={snapshot}
       dataMode={getCommonsDataMode(identifier)}
       signedIn={Boolean(identity)}
       initialPlanSection={parsePlanSection(entry.section, true)}
-      betaCompletion={newExperience ? { paymentReports: true, closure: true, recap: true, successor: true } : undefined}
-      tripLetterEnabled={newExperience}
       textMessagingEnabled={identity ? "web" : textMessagingAvailable() ? "sms" : false}
-      betaMapEnabled={newExperience}
       initialItem={entry.itemId && (entry.item === "plan" || entry.item === "stay") ? {kind: entry.item, id: entry.itemId} : undefined}
       initialView={decisionHandoff ? decisionHandoff.action === "plan" ? "plan" : "logistics" : initialView}
       decisionHandoff={decisionHandoff}

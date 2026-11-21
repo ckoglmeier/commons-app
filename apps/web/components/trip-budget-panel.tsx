@@ -4,7 +4,7 @@ import { planTemplateFor } from "@commons/domain";
 import { TripBudgetInputsSchema, TripBudgetViewSchema, type TripBudgetView } from "@commons/contracts";
 import { GroupBudgetWorksheet } from "@/lib/budget/budget-worksheet";
 import { prefillTripBudget, tripBudgetLodgingReference } from "@/lib/trip-budget/prefill";
-import { type BudgetInputs } from "@/lib/budget/budget-calculations";
+import { withTripCurrency, type BudgetInputs } from "@/lib/budget/budget-calculations";
 import css from "./trip-budget-panel.module.css";
 import { personFacingError } from "@/lib/person-facing-error";
 
@@ -57,6 +57,8 @@ function TripBudgetEditor({ tripId, destinationName, startsOn, endsOn, travelerC
           const parsed = local ? TripBudgetInputsSchema.safeParse(JSON.parse(local)) : null;
           view = { inputs: parsed?.success ? parsed.data : null, version: 0, updatedAt: null, canEdit };
         }
+        // An older worksheet may name another currency; it is read and shown in the trip's currency, like the rest of Money.
+        if (view.inputs) view = { ...view, inputs: withTripCurrency(view.inputs, initial.currency) };
         if (active) { setSaved(view); setInputs(view.inputs ?? initial); setError(""); setConflict(false); }
       } catch (cause) {
         if (active) setError(personFacingError(cause, "Couldn’t load the saved budget. Try again."));
@@ -89,7 +91,7 @@ function TripBudgetEditor({ tripId, destinationName, startsOn, endsOn, travelerC
   }
   if (loading) return <p role="status">Loading trip budget…</p>;
   if (!saved) return <div><p role="alert">{error}</p><button type="button" className="cm-action-secondary" onClick={() => { setLoading(true); setLoadAttempt(value => value + 1); }}>Try again</button></div>;
-  const lodgingReference = saved.inputs ? undefined : tripBudgetLodgingReference(destinationName);
+  const lodgingReference = saved.inputs || initial.currency !== "USD" ? undefined : tripBudgetLodgingReference(destinationName);
   return <div className={css.panel}>
     <GroupBudgetWorksheet summarySupplement={targetControl} summaryActions={(editable && <div className={css.actions}>
       <button type="button" className="cm-action" disabled={saving || conflict || (!dirty && saved.version > 0)} onClick={() => void save()}>{saving ? "Saving…" : "Save budget"}</button>

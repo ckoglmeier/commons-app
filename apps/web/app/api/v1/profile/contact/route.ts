@@ -4,6 +4,7 @@ import { contactUpdateError } from "@/lib/contact-methods";
 import { json, messagingRoute } from "@/lib/server/messaging/http";
 import { confirmPhoneCode, sendPhoneCode } from "@/lib/server/messaging/phone-verification";
 import { commonsSiteOrigin, textMessagingAvailable } from "@/lib/server/runtime-environment";
+import { currentSignInMethod } from "@/lib/server/sign-in-method";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const RequestSchema = z.discriminatedUnion("kind", [
@@ -28,6 +29,8 @@ export async function POST(request: Request) {
     });
   }
 
+  // With password sign-in there is no mailer to confirm a new address, and the address is the sign-in name.
+  if (await currentSignInMethod() === "password") return NextResponse.json({ error: "Your email can’t be changed here. To change it, ask the person who runs this copy of Commons." }, { status: 403 });
   const supabase = await createSupabaseServerClient();
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) return NextResponse.json({ error: "Sign in again to update your profile." }, { status: 401 });

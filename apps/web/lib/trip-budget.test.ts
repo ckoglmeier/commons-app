@@ -26,5 +26,30 @@ test("known destinations use the existing lodging reference without matching vag
   assert.equal(tripBudgetLodgingReference("West Savannah"), undefined);
   assert.equal(prefillTripBudget({ destinationName: "Unlisted place" }).lodgingPerNight, "");
   assert.equal(tripBudgetLodgingReference("napa-valley")?.name, "Napa Valley");
-  assert.notEqual(prefillTripBudget({ destinationName: "Savannah", currency: "EUR" }).lodgingPerNight, String(rate.nightlyUsd));
+  // The reference is in US dollars and nothing converts it, so another trip currency starts with lodging blank.
+  assert.equal(prefillTripBudget({ destinationName: "Savannah", currency: "EUR" }).lodgingPerNight, "");
+  assert.equal(prefillTripBudget({ destinationName: "Savannah", currency: "EUR" }).currency, "EUR");
+});
+
+import { readFileSync } from "node:fs";
+import { emptyBudgetInputs, startingBudgetInputs, withTripCurrency } from "./budget/budget-calculations";
+test("the worksheet works in the trip's currency, with no selector, rates or conversion", () => {
+  assert.equal(startingBudgetInputs("JPY", 180).lodgingPerNight, "");
+  assert.equal(startingBudgetInputs("USD", 180).lodgingPerNight, "180");
+  const worksheet = readFileSync(new URL("./budget/budget-worksheet.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(worksheet, /<select|aria-label="Currency"|exchange|convert|SUPPORTED_CURRENCIES/i);
+  const calculations = readFileSync(new URL("./budget/budget-calculations.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(calculations, /exchange-rates|convertBudgetCurrency|BUDGET_EXCHANGE_RATES/);
+  const panel = readFileSync(new URL("../components/trip-budget-panel.tsx", import.meta.url), "utf8");
+  assert.match(panel, /withTripCurrency\(view\.inputs, initial\.currency\)/);
+});
+
+test("a worksheet saved in another currency still reads, and is shown in the trip's currency", () => {
+  const stored = { ...emptyBudgetInputs("EUR"), travelers: "4", nights: "2", lodgingPerNight: "300" };
+  const parsed = TripBudgetInputsSchema.parse(stored);
+  const shown = withTripCurrency(parsed, "USD");
+  assert.equal(shown.currency, "USD");
+  assert.equal(shown.lodgingPerNight, "300", "amounts are not converted");
+  assert.equal(withTripCurrency(shown, "USD"), shown, "already in the trip's currency: unchanged");
+  assert.equal(TripBudgetInputsSchema.safeParse(shown).success, true, "it saves back in the same stored shape");
 });

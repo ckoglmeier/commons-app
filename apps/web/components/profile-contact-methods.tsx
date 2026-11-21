@@ -43,10 +43,10 @@ export function ProfileContactMethods({ email, passwordSignIn = false }: { email
     <section className="profile-contact">
       <h2>Contact methods</h2>
       <div className="profile-contact-row">
-        <div><span>Email</span><strong>{email ?? "Not added"}</strong><small>{email ? (passwordSignIn ? "Used for sign-in" : "Verified for sign-in") : "Add an email for sign-in."}</small></div>
-        <button type="button" onClick={begin}>{email ? "Edit" : "Add"}</button>
+        <div><span>Email</span><strong>{email ?? "Not added"}</strong><small>{email ? (passwordSignIn ? "Used for sign-in" : "Verified for sign-in") : "Add an email for sign-in."}</small>{passwordSignIn ? <small>To change it, ask the person who runs this copy of Commons.</small> : null}</div>
+        {passwordSignIn ? null : <button type="button" onClick={begin}>{email ? "Edit" : "Add"}</button>}
       </div>
-      {editing ? <form className="profile-contact-editor" onSubmit={(event) => void requestUpdate(event)}>
+      {editing && !passwordSignIn ? <form className="profile-contact-editor" onSubmit={(event) => void requestUpdate(event)}>
         <label className="field"><span>Email</span><input type="email" value={emailValue} onChange={(event) => setEmailValue(event.target.value)} autoComplete="email" inputMode="email" placeholder="you@example.com" required /></label>
         <div><button type="submit" disabled={pending}>{pending ? "Sending…" : "Send confirmation"}</button><button type="button" onClick={() => setEditing(false)}>Cancel</button></div>
       </form> : null}

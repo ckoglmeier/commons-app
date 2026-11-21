@@ -87,7 +87,7 @@ export function LogisticsAddMenu({ canAddStay, disabled = false, choose, addPhot
         trigger.current?.focus({ preventScroll: true });
         choose(option.kind);
       }}><span>{option.label}</span></button>)}
-      {[{ label: "Photos", action: addPhotos }, { label: "Receipts", action: addReceipt }].filter(option => option.action).map(option => <button key={option.label} type="button" role="menuitem" tabIndex={-1} onKeyDown={keyDown} onClick={() => { setOpen(false); trigger.current?.focus({ preventScroll: true }); option.action?.(); }}><span>{option.label}</span></button>)}
+      {[{ label: "Photos", action: addPhotos }, { label: "Cost from a receipt", action: addReceipt }].filter(option => option.action).map(option => <button key={option.label} type="button" role="menuitem" tabIndex={-1} onKeyDown={keyDown} onClick={() => { setOpen(false); trigger.current?.focus({ preventScroll: true }); option.action?.(); }}><span>{option.label}</span></button>)}
       {!canAddStay ? <p className="event-logistics-note">Organizers can add shared stays.</p> : null}
     </div> : null}
   </div>;

@@ -1,9 +1,8 @@
 'use client';
 import { useId, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
-import { SUPPORTED_CURRENCIES } from '@commons/contracts';
 import {
-  BUDGET_LIMITS, BUDGET_EXCHANGE_RATES, budgetMoneyValues, convertBudgetCurrency, calculateBudget, formatMinor, startingBudgetInputs,
-  type BudgetField, type BudgetInputs, type LodgingBasis, type CurrencyOriginals,
+  BUDGET_LIMITS, calculateBudget, formatMinor, startingBudgetInputs,
+  type BudgetField, type BudgetInputs, type LodgingBasis,
 } from './budget-calculations';
 import type { CityLodgingBaseRate } from './city-lodging-rates';
 import css from './budget-worksheet.module.css';
@@ -21,16 +20,17 @@ export type GroupBudgetWorksheetProps = {
   title?: string;
   storageNotice?: ReactNode;
   lodgingReferenceLabel?: ReactNode;
-  /** ISO 4217 code selected initially and after reset. Defaults to USD. */
+  /** The trip's currency (ISO 4217). Every amount is entered in it; there is no selector or conversion. Defaults to USD. */
   defaultCurrency?: string;
-  /** Editable USD nightly base, converted locally and restored by Clear worksheet. */
+  /** Editable USD nightly base, restored by Clear worksheet. Used only when the trip's currency is USD. */
   startingLodging?: CityLodgingBaseRate;
 };
 
 type TextField = Exclude<keyof BudgetInputs, 'currency' | 'lodgingBasis' | 'mealDaysFollowNights' | 'optional'>;
 
-export function GroupBudgetWorksheet({ destinationName, defaultCurrency = 'USD', startingLodging, value, onChange, readOnly = false, title = 'Estimate your group budget', embedded = false, summaryActions, summarySupplement, storageNotice, lodgingReferenceLabel }: GroupBudgetWorksheetProps) {
+export function GroupBudgetWorksheet({ destinationName, defaultCurrency = 'USD', startingLodging: startingLodgingUsd, value, onChange, readOnly = false, title = 'Estimate your group budget', embedded = false, summaryActions, summarySupplement, storageNotice, lodgingReferenceLabel }: GroupBudgetWorksheetProps) {
   const uid = useId();
+  const startingLodging = defaultCurrency === 'USD' ? startingLodgingUsd : undefined;
   const id = (field: string) => `${uid}-${field.replace(/\./g, '-')}`;
   const [localInputs, setLocalInputs] = useState<BudgetInputs>(() => startingBudgetInputs(defaultCurrency, startingLodging?.nightlyUsd));
   const inputs = value ?? localInputs;
@@ -41,37 +41,12 @@ export function GroupBudgetWorksheet({ destinationName, defaultCurrency = 'USD',
   };
   const [usingStartingPrice, setUsingStartingPrice] = useState(!!startingLodging);
   const showingPrefill = usingStartingPrice && inputs.lodgingBasis === 'property';
-  const [currencyError, setCurrencyError] = useState('');
-  const [originals, setOriginals] = useState<CurrencyOriginals>(startingLodging ? { lodgingPerNight: { amount: String(startingLodging.nightlyUsd), currency: 'USD' } } : {});
   const [touched, setTouched] = useState<Set<string>>(() => new Set());
   const [announcement, setAnnouncement] = useState('');
   // Any edit replaces a one-off announcement (cleared, removed) with the live total.
   const setInputs: typeof setInputsState = next => {
     setAnnouncement('');
-    setCurrencyError('');
-    const value = typeof next === 'function' ? next(inputs) : next;
-    const before = budgetMoneyValues(inputs);
-    const references = { ...originals };
-    for (const [key, amount] of Object.entries(budgetMoneyValues(value))) {
-      if (before[key] !== amount) delete references[key];
-    }
-    setOriginals(references);
-    setInputsState(value);
-  };
-  const switchCurrency = (currency: string) => {
-    const references = { ...originals };
-    for (const [key, amount] of Object.entries(budgetMoneyValues(inputs))) {
-      references[key] ??= { amount, currency: inputs.currency };
-    }
-    const converted = convertBudgetCurrency(inputs, currency, references);
-    if (!converted) {
-      setCurrencyError('Check the money amounts before converting. An amount is invalid or too large in the selected currency.');
-      return;
-    }
-    setOriginals(references);
-    setInputsState(converted);
-    setCurrencyError('');
-    setAnnouncement(`Amounts converted to ${currency}.`);
+    setInputsState(next);
   };
   const nextExtra = useRef(2);
   const firstField = useRef<HTMLInputElement>(null);
@@ -103,10 +78,8 @@ export function GroupBudgetWorksheet({ destinationName, defaultCurrency = 'USD',
   const mealDaysValue = inputs.mealDaysFollowNights ? (result.nights !== null ? String(result.nights + 1) : '') : inputs.mealDays;
 
   const reset = () => {
-    setOriginals(startingLodging ? { lodgingPerNight: { amount: String(startingLodging.nightlyUsd), currency: 'USD' } } : {});
     setUsingStartingPrice(!!startingLodging);
     setInputsState(startingBudgetInputs(defaultCurrency, startingLodging?.nightlyUsd));
-    setCurrencyError('');
     setTouched(new Set());
     nextExtra.current = 2;
     setAnnouncement('Worksheet cleared.');
@@ -164,12 +137,7 @@ export function GroupBudgetWorksheet({ destinationName, defaultCurrency = 'USD',
 
   return (
     <section className={`${css.worksheet} ${embedded ? css.embedded : ""}`} aria-labelledby={id('title')}>
-      <div className={css.heading}><h2 id={id('title')}>{title}</h2>            <div className={`${css.field} ${css.currency}`}>
-              <select disabled={readOnly} id={id('currency')} value={code} aria-label="Currency" title="Approximate conversion rates from November 6, 2026" aria-describedby={currencyError ? `${id('currency')}-error` : undefined} aria-invalid={currencyError ? true : undefined} onChange={e => switchCurrency(e.target.value)}>
-                {SUPPORTED_CURRENCIES.filter(c => Object.hasOwn(BUDGET_EXCHANGE_RATES.rates, c.code) && c.code !== 'ZWL').map(c => <option key={c.code} value={c.code}>{`${c.symbol} ${c.code}`}</option>)}
-              </select>
-              {currencyError && <p id={`${id('currency')}-error`} className={css.error} role="alert">{currencyError}</p>}
-            </div></div>
+      <div className={css.heading}><h2 id={id('title')}>{title}</h2></div>
       <p className={css.intro}>{!embedded && <>Plan what {place} could cost. </>} {startingLodging ? 'Start with a local lodging estimate and adjust it for your group. ' : ''}{storageNotice ?? 'Your entries stay in this browser.'}</p>
       <div className={css.layout} data-readonly={readOnly || undefined}>
         {!readOnly && <form className={css.form} aria-label="Budget worksheet" noValidate onSubmit={e => e.preventDefault()}>

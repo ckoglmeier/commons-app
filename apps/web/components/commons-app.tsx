@@ -42,7 +42,6 @@ import {
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { TripTasks } from "./trip-tasks";
-import { NewExperienceSetting } from "./new-experience-setting";
 import { GoingAction, PlanStageBanner, StageLockedPage } from "./trip-stage-gate";
 import Link from "next/link";
 import { TripApplicationShell } from "./trip-application-shell";
@@ -79,7 +78,6 @@ import { ResilientCoverImage } from "./resilient-cover-image";
 import {
     CalendarIcon,
     CheckIcon,
-    ChevronLeftIcon,
     ChevronRightIcon,
     CloseIcon,
     DownloadIcon,
@@ -610,9 +608,7 @@ function TripArrival({
   );
 }
 
-function TripDetailsEditorSheet({ experience, commons, close, save, inline = false, sampleOnly = false }: {
-  /** Organizer, on a saved trip: the per-trip experience setting. */
-  experience?: { slug: string; enabled: boolean };
+function TripDetailsEditorSheet({ commons, close, save, inline = false, sampleOnly = false }: {
   inline?: boolean;
   sampleOnly?: boolean;
   commons: CommonsSummary;
@@ -669,7 +665,6 @@ function TripDetailsEditorSheet({ experience, commons, close, save, inline = fal
         <label className="field"><span>Trip currency</span><select value={currency} onChange={event => setCurrency(event.target.value)}>{!SUPPORTED_CURRENCIES.some(option => option.code === currency) ? <option value={currency} disabled>{currency} (saved currency)</option> : null}{SUPPORTED_CURRENCIES.map(option => <option key={option.code} value={option.code}>{currencyLabel(option.code)}</option>)}</select><small>Used for new costs. Existing costs keep their saved currency.</small></label>
         <button className="sheet-primary" type="submit" disabled={busy || !title.trim()}>{busy ? "Saving…" : "Save trip details"}</button>
       </form>
-      {experience ? <NewExperienceSetting slug={experience.slug} enabled={experience.enabled} /> : null}
       {error ? <p className="form-error" role="alert">{error}</p> : null}
     </section>
   </EditorSurface>;
@@ -2493,7 +2488,7 @@ export function ExpenseEditorSheet({
             </div>
           <fieldset className="expense-split-fieldset"><legend>Is this planned or already paid?</legend><div className="expense-split-toggle"><button type="button" aria-pressed={balanceMode === "budget_only"} className={balanceMode === "budget_only" ? "active" : ""} onClick={() => chooseExpenseStatus("budget")}>Budget</button><button type="button" aria-pressed={balanceMode !== "budget_only"} className={balanceMode !== "budget_only" ? "active" : ""} onClick={() => chooseExpenseStatus("recorded")}>Recorded</button></div><p className="expense-mode-help">{balanceMode === "budget_only" ? "Adds a planned cost. It will not appear as actual spending." : "Records the cost and payer as actual spending."}</p></fieldset>
 
-          {balanceMode !== "budget_only" && !balancesDisabled ? <fieldset className="expense-split-fieldset"><legend>Should this create balances?</legend><div className="expense-split-toggle"><button type="button" aria-pressed={balanceMode === "tracking_only"} className={balanceMode === "tracking_only" ? "active" : ""} onClick={() => chooseBalanceMode("tracking_only")}>No allocation</button><button type="button" aria-pressed={balanceMode === "allocated"} className={balanceMode === "allocated" ? "active" : ""} onClick={() => chooseBalanceMode("allocated")}>Allocate balances</button></div><p className="expense-mode-help">{balanceMode === "tracking_only" ? "Keeps the payer and receipt without calculating who owes whom." : "Splits the expense between the included travelers."}</p></fieldset> : null}
+          {balanceMode !== "budget_only" && !balancesDisabled ? <fieldset className="expense-split-fieldset"><legend>Should this create balances?</legend><div className="expense-split-toggle"><button type="button" aria-pressed={balanceMode === "tracking_only"} className={balanceMode === "tracking_only" ? "active" : ""} onClick={() => chooseBalanceMode("tracking_only")}>No allocation</button><button type="button" aria-pressed={balanceMode === "allocated"} className={balanceMode === "allocated" ? "active" : ""} onClick={() => chooseBalanceMode("allocated")}>Allocate balances</button></div><p className="expense-mode-help">{balanceMode === "tracking_only" ? "Keeps the payer and amount without calculating who owes whom." : "Splits the expense between the included travelers."}</p></fieldset> : null}
 
           {balanceMode === "allocated" ? <><fieldset className="expense-split-fieldset">
             <legend>How should it be split?</legend>
@@ -2775,7 +2770,7 @@ function ExpenseSheet({
           {linkedPlan ? <div><dt>Trip plan</dt><dd>{linkedPlan.title}</dd></div> : null}
           {expense.confirmationCode ? <div><dt>Confirmation</dt><dd className="confirmation-value"><span>{expense.confirmationCode}</span><button type="button" onClick={() => void navigator.clipboard.writeText(expense.confirmationCode!)}>Copy</button></dd></div> : null}
           {!balancesDisabled ? <div><dt>Split</dt><dd>{splitLabel}</dd></div> : null}
-          <div><dt>Receipt</dt><dd>{expense.receiptUrl ? <a href={expense.receiptUrl} target="_blank" rel="noreferrer">Open {expense.receiptFileName ?? "confirmation PDF"}</a> : expense.receiptStatus === "attached" ? "Attached · private to uploader" : expense.receiptStatus === "not_expected" ? "Not expected" : "Not attached"}</dd></div>
+          {expense.receiptUrl || expense.receiptStatus === "attached" ? <div><dt>Receipt</dt><dd>{expense.receiptUrl ? <a href={expense.receiptUrl} target="_blank" rel="noreferrer">Open {expense.receiptFileName ?? "confirmation PDF"}</a> : "Attached · private to uploader"}</dd></div> : null}
           <div><dt>Status</dt><dd>{expense.status === "confirmed" ? "Confirmed" : expense.status === "draft" ? "Needs review" : "Disputed"}</dd></div>
           <div><dt>Source</dt><dd>{expense.sourceLabel}</dd></div>
         </dl>
@@ -3481,7 +3476,6 @@ export function TravelPlansSheet({
 }
 
 export function CommonsApp({
-  tripStagesOn = false,
   initialSnapshot,
   dataMode,
   signedIn,
@@ -3494,15 +3488,10 @@ export function CommonsApp({
   initialPlanSection = "schedule",
   initialItem,
   tripMapEnabled = true,
-  tripLetterEnabled = false,
   textMessagingEnabled = false,
-  betaMapEnabled = false,
-  betaCompletion,
   emailInvitations = true,
   instanceAdmin = false,
 }: {
-  /** Master flag for the two trip stages. Off: navigation and Trip are as before. */
-  tripStagesOn?: boolean;
   initialSnapshot: CommonsSnapshot;
   dataMode: "database" | "demo";
   signedIn: boolean;
@@ -3515,15 +3504,9 @@ export function CommonsApp({
   initialItem?: { kind: "plan" | "stay"; id: string };
   /** Plan → Map for stays and activities. */
   tripMapEnabled?: boolean;
-  /** This trip is on the new experience: DESIGN.md "The trip letter". */
-  tripLetterEnabled?: boolean;
   /** A provider is chosen and sending isn't disabled. */
   /** Where a traveler can talk with Commons from this trip: messages in Commons ("web"), texting ("sms"), or neither. */
   textMessagingEnabled?: TextMessagingChannel;
-  /** Beta rework map wording and Open stay. Off: the map reads exactly as before. */
-  betaMapEnabled?: boolean;
-  /** Sub-features for the Money wrap-up. Undefined (trip not on the new experience) renders nothing new. */
-  betaCompletion?: { paymentReports: boolean; closure: boolean; recap: boolean; successor: boolean };
   confirmationIntakeEnabled?: boolean;
   /** False when this copy has no email set up: People offers private links instead of invitation emails. */
   emailInvitations?: boolean;
@@ -3565,7 +3548,8 @@ export function CommonsApp({
     expensesClosedByName: initialSnapshot.commons.expensesClosedByName ?? null,
   });
   const router = useRouter();
-  const tripStage = tripStagesOn ? initialSnapshot.commons.stage ?? "going" : null;
+  // Every trip uses the two stages (DESIGN.md §9). A trip with no saved stage reads as going.
+  const tripStage = initialSnapshot.commons.stage ?? "going";
   const [tab, setActiveTab] = useState<Tab>(initialView);
   const [arrivalOpen, setArrivalOpen] = useState(showArrival);
   const validTravelExpense = initialSnapshot.state.travelPlans?.find(plan => plan.id === openTravelExpense && plan.personId === initialSnapshot.currentActor.id);
@@ -3874,7 +3858,7 @@ export function CommonsApp({
   const completedExpenseCount = activeMoneyParticipants.filter((participant) => participant.expensesCompleteAt).length;
   const actorInitials = participants.find((participant) => participant.id === initialSnapshot.currentActor.id)?.initials ?? initialSnapshot.currentActor.displayName.slice(0, 2).toUpperCase();
   const travelEditor = ["travel", "add-flight", "add-rental"].includes(sheet ?? "") ? <TravelPlansSheet defaultCurrency={commonsSummary.currency ?? "USD"} initialIntakeId={travelIntakeId} sampleOnly={previewBasics} key={sheet === "travel" ? `${(travelKind === "car_rental" || travelKind === "transport") ? "rental" : "flights"}:${(travelKind === "car_rental" || travelKind === "transport") ? selectedTravelPlanId ?? "new" : "mine"}` : sheet} commonsSlug={initialSnapshot.commons.slug} kind={travelKind} defaultDate={(travelKind === "departure" ? commonsSummary.endsOn : travelKind === "transport" && tab === "plan" && days.some(day => day.id === selectedDay) ? selectedDay : commonsSummary.startsOn) ?? new Date().toISOString().slice(0, 10)} returnDefaultDate={commonsSummary.endsOn ?? ""} plans={(travelKind === "car_rental" || travelKind === "transport") ? travelPlans.filter((plan) => plan.kind === travelKind) : travelPlans.filter((plan) => (plan.kind === "arrival" || plan.kind === "departure"))} allPlans={travelPlans} participants={participants} currentActorId={initialSnapshot.currentActor.id} currentActorName={initialSnapshot.currentActor.displayName} close={() => setSheet(null)} save={saveTravelPlan} saveBooking={saveFlightBooking} updateSharing={updateTravelPlanSharing} remove={deleteTravelPlan} linkedExpense={currentTravelExpense} recordExpense={currentTravelPlan?.totalCents ? () => { setSelectedTravelPlanId(currentTravelPlan.id); setSheet("add-expense"); } : undefined} openLinkedExpense={currentTravelExpense ? () => { setSelectedExpenseId(currentTravelExpense.id); setTab("money"); setSheet("expense"); } : undefined} confirmationUploadEnabled={dataMode === "database"} selectedRentalPlanId={selectedTravelPlanId ?? currentTravelPlan?.id ?? null} /> : null;
-  const basicsEditor = sheet === "edit-trip-details" && canEditBasics ? <TripDetailsEditorSheet experience={canManageTrip && dataMode === "database" ? { slug: initialSnapshot.commons.id, enabled: tripStagesOn } : undefined} inline={false} sampleOnly={previewBasics} commons={commonsSummary} close={() => setSheet(null)} save={saveTripDetails} /> : null;
+  const basicsEditor = sheet === "edit-trip-details" && canEditBasics ? <TripDetailsEditorSheet inline={false} sampleOnly={previewBasics} commons={commonsSummary} close={() => setSheet(null)} save={saveTripDetails} /> : null;
   const newStayEditor = sheet === "add-stay" && canManageStays ? <StayEditorSheet sampleOnly={previewBasics} commons={commonsSummary} participants={participants} close={() => setSheet(null)} save={addStay} confirmationUploadEnabled={dataMode === "database"} /> : null;
   const existingStayEditor = sheet === "edit-stay" && canManageStays && selectedStay ? <StayEditorSheet sampleOnly={previewBasics} key={selectedStay.id} initialStatus={confirmingStayId === selectedStay.id ? "planned" : undefined} stay={selectedStay} commons={commonsSummary} participants={participants} close={() => { setSelectedStayId(null); setConfirmingStayId(null); setSheet(null); }} save={updateStay} remove={deleteStay} linkedExpense={selectedStayExpense} recordExpense={dataMode === "database" ? () => setSheet("add-expense") : undefined} openLinkedExpense={selectedStayExpense ? () => { setSelectedExpenseId(selectedStayExpense.id); setSelectedStayId(null); setTab("money"); setSheet("expense"); } : undefined} confirmationUploadEnabled={dataMode === "database"} /> : null;
   async function startPhotoUpload(files: File[]) {
@@ -3910,7 +3894,7 @@ export function CommonsApp({
     openTodo: () => { const panel = document.getElementById("trip-todos"); panel?.scrollIntoView({ block: "start" }); panel?.focus({ preventScroll: true }); },
     tasksPanel: dataMode === "database" ? <><TripTasks showSuggestions={false} slug={initialSnapshot.commons.id} actorId={initialSnapshot.currentActor.id} context={{ people: participants, state: { ...state, travelPlans }, commons: commonsSummary, organizer: canManageTrip, confirmationIntakeEnabled }} onOpenPollResults={id => router.push(`${commonsPath(initialSnapshot.commons.id)}/polls/${id}`)} /></> : undefined,
   };
-  const overviewView = () => <HomeView coverImage={displayedCoverImage} {...tripHome} tripLetter={tripLetterEnabled} decidingStage={tripStage === "deciding" && canManageTrip} textMessaging={textMessagingEnabled} addPhotos={() => addActivityPhotos()} openPhotos={() => setTab("moments")} photoCount={state.moments.length + localMoments.length} openItem={id => openItem("plan", id)} canAskGroup={canManageTrip} confirmationIntakeEnabled={confirmationIntakeEnabled} travelUploadAvailable={dataMode === "database"} addReceipt={() => { setMoneyEntryCurrency(undefined); setSelectedStayId(null); setSelectedTravelPlanId(null); setSheet("add-receipt"); }} state={state} commons={commonsSummary} participants={participants} currentActorId={initialSnapshot.currentActor.id} activityParticipation={activityParticipation} copyAddress={copyAddress} openTripDetails={() => { trackProductEvent("trip_details_opened", { commonsSlug: initialSnapshot.commons.slug, properties: { source: "home_stays" } }); openStays(); }} openStay={stayId => openItem("stay", stayId)} addPlan={chooseTripAdd} addTravelPlans={step => {
+  const overviewView = () => <HomeView coverImage={displayedCoverImage} {...tripHome} tripLetter decidingStage={tripStage === "deciding" && canManageTrip} textMessaging={textMessagingEnabled} addPhotos={() => addActivityPhotos()} openPhotos={() => setTab("moments")} photoCount={state.moments.length + localMoments.length} openItem={id => openItem("plan", id)} canAskGroup={canManageTrip} confirmationIntakeEnabled={confirmationIntakeEnabled} travelUploadAvailable={dataMode === "database"} addReceipt={() => { setMoneyEntryCurrency(undefined); setSelectedStayId(null); setSelectedTravelPlanId(null); setSheet("add-receipt"); }} state={state} commons={commonsSummary} participants={participants} currentActorId={initialSnapshot.currentActor.id} activityParticipation={activityParticipation} copyAddress={copyAddress} openTripDetails={() => { trackProductEvent("trip_details_opened", { commonsSlug: initialSnapshot.commons.slug, properties: { source: "home_stays" } }); openStays(); }} openStay={stayId => openItem("stay", stayId)} addPlan={chooseTripAdd} addTravelPlans={step => {
         openLogistics();
         if(!step || step.reason === "arrival_processing" || !step.target.canEdit)return;
         setTravelIntakeId(step?.intakeId ?? null);setTravelKind("arrival");setSelectedTravelPlanId(step?.target.planId ?? null);setSheet(step?.target.planId ? "travel" : "add-flight");
@@ -3926,7 +3910,6 @@ export function CommonsApp({
     {tripMapEnabled ? sectionLink("map", <>{tripStage === "deciding" ? <LockIcon /> : <PinIcon />} Map</>, "cm-action plan-map-action") : null}
   </div>
     // Photos is contextual under Trip, with an obvious way back.
-    : tab === "moments" && !tripStage ? <p className="context-return"><Link href={commonsViewPath(initialSnapshot.commons.id, "home")} onClick={event => { if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); setTab("home"); } }}><ChevronLeftIcon /> Back to Trip</Link></p>
     : null;
   const view = tab === "home" ? overviewView()
     : tripStage === "deciding" && tab === "money" ? <div className="product-view"><TripBudgetPanel tripId={initialSnapshot.commons.id} destinationName={commonsSummary.locationName ?? undefined} startsOn={commonsSummary.startsOn} endsOn={commonsSummary.endsOn} travelerCount={participants.length} currency={commonsSummary.currency} templateKey={commonsSummary.templateKey} canEdit={canManageTrip} persistent={dataMode === "database"} onSaved={setSavedWorksheet} goingSlot={canManageTrip ? <GoingAction slug={initialSnapshot.commons.id} lead="Ready to go? Track shared expenses, split costs and record repayments." /> : undefined} /></div>
@@ -3937,7 +3920,7 @@ export function CommonsApp({
           transport={travelPlans.filter(plan => plan.kind === "transport" || plan.kind === "car_rental")}
           travelPath={planSectionPath(initialSnapshot.commons.id, "travel")}
           canEditStays={dataMode === "database" && canManageTrip} canEditActivities={dataMode === "database" && participants.some(person => person.id === initialSnapshot.currentActor.id)}
-          savePin={savePlacePin} editStay={id => { setSelectedStayId(id); setSheet("edit-stay"); }} honestLocationNotes={betaMapEnabled} openStay={betaMapEnabled ? id => openItem("stay", id) : undefined} openActivity={id => openItem("plan", id)}
+          savePin={savePlacePin} editStay={id => { setSelectedStayId(id); setSheet("edit-stay"); }} honestLocationNotes openStay={id => openItem("stay", id)} openActivity={id => openItem("plan", id)}
           addMenu={<LogisticsAddMenu canAddStay={canManageStays} disabled={Boolean(sheet)} choose={chooseTripAdd} />} />
     : tab === "logistics" || (tab === "plan" && planSection === "stays")
       ? <div className="product-view trip-travel-stays-view">
@@ -3958,10 +3941,10 @@ export function CommonsApp({
       : tab === "money"
         ? <><MoneyView budgetEditor={targetControl => <TripBudgetPanel targetControl={targetControl} embedded tripId={initialSnapshot.commons.id} destinationName={commonsSummary.locationName ?? undefined} startsOn={commonsSummary.startsOn} endsOn={commonsSummary.endsOn} travelerCount={participants.length} currency={commonsSummary.currency} templateKey={commonsSummary.templateKey} canEdit={canManageTrip} persistent={dataMode === "database"} onSaved={setSavedWorksheet} />} worksheet={savedWorksheet} openItem={openItem} state={state} commons={commonsSummary} participants={activeMoneyParticipants} tripStarted={tripStarted} postTrip={postTrip} currentActorId={initialSnapshot.currentActor.id} openExpense={(expenseId) => { setStartExpenseAsRecorded(false); setSelectedExpenseId(expenseId); setSheet("expense"); }} openPayment={(paymentId) => { setSelectedPaymentId(paymentId); setSheet("payment"); }} addExpense={(currency) => { setMoneyEntryCurrency(currency); setSelectedStayId(null); setSelectedTravelPlanId(null); setSheet("add-expense"); }} openMoneySettings={canManageTrip ? () => setSheet("money-settings") : undefined} recordPayment={(currency) => { setMoneyEntryCurrency(currency); setSheet("add-payment"); }} markExpensesComplete={markExpensesComplete} closeExpenses={() => setSheet("close-expenses")} reopenExpenses={() => setSheet("reopen-expenses")} expensesClosedAt={moneyStatus.expensesClosedAt} expensesClosedByName={moneyStatus.expensesClosedByName} saveTargetBudget={saveTargetBudget} />
 
-          {betaCompletion && dataMode === "database" && (betaCompletion.paymentReports || betaCompletion.closure || betaCompletion.recap || betaCompletion.successor)
+          {dataMode === "database"
             ? <BetaMoneyWrapUp slug={initialSnapshot.commons.slug} currentActorId={initialSnapshot.currentActor.id} isOrganizer={canManageTrip} participants={activeMoneyParticipants}
                 state={state} moments={state.moments.map(moment => ({ id: moment.id, caption: moment.caption }))} defaultCurrency={commonsSummary.currency ?? "USD"}
-                balancesDisabled={commonsSummary.balancesDisabled ?? false} ledgerClosed={!ledgerOpen} endsOn={commonsSummary.endsOn} features={betaCompletion} onState={setState} />
+                balancesDisabled={commonsSummary.balancesDisabled ?? false} ledgerClosed={!ledgerOpen} endsOn={commonsSummary.endsOn} features={{ paymentReports: true, closure: true, recap: true, successor: true }} onState={setState} />
             : null}</>
         : <MomentsView notify={notify} localMoments={localMoments} startPhotoUpload={files => { setPhotoActivityId(null); void startPhotoUpload(files); }} openMoment={(moment) => { setSelectedMoment(moment); setSheet("moment"); }} moveMoment={moveMomentToDay} commonsSlug={initialSnapshot.commons.slug} days={tripDays(commonsSummary.startsOn, commonsSummary.endsOn)} moments={state.moments} timeZone={commonsSummary.timezone} />;
 
