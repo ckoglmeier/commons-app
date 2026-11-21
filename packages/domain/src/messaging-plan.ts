@@ -10,7 +10,8 @@ export type PlanQuestionInput = {
   body: string; now: Date; timezone: string; tripName: string; startsOn: string | null; endsOn: string | null; personId: string;
   itinerary: readonly ItineraryItem[]; stays: readonly Stay[]; travelPlans: readonly TravelPlan[];
 };
-export type PlanAnswer = { kind: "none" } | { kind: "unknown" } | { kind: "answer"; text: string };
+/** `not_on_stay`: the person is on no stay, but the group has a booked one they can see. Only its name and how many people are on it are given. */
+export type PlanAnswer = { kind: "none" } | { kind: "unknown" } | { kind: "answer"; text: string } | { kind: "not_on_stay"; stayName: string; people: number };
 
 const LIST_LIMIT = 4;
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
@@ -97,8 +98,13 @@ function answerAboutItem(item: ItineraryItem, text: string, timeZone: string): s
 }
 
 function answerAboutStay(text: string, input: PlanQuestionInput): PlanAnswer {
-  const stays = input.stays.filter(stay => stay.status !== "considering" && stay.includedPersonIds.includes(input.personId)).slice(0, 2);
-  if (!stays.length) return { kind: "unknown" };
+  const saved = input.stays.filter(stay => stay.status !== "considering");
+  const stays = saved.filter(stay => stay.includedPersonIds.includes(input.personId)).slice(0, 2);
+  if (!stays.length) {
+    const today = localDate(input.now, input.timezone);
+    const booked = saved.filter(stay => stay.status === "confirmed" && stay.includedPersonIds.length > 0 && stay.endsOn >= today).sort((a, b) => a.startsOn.localeCompare(b.startsOn))[0];
+    return booked ? { kind: "not_on_stay", stayName: booked.name, people: booked.includedPersonIds.length } : { kind: "unknown" };
+  }
   const wantsIn = /\b(check in|checkin)\b/.test(text), wantsOut = /\b(check out|checkout)\b/.test(text);
   const parts = stays.map(stay => {
     if (wantsIn) return `${stay.name}: check-in is ${dayLabel(stay.startsOn)}${stay.checkInTime ? ` at ${wallClock(stay.checkInTime)}` : ". No time is saved"}.`;

@@ -1,7 +1,8 @@
 import { TRIP_LETTER_SECTION_IDS, type CommonsParticipant, type CommonsState, type CommonsSummary, type TripLetterSections } from "@commons/contracts";
 import { homeShortcuts } from "./home-dashboard";
 
-export type TripLetterFact = { label: string; value: string };
+/** A personal fact is about the viewer ("You’re not on it yet"), so it stays on their page and out of an update shared with the group. */
+export type TripLetterFact = { label: string; value: string; personal?: true };
 type SectionId = TripLetterSections[number]["id"];
 
 export const DEFAULT_LETTER_SECTIONS: TripLetterSections = TRIP_LETTER_SECTION_IDS.map(id => ({ id, hidden: false }));
@@ -21,6 +22,8 @@ export function moveLetterSection(sections: TripLetterSections, id: SectionId, d
 function dayLabel(date: string, withYear: boolean) {
   return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: withYear ? "numeric" : undefined, timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
 }
+
+const peopleCount = (count: number) => `${count} ${count === 1 ? "person" : "people"}`;
 
 function tripDates(startsOn: string | null, endsOn: string | null) {
   if (!startsOn || !endsOn) {
@@ -42,7 +45,8 @@ export function tripLetterFacts(state: CommonsState, commons: CommonsSummary, pe
   const facts: TripLetterFact[] = [
     { label: "When", value: tripDates(commons.startsOn, commons.endsOn) },
     { label: "Where", value: places ?? "Still open" },
-    { label: "Staying", value: stay?.name ?? "Nothing saved yet" },
+    stay || !shortcuts.groupStay ? { label: "Staying", value: stay?.name ?? "Nothing saved yet" }
+      : { label: "Staying", value: `${shortcuts.groupStay.name} is booked for ${peopleCount(shortcuts.groupStay.includedPersonIds.length)}. You’re not on it yet.`, personal: true },
   ];
   if (shortcuts.next?.startsAt) {
     const at = new Intl.DateTimeFormat("en-US", { timeZone: commons.timezone, month: "long", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(shortcuts.next.startsAt));
@@ -57,7 +61,7 @@ export function tripLetterFacts(state: CommonsState, commons: CommonsSummary, pe
  */
 export function tripLetterUpdateText(input: { name: string; facts: readonly TripLetterFact[]; updates: readonly { title: string; detail: string }[]; url: string }) {
   const lines = [`${input.name}: where things stand`];
-  for (const fact of input.facts) if (fact.value !== "Still open" && fact.value !== "Nothing saved yet") lines.push(`${fact.label}: ${fact.value}`);
+  for (const fact of input.facts) if (!fact.personal && fact.value !== "Still open" && fact.value !== "Nothing saved yet") lines.push(`${fact.label}: ${fact.value}`);
   if (input.updates.length) {
     lines.push("", "New:");
     for (const update of input.updates.slice(0, 3)) lines.push(`${update.title} (${update.detail.toLowerCase()})`);

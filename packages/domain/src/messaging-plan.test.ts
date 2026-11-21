@@ -97,6 +97,19 @@ test("stays: where, address, check-in and check-out", () => {
   assert.deepEqual(ask("what's the address", "2027-06-11T22:00:00Z", { stays: [] }), { kind: "unknown" });
 });
 
+test("someone on no stay hears that the group's stay is booked and that they're not on it, with nothing else about it", () => {
+  const riley = { personId: "person-riley" };
+  // Only a name and a count, never an address or code.
+  assert.deepEqual(ask("where are we staying", "2027-06-11T22:00:00Z", { ...riley, stays: [stays[0]!] }), { kind: "not_on_stay", stayName: "Vineyard Cottage", people: 1 });
+  assert.deepEqual(ask("what's the address?", "2027-06-11T22:00:00Z", { ...riley, stays: [{ ...stays[0]!, includedPersonIds: [me, "person-sam"] }] }), { kind: "not_on_stay", stayName: "Vineyard Cottage", people: 2 });
+  // Nothing booked: a planned or considered stay, one with nobody on it, or one that has ended.
+  for (const status of ["planned", "considering"] as const) assert.deepEqual(ask("where are we staying", "2027-06-11T22:00:00Z", { ...riley, stays: [{ ...stays[0]!, status }] }), { kind: "unknown" });
+  assert.deepEqual(ask("where are we staying", "2027-06-11T22:00:00Z", { ...riley, stays: [{ ...stays[0]!, includedPersonIds: [] }] }), { kind: "unknown" });
+  assert.deepEqual(ask("where are we staying", "2027-06-20T22:00:00Z", { ...riley, stays: [stays[0]!] }), { kind: "unknown" });
+  // On a stay: their own stay, as before.
+  assert.match(text(ask("where are we staying")), /Vineyard Cottage, 12 Grape Rd/);
+});
+
 test("the trip's own dates still answer, and the trip's name isn't mistaken for an activity", () => {
   assert.match(text(ask("when does it start")), /Fri, Jun 11 to Sun, Jun 13/);
   assert.match(text(ask("Sonoma when does it start")), /Fri, Jun 11/);

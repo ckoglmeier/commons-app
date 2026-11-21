@@ -101,6 +101,7 @@ function copyWith(say: Say) { return {
     say`${tripName}, from ${organizerName} (organizer): ${body}\nReplies come to Commons, not ${organizerName.trim().split(/\s+/)[0] || "the organizer"}.`,
   planAnswer: (tripName: string, answer: string) => say`${tripName} (from the saved plan): ${answer}`,
   planUnknown: (tripName: string) => say`${tripName}: I don't have that saved yet, so I won't guess. The organizer can add it to the plan.`,
+  planNotOnStay: (tripName: string, stayName: string, people: number) => say`${tripName}: ${stayName} is booked for ${`${people} ${people === 1 ? "person" : "people"}`}, and you're not on it yet. Ask the organizer to add you.`,
   planNotPermitted: (tripName: string) => say`${tripName}: I can answer simple questions about the saved plan, like where you're staying or when the trip starts.`,
   change: (tripName: string, summary: string, url: string) => say`${tripName}: ${summary} Open the plan: ${url}`,
   settlement: (tripName: string, owed: string, url: string) => say`${tripName}: ${owed} is still open for you. Pay outside Commons, then mark it paid in Money: ${url}`,

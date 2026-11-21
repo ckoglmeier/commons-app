@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, exists, gt, inArray, isNull, lte, ne, notExists, or, sql } from "drizzle-orm";
 import { createDatabase } from "./client";
 import { hashNormalizedPhone, hashOpaqueToken, normalizePhone, protectOpaqueToken, revealOpaqueToken } from "./tokens";
 import {
@@ -335,6 +335,17 @@ export async function requeueFailedOutbound(id: string, options: Options = {}, c
 
 export async function openQuestionsForPerson(personId: string, options: Options = {}) {
   return run(options, async tx => tx.select().from(messagingQuestions).where(and(eq(messagingQuestions.personId, personId), eq(messagingQuestions.status, "open"))).orderBy(desc(messagingQuestions.createdAt)));
+}
+/**
+ * The open questions a reply can answer: those the person has actually been shown. A question whose message is still queued (held for quiet hours or
+ * pacing), or never went out, is open but unseen, so a message from the person can't be an answer to it. A question asked without a message of its own
+ * counts as shown, as before. Deciding whether to ask something new still uses every open question (openQuestionsForPerson).
+ */
+export async function shownOpenQuestionsForPerson(personId: string, options: Options = {}) {
+  return run(options, async tx => {
+    const linked = (statuses?: string[]) => tx.select({ id: messagingMessages.id }).from(messagingMessages).where(and(eq(messagingMessages.questionId, messagingQuestions.id), eq(messagingMessages.direction, "outbound"), statuses ? inArray(messagingMessages.status, statuses) : undefined));
+    return tx.select().from(messagingQuestions).where(and(eq(messagingQuestions.personId, personId), eq(messagingQuestions.status, "open"), or(notExists(linked()), exists(linked(["sent", "delivered"]))))).orderBy(desc(messagingQuestions.createdAt));
+  });
 }
 export async function getQuestion(id: string, options: Options = {}) { return run(options, async tx => (await tx.select().from(messagingQuestions).where(eq(messagingQuestions.id, id)))[0] ?? null); }
 

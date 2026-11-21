@@ -1,7 +1,7 @@
 import { eventAttendanceDates } from "@commons/contracts";
 import {
-  AttendanceReviewError, closeQuestion, CommandAccessError, CommandConflictError, enrolledTripsForNumber, getMessage, isWebAddress, getPublicPollByPublicId, lastOutboundQuestionId, markInbound, openQuestion, openQuestionsForPerson,
-  optOutPhone, personAuth, phoneNumberFor, PollRepositoryError, reenrollPhone, setEventAttendance, submitPublicPollResponseByPublicId, touchPhone, type EnrolledTrip, type QuestionRow,
+  AttendanceReviewError, closeQuestion, CommandAccessError, CommandConflictError, enrolledTripsForNumber, getMessage, isWebAddress, getPublicPollByPublicId, lastOutboundQuestionId, markInbound, openQuestion,
+  optOutPhone, personAuth, phoneNumberFor, PollRepositoryError, reenrollPhone, setEventAttendance, shownOpenQuestionsForPerson, submitPublicPollResponseByPublicId, touchPhone, type EnrolledTrip, type QuestionRow,
 } from "@commons/database";
 import {
   answerPlanQuestion as answerFromSavedPlan, classifyKeyword, looksLikeBooking, normalizeReply, parseApproval, parseAttendanceReply, parseMultiOptionReply, parseOptionReply, parseYesNo, routeInbound, SMS_CONSENT_WORDING, tripLabel, WEB_MESSAGES_CONSENT_WORDING, type RouteDecision, type RoutableQuestion,
@@ -67,7 +67,8 @@ export async function processInbound(deps: MessagingDeps, messageId: string) {
   const person: Person = { id: state.personId, name: state.displayName ?? "there" };
   const c: Conversation = { deps, e164, phoneHash: message.phoneHash, person, trips, message };
   await markInbound(message.id, "processed", null, { personId: person.id }, dbOptions(deps));
-  const open = await openQuestionsForPerson(person.id, dbOptions(deps));
+  // A reply answers only a question the person has seen. One that is queued, held for quiet hours or pacing, stays queued and unanswered until it goes out.
+  const open = await shownOpenQuestionsForPerson(person.id, dbOptions(deps));
   const decision = routeInbound({ now: deps.now(), body: message.body, trips, open: open.map(toRoutable), lastOutboundQuestionId: await lastOutboundQuestionId(message.phoneHash, dbOptions(deps)) });
   await execute(c, decision, open);
 }
@@ -118,7 +119,7 @@ async function execute(c: Conversation, decision: RouteDecision, open: QuestionR
 
 /** The person (or a released held message) is now bound to one trip; route again among only that trip's questions. */
 async function inTrip(c: Conversation, trip: EnrolledTrip) {
-  const open = (await openQuestionsForPerson(c.person.id, dbOptions(c.deps))).filter(question => question.commonsId === trip.id && question.kind !== "trip_choice");
+  const open = (await shownOpenQuestionsForPerson(c.person.id, dbOptions(c.deps))).filter(question => question.commonsId === trip.id && question.kind !== "trip_choice");
   const decision = routeInbound({ now: c.deps.now(), body: c.message.body, trips: [trip], open: open.map(toRoutable), lastOutboundQuestionId: null });
   await execute({ ...c, trips: [trip] }, decision, open);
 }
@@ -148,7 +149,7 @@ async function answer(c: Conversation, trip: EnrolledTrip, question: QuestionRow
     if (await handleMoneyMessage(c, trip)) return true;
     const answered = await answerPlanQuestion(c, trip);
     if (answered === null) return false;
-    await reply(c, trip, "plan", answered === "unknown" ? copyFor(c.e164).planUnknown(trip.name) : copyFor(c.e164).planAnswer(trip.name, answered));
+    await reply(c, trip, "plan", answered);
     return true;
   };
   switch (question.kind) {
@@ -254,17 +255,22 @@ async function freeText(c: Conversation, trip: EnrolledTrip, open: QuestionRow[]
   const review = open.find(question => question.commonsId === trip.id && question.kind === "booking_review" && question.expiresAt > c.deps.now());
   if (review && parseYesNo(c.message.body) !== "unclear") { await reply(c, trip, "remind", `${trip.name}: to save those booking details, reply SAVE ${review.approvalCode}. Reply DISCARD to drop them.`); return; }
   const answered = await answerPlanQuestion(c, trip);
-  if (answered === "unknown") { await reply(c, trip, "plan", copyFor(c.e164).planUnknown(trip.name)); return; }
-  if (answered) { await reply(c, trip, "plan", copyFor(c.e164).planAnswer(trip.name, answered)); return; }
+  if (answered) { await reply(c, trip, "plan", answered); return; }
   await reply(c, trip, "none", copyFor(c.e164).noOpenQuestion(trip.name));
 }
 
 /**
- * Answers from the saved plan this person is already allowed to see (their own permission-filtered snapshot). No model, no guessing: an unknown stays
- * unknown. Returns null when the message is not a plan question at all.
+ * The reply to a question about the saved plan this person is already allowed to see (their own permission-filtered snapshot). No model, no guessing:
+ * an unknown stays unknown. Returns null when the message is not a plan question at all.
  */
-export async function answerPlanQuestion(c: Conversation, trip: EnrolledTrip): Promise<string | "unknown" | null> {
+export async function answerPlanQuestion(c: Conversation, trip: EnrolledTrip): Promise<string | null> {
   const snapshot = await snapshotOf(c.deps, trip.slug, c.person.id);
   const answer = answerFromSavedPlan({ body: c.message.body, now: c.deps.now(), timezone: trip.timezone, tripName: trip.name, startsOn: trip.startsOn, endsOn: trip.endsOn, personId: c.person.id, itinerary: snapshot.state.itinerary, stays: snapshot.state.stays ?? [], travelPlans: snapshot.state.travelPlans ?? [] });
-  return answer.kind === "answer" ? answer.text : answer.kind === "unknown" ? "unknown" : null;
+  const copy = copyFor(c.e164);
+  switch (answer.kind) {
+    case "answer": return copy.planAnswer(trip.name, answer.text);
+    case "not_on_stay": return copy.planNotOnStay(trip.name, answer.stayName, answer.people);
+    case "unknown": return copy.planUnknown(trip.name);
+    case "none": return null;
+  }
 }

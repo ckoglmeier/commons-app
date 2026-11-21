@@ -20,7 +20,10 @@ export function homeShortcuts(state: CommonsState, commons: CommonsSummary, pers
   const stays = (state.stays ?? []).filter(stay => stay.status !== "considering");
   const stay = stays.filter(stay => stay.includedPersonIds.includes(personId) && stay.endsOn >= today)
     .sort((a, b) => a.startsOn.localeCompare(b.startsOn))[0];
-  return { hasPlans: plans.length > 0, next, stay, legacyStay: stays.length === 0 ? commons.lodging : undefined };
+  // Someone on no stay of their own (they joined after it was booked) still sees that the group's booked stay exists: its name and size, nothing more.
+  const groupStay = stays.some(stay => stay.includedPersonIds.includes(personId)) ? undefined
+    : stays.filter(stay => stay.status === "confirmed" && stay.includedPersonIds.length > 0 && stay.endsOn >= today).sort((a, b) => a.startsOn.localeCompare(b.startsOn))[0];
+  return { hasPlans: plans.length > 0, next, stay, groupStay, legacyStay: stays.length === 0 ? commons.lodging : undefined };
 }
 
 export type HomeUpdate = { id: string; title: string; detail: string; at: string; destination: "plan" | "money" | "logistics" | "conversation"; itemId?: string };

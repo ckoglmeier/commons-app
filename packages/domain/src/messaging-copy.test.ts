@@ -39,3 +39,10 @@ test("links in Commons's messages go only to this site", () => {
   assert.deepEqual(messageParts("ftp://commons.example.com/x", origin), [{ text: "ftp://commons.example.com/x" }]);
   assert.deepEqual(messageParts("Edit: https://commons.example.com/x", null), [{ text: "Edit: https://commons.example.com/x" }], "no origin, no links");
 });
+
+test("someone not on the booked stay is told so, with the count in words that fit", () => {
+  for (const copy of [messagingCopy, webMessagingCopy]) {
+    assert.equal(copy.planNotOnStay("Sonoma Weekend", "Vineyard Cottage", 3), "Sonoma Weekend: Vineyard Cottage is booked for 3 people, and you're not on it yet. Ask the organizer to add you.");
+    assert.equal(copy.planNotOnStay("Sonoma Weekend", "Vineyard Cottage", 1), "Sonoma Weekend: Vineyard Cottage is booked for 1 person, and you're not on it yet. Ask the organizer to add you.");
+  }
+});

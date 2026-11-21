@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { createCommonsPoll, itineraryItems, pollResponses, setEventAttendance, submitPublicPollResponseByPublicId } from "@commons/database";
+import { createCommonsPoll, itineraryItems, pollResponses, setEventAttendance, stayParticipants, submitPublicPollResponseByPublicId } from "@commons/database";
 import { loadRoutes, skip, world } from "./test-world";
 /** Texting is configured by the three Twilio settings; the provider itself is the fake one. */
 const TWILIO_TEST_ENV = { TWILIO_ACCOUNT_SID: "ACsynthetic", TWILIO_AUTH_TOKEN: "synthetic", TWILIO_MESSAGING_SERVICE_SID: "MGsynthetic" };
@@ -160,5 +160,68 @@ test("plan questions by text, through the real route, from what this person may 
     assert.match(w.last(), /don't have that saved/i);
     await w.text(routes, w.phones.maya, "thanks!");
     assert.match(w.last(), /not waiting on an answer/i, "ordinary chat isn't answered as a plan question");
+  } finally { await w.cleanup(); }
+});
+
+/*
+ * A reply answers only a question the person has seen. A poll question held behind the minimum gap or by quiet hours is open but unseen: messages
+ * sent meanwhile get their ordinary replies, the question stays queued as it was written, and once it goes out "1, 2" answers it as usual.
+ */
+for (const hold of ["minimum_gap", "quiet_hours"] as const) {
+  test(`a poll question held by ${hold === "minimum_gap" ? "the minimum gap" : "quiet hours"} isn't answered by messages sent before it goes out`, { skip }, async () => {
+    const w = await world();
+    try {
+      const routes = await loadRoutes(), { messagingDeps, planQuestions, dispatchOutbox } = await services();
+      await settled(w, routes);
+      const { question, options } = choice("multiple", ["Saturday", "Sunday", "Monday"]);
+      const poll = await createCommonsPoll(w.slugs.sonoma, { commandId: randomUUID(), title: "Dinner", ballotMode: "transparent", audience: { personIds: [w.ids.maya], guestEmails: [] }, questions: [question] }, { databaseUrl: w.url, actorPersonId: w.ids.casey });
+      const deps = await messagingDeps();
+      if (hold === "quiet_hours") w.clock.set("2026-11-05T10:00:00Z"); // 2am in the trip's time zone, well past the minimum gap
+      assert.equal(await planQuestions(deps), 1); await dispatchOutbox(deps);
+      const held = async () => (await w.messageRows(w.phones.maya)).find(row => row.purpose === "proactive:poll")!;
+      const queued = await held();
+      assert.equal(queued.status, "queued"); assert.equal(queued.statusDetail, hold);
+      const responses = () => w.q(db => db.select().from(pollResponses).where(eq(pollResponses.pollId, poll.id)));
+      const before = w.provider.outbox.length;
+
+      await w.text(routes, w.phones.maya, "where are we staying");
+      assert.match(w.last(), /don't have that saved/i); assert.doesNotMatch(w.last(), /reply with/i);
+      await w.text(routes, w.phones.maya, "I covered dinner, $40");
+      assert.match(w.last(), /Nothing is saved yet/); assert.match(w.last(), /Dinner, \$40\.00/); assert.doesNotMatch(w.last(), /reply with all that work/i);
+      await w.text(routes, w.phones.maya, "thanks!");
+      assert.match(w.last(), /not waiting on an answer/i, "an unseen question isn't waiting on an answer");
+      assert.equal(w.provider.outbox.length, before + 3, "only the three replies went out");
+      assert.ok(!w.sent().some(body => /Which night for the group dinner/.test(body)), "the poll question hasn't gone out");
+      assert.equal((await responses()).length, 0);
+      const still = await held();
+      assert.equal(still.status, "queued"); assert.equal(still.body, queued.body); assert.equal(still.questionId, queued.questionId);
+
+      if (hold === "quiet_hours") w.clock.set("2026-11-05T17:00:00Z"); else w.clock.advance(7 * 3_600_000);
+      await dispatchOutbox(deps);
+      assert.equal(w.last(), queued.body, "the question goes out later, unchanged");
+      await w.text(routes, w.phones.maya, "1, 2");
+      assert.deepEqual((await responses())[0]!.answers[0]!.optionIds, [options[0]!.id, options[1]!.id]);
+      assert.match(w.last(), /recorded "Saturday" and "Sunday"/);
+    } finally { await w.cleanup(); }
+  });
+}
+
+test("where are we staying: nothing booked, booked without you, and your own stay", { skip }, async () => {
+  const w = await world();
+  try {
+    const routes = await loadRoutes();
+    await w.enroll(routes, "maya", "sonoma");
+    await setEventAttendance(w.slugs.sonoma, { commandId: randomUUID(), state: "attending", reviewedDates: "2027-06-11/2027-06-13" }, { databaseUrl: w.url, actorPersonId: w.ids.maya });
+    await w.text(routes, w.phones.maya, "where are we staying");
+    assert.equal(w.last(), "Sonoma Weekend: I don't have that saved yet, so I won't guess. The organizer can add it to the plan.");
+    // Booked before Maya joined: she hears its name and size, never its address.
+    const stayId = await w.addStay("sonoma", "Vineyard Cottage", "12 Grape Rd, Sonoma, CA", [w.ids.sam, w.ids.casey]);
+    await w.text(routes, w.phones.maya, "where are we staying");
+    assert.equal(w.last(), "Sonoma Weekend: Vineyard Cottage is booked for 2 people, and you're not on it yet. Ask the organizer to add you.");
+    assert.doesNotMatch(w.last(), /Grape/);
+    // Once she's on it, the stay itself, as before.
+    await w.q(db => db.insert(stayParticipants).values({ stayId, personId: w.ids.maya }));
+    await w.text(routes, w.phones.maya, "where are we staying");
+    assert.match(w.last(), /from the saved plan/); assert.match(w.last(), /Vineyard Cottage, 12 Grape Rd/);
   } finally { await w.cleanup(); }
 });
