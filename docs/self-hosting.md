@@ -35,6 +35,7 @@ With no Resend settings, Commons sends no email at all:
 - People sign in with an email and a password. New people choose **Create account**.
 - Organizers share links themselves. In a trip's **People**, **Share an invite link** copies one link the whole group can use. For one person, add them, open their row and choose **Copy private link**. Their row reads **Not sent** until they join, because Commons sent nothing.
 - With **Invited people only**, a new account needs one of those links. An invitation sent to someone's address isn't enough, because nobody has proved they own it.
+- Nothing is matched by email. Typing an invited person's address shows no invitation and doesn't make an account that person. Only their private link does: whoever opens it can accept the invitation and becomes the invited traveler, with their role (organizer included) and trip history. So send each private link only to the person it's for.
 - Messages with Commons works in the app. People see new messages when they open Commons.
 - Forgotten passwords: the instance admin sets a temporary one under **Who can join → Reset someone's password**, and the person changes it on their Profile.
 - Email domain rules only check what people type, since addresses aren't confirmed.
@@ -129,7 +130,9 @@ Test a restore at least once before you need one.
 
 **Sign-in emails don't arrive.** Open Resend's **Logs**. If the domain isn't verified, Resend only delivers to your own address. Check that `COMMONS_EMAIL_FROM` uses the verified domain and that `RESEND_API_KEY` is set. Check the spam folder. Free Resend plans stop at 100 emails a day.
 
-**An invitation says "Needs attention".** The email failed to send or the invitation expired. Open the trip's People list to see which invitation needs attention. If it keeps failing, check Resend's Logs and your domain verification.
+**An invitation says "Needs attention".** The email failed to send. Open the trip's People list to see which invitation needs attention. If it keeps failing, check Resend's Logs and your domain verification.
+
+**An invitation says "Expired".** A personal invitation's private link works for 30 days from when it was made; open the person's row in People, choose **Replace link** and send them the new one, which works for another 30 days.
 
 **Photos won't upload.** Photos are stored in Supabase Storage. Check that the Supabase URL and the service role key are set, and that the project isn't paused. (For local development only, `COMMONS_LOCAL_MOMENTS_DIR` stores photos in a folder instead.)
 

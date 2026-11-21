@@ -16,12 +16,12 @@ async function fixture() {
   await db.db.insert(commons).values({ id: event, slug: `entry-${event}`, name: "Synthetic invitation test", timezone: "UTC", createdByPersonId: org });
   await db.db.insert(memberships).values([{ commonsId: event, personId: org, role: "organizer", status: "active" }, { commonsId: event, personId: guest, role: "member", status: "invited" }]);
   await db.db.insert(invitations).values({ id: invite, commonsId: event, provisionalPersonId: guest, createdByPersonId: org,
-    recipientEmail: "guest@example.test", recipientName: "Guest", tokenHash: hashOpaqueToken(token), tokenValue: protectOpaqueToken(token), expiresAt: new Date(0) });
+    recipientEmail: "guest@example.test", recipientName: "Guest", tokenHash: hashOpaqueToken(token), tokenValue: protectOpaqueToken(token), expiresAt: null });
   return { db, url, token, event, invite, guest, auth, async close() {
     await db.db.delete(commons).where(eq(commons.id, event)); await db.db.delete(people).where(inArray(people.id, [org, guest])); await db.close();
   } };
 }
-test("durable invitation recovery survives old expiry, retains poll context and limits concurrent sends", { skip: !run }, async () => {
+test("invitation recovery works for a link with no expiry yet, retains poll context and limits concurrent sends", { skip: !run }, async () => {
   const f = await fixture(); try {
     assert.equal((await getInvitationEntryContext(f.token, f.url))?.status, "pending");
     const results = await Promise.all(Array.from({ length: 8 }, () => queueInvitationEntryRecovery(f.token, "abcdef123456", f.url)));

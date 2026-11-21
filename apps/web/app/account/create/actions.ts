@@ -1,6 +1,6 @@
 "use server";
 
-import { findOrClaimPersonForAuthIdentity } from "@commons/database";
+import { findOrClaimPersonForAuthIdentity, findOrClaimPersonForInvitationLink } from "@commons/database";
 import { headers } from "next/headers";
 import { recordOutcome } from "@/lib/server/outcome-telemetry";
 import { redirect } from "next/navigation";
@@ -10,8 +10,16 @@ import { commonsDatabaseUrl, textMessagingAvailable } from "@/lib/server/runtime
 import { createSupabaseServerClient, getDevSignInIdentity } from "@/lib/supabase/server";
 import { isSupabaseAuthConfigured } from "@/lib/supabase/config";
 import { startDevSession } from "@/lib/server/dev-session";
+import { currentSignInMethod } from "@/lib/server/sign-in-method";
 
 export type CreateAccountState = { message?: string };
+
+/** The private link in a /join/{token} destination, if that is where this account is headed. */
+function personalInvitationToken(next: string | undefined) {
+  const match = /^\/join\/([^/?#]+)/.exec(safeAuthNext(next));
+  if (!match) return null;
+  try { return decodeURIComponent(match[1]!); } catch { return null; }
+}
 
 const CreateAccountSchema = z.object({
   firstName: z.string().trim().min(1).max(80),
@@ -52,14 +60,23 @@ export async function completeAccount(
   if (error || !data.user) return { message: "Account not created. Your sign-in is still safe. Try again." };
 
   const databaseUrl = commonsDatabaseUrl();
+  // With password sign-in the typed address proves nothing, so it never matches an invited person. Only the private link this
+  // account arrived through can make it that person (a managed traveler is claimed when the invitation is accepted).
+  const emailProvesIdentity = (await currentSignInMethod()) !== "password";
+  const invitationToken = emailProvesIdentity ? null : personalInvitationToken(parsed.data.next);
+  let joiningManagedTraveler = false;
   if (databaseUrl) {
     try {
-      await findOrClaimPersonForAuthIdentity({
+      const identity = {
         authUserId: data.user.id,
         email: data.user.email,
         phone: data.user.phone,
         displayName: parsed.data.firstName,
-      }, databaseUrl);
+        emailProvesIdentity,
+      };
+      const placed = invitationToken ? await findOrClaimPersonForInvitationLink(invitationToken, identity, databaseUrl) : null;
+      joiningManagedTraveler = placed?.status === "managed";
+      if (!placed || placed.status === "unavailable") await findOrClaimPersonForAuthIdentity(identity, databaseUrl);
     } catch {
       return { message: "Account not created. Your sign-in is still safe. Try again." };
     }
@@ -70,6 +87,7 @@ export async function completeAccount(
   if (completingSetup) recordOutcome({ event: "account_setup_completed", key: data.user.id, request: new Request("https://commons.invalid/account/create", { headers: requestHeaders }) });
   const next = safeAuthNext(parsed.data.next);
   // Optional, and only once texts can actually be sent. The invitation or destination carries through it.
-  if (completingSetup && textMessagingAvailable()) redirect(`/account/phone?next=${encodeURIComponent(next)}`);
+  // A managed traveler goes straight to their invitation: the phone step would make them a separate profile before they accept.
+  if (completingSetup && textMessagingAvailable() && !joiningManagedTraveler) redirect(`/account/phone?next=${encodeURIComponent(next)}`);
   redirect(next);
 }

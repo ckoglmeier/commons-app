@@ -88,7 +88,7 @@ test("two authenticated identities can claim safely while old links are invalida
     }, options);
     const preservedLink = await getCommonsInvitationLink(firstTrip.slug, invited.invitation.id, options);
     assert.equal(preservedLink.token, link.token, "resaving an unchanged traveler must preserve the invitation link");
-    assert.equal(preservedLink.expiresAt, null);
+    assert.equal(preservedLink.expiresAt, link.expiresAt, "resaving keeps the link's expiry");
     await updateCommonsPendingInvitation(firstTrip.slug, invited.invitation.id, {
       displayName: "Traveler Test Updated",
       email: traveler.email,
@@ -167,9 +167,11 @@ test("two authenticated identities can claim safely while old links are invalida
     } finally {
       await expiryDatabase.close();
     }
-    const durableLink = await getCommonsInvitationLink(firstTrip.slug, expiry.invitation.id, options);
-    assert.equal(durableLink.expiresAt, null);
-    assert.equal((await getCommonsInvitationPreview(durableLink.token, databaseUrl))?.status, "pending");
+    // A personal link works for 30 days. Once expired it can't be copied; Replace link makes a new one.
+    await assert.rejects(getCommonsInvitationLink(firstTrip.slug, expiry.invitation.id, options), /expired/);
+    const renewedLink = await rotateCommonsInvitationLink(firstTrip.slug, expiry.invitation.id, options);
+    assert.ok(renewedLink.expiresAt && new Date(renewedLink.expiresAt).getTime() > Date.now());
+    assert.equal((await getCommonsInvitationPreview(renewedLink.token, databaseUrl))?.status, "pending");
   } finally {
     const database = createDatabase(databaseUrl);
     try {

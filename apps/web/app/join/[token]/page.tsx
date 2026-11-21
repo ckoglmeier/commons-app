@@ -82,8 +82,10 @@ export default async function JoinCommonsPage({
     ? await getSupabaseAuthUserEmail(entryContext.acceptedAuthUserId)
     : entryContext?.recipientEmail;
   const emailLabel = recipientEmail ? maskedInvitationEmail(recipientEmail) : "your invited email";
-  const sameAccount = identity && (proof && freshEntry ? proof.authUserId === identity.authUserId
-    : recipientEmail?.toLowerCase() === identity.email?.toLowerCase());
+  // With password sign-in the typed address proves nothing: whoever holds this private link may accept it.
+  const passwordSignIn = isSupabaseAuthConfigured() && await currentSignInMethod() === "password";
+  const sameAccount = identity && (passwordSignIn || (proof && freshEntry ? proof.authUserId === identity.authUserId
+    : recipientEmail?.toLowerCase() === identity.email?.toLowerCase()));
   const next = invitationReturnPath(token, pollPublicId);
 
   if (preview.status === "pending" || entryContext?.status === "accepted") {

@@ -159,7 +159,7 @@ The Trip, Plan, Money and Photos pages share the same reading style: the journal
 
 Trip is the home of a trip. It is read as a letter.
 
-**The trip letter.** One paper on the journal board, in the shared document style. It has a dateline that says when saved content last changed, the trip name, the organizer's welcome, a short ruled list of facts (when, where, staying, first up), a permitted group photo and **Latest**. Every fact comes from saved records. Latest shows only real saved changes and is left out when there are none. On a new trip the organizer sees "Only you can see this page" until someone else has access.
+**The trip letter.** One paper on the journal board, in the shared document style. It has a dateline that says when saved content last changed, the trip name, the organizer's welcome, a short ruled list of facts (when, where, staying, first up), a permitted group photo and **Latest**. Every fact comes from saved records. A traveler on no stay whose group has a booked one reads that it is booked, for how many people, and that they are not on it yet; this line stays out of a shared update. Latest shows only real saved changes and is left out when there are none. On a new trip the organizer sees "Only you can see this page" until someone else has access.
 
 **Audience.** Travelers see the same letter through a permission-filtered view. They see only their own next steps and no organizer tools. Private notes, codes, source documents and drafts never appear.
 
@@ -170,13 +170,13 @@ Trip is the home of a trip. It is read as a letter.
 
 Stage is presentation, not a permission. In the first stage the rail still shows Trip, Plan, Money and Photos. Money, Photos, Travel & stays, the map and adding bookings are marked, and each opens a page that says what it does and how to get there. Plan stays open for ideas, with a clear call to action.
 
-A trip can be set to use this stage flow in Trip settings (**New experience**). Trips with it off keep their earlier presentation.
+Every trip uses this stage flow. There is no setting to turn it off.
 
 **A name is enough to start.** Creating a trip goes from its name straight to the trip. Setup, People and Review appear only when a copied trip needs its people reviewed, or when something unusual needs confirming as a trip.
 
 **Next steps.** A permission-scoped list of what this person can do now, shown beside or above the letter (**Needs you**). On 390px and 430px it comes first, then the paper at full width, then tools. It has one primary action. While the first invitation is the next step, that is the only filled button. Quiet rows hold other tools.
 
-**Add menu.** The Add menu in the Trip header lists Activity, Meal, Flight, Transport and Lodging, in that order, with Photos and Receipts. It uses the same forms and permissions as the rest of the app. Do not repeat these Add actions in side tools.
+**Add menu.** The Add menu in the Trip header lists Activity, Meal, Flight, Transport and Lodging, in that order, with Photos and Cost from a receipt. It uses the same forms and permissions as the rest of the app. Do not repeat these Add actions in side tools.
 
 **Plan your own trip.** A signed-in person who answered a poll, or who organizes no trip, sees a quiet **Plan your own trip** link. It opens ordinary trip creation. Nothing from the current trip is copied.
 
@@ -249,7 +249,8 @@ A to-do is a simple action with a title, a named owner and an open or done state
 People opens from the trip identity. It lists the roster with roles and archive controls.
 
 - **Invite your group:** one inline **Share an invite link** action. Selecting it creates and copies a 14-day link; opening People creates nothing. A short sentence says that anyone who gets the link can sign in and join as a traveler, never as an organizer. If copying fails, show a selectable URL and a true error. Joining needs sign-in and grants no attendance, expense or booking authority. A signed-out preview shows only the trip name, inviter and expiry.
-- **Personal invitations:** Traveler is the default role. Organizer is explained before saving and starts only after acceptance with the invited email. **Invite traveler** sends the invitation through the normal delivery path. Organizer invitations are prepared first and sent in a separate step. **Copy private link** shows the link in a field to select when the browser refuses to copy it. Show the true state: sent, queued, failed or not sent. Keep the traveler if delivery fails and offer retry. Editing never resends. On a copy with no email set up nothing is sent: the invitation reads **Not sent**, it is not an error, and the organizer copies the person's private link.
+- **Personal invitations:** Traveler is the default role. Organizer is explained before saving and starts only after acceptance. **Invite traveler** sends the invitation through the normal delivery path. Organizer invitations are prepared first and sent in a separate step. **Copy private link** shows the link in a field to select when the browser refuses to copy it. Show the true state: sent, queued, failed or not sent. Keep the traveler if delivery fails and offer retry. Editing never resends. On a copy with no email set up nothing is sent: the invitation reads **Not sent**, it is not an error, and the organizer copies the person's private link. A private link works for 30 days from when it was made, and copying it says until when. An expired one reads **Expired** with `Replace the link and send the new one.` and offers **Replace link** first, which makes a new link with a fresh 30 days. Opening an expired link shows the same page as a cancelled invitation.
+- **Who an invitation belongs to:** with emailed sign-in links, a confirmed address finds the person's invitations and their invited profile, and organizer access needs that address. On a copy with no email set up, an address is only what someone typed, so nothing is matched by it: holding the private link is the only way to accept an invitation or become the invited person, organizer role and trip history included. Pages there tell people to open their invite link, never to sign in with the address the invitation was sent to.
 - Managed travelers (people without accounts) cannot be organizers and get no invitation email.
 - Keep protections for the last organizer and for demoting yourself.
 - Attaching an invited person to a plan item shows **Invited · attendance not confirmed**. Attaching never accepts an invitation or records attendance.
@@ -269,9 +270,9 @@ Money records what people spent and who owes whom. Commons calculates and record
 - The form does not ask for a confirmation number. Reservations belong on the meal, lodging or travel record.
 - **Convert to expense** on an activity opens this form with the activity's link, currency and remaining estimate filled in. The person reviews the amount and payer before **Record expense**. Cancel records nothing.
 - Budget-only estimates are not spending. Tracking-only costs do not split balances. Family mode records spending without balances.
-- **Receipts** in the Add menu opens the expense form, to enter a cost from a receipt. Receipt files are not stored, and the form says so.
+- **Cost from a receipt** in the Add menu opens the expense form, to enter a cost from a receipt. Receipt files are not stored, and the form says so. An expense shows a receipt only when a booking confirmation was attached to it.
 
-**Budget calculator.** A shared calculator takes known destination, dates and headcount and saves all worksheet inputs to the trip. It feeds the forecast, set against saved planned and recorded costs without double counting. The optional spending target sits inside the calculator. An estimate never creates an expense, split or debt. A blank worksheet means no estimate yet, not an incomplete trip.
+**Budget calculator.** A shared calculator takes known destination, dates and headcount and saves all worksheet inputs to the trip. It works in the trip currency, with no currency selector and no conversion. It feeds the forecast, set against saved planned and recorded costs without double counting. The optional spending target sits inside the calculator. An estimate never creates an expense, split or debt. A blank worksheet means no estimate yet, not an incomplete trip.
 
 **Settle up and payment reports.** People report a payment they made with **I paid someone**. A report is a record, not a transfer. Show the actual state of each report. Closing the ledger is a separate action. Never imply that Commons sent or received money.
 
@@ -296,6 +297,7 @@ Messages is a private one-to-one conversation between a person and Commons, with
 - `/messages` shows the person's own thread across their trips. Each side is labelled **You** and **Commons** in words, not only by position.
 - Commons asks one question at a time and answers from saved, permitted plan facts. Money and booking-related replies need an approval code. Quiet hours, pacing and STOP and START apply to texting.
 - A message held for quiet hours shows as waiting, never as sent.
+- A reply answers only a question the person has seen. While Commons's next question is held for quiet hours or pacing, whatever the person sends is handled as an ordinary message, and the question goes out later unchanged.
 - `/messages/trip/[trip]` turns messages on or off for one trip with a consent checkbox. A trip's messages go to one place, so turning them on here moves them off a phone.
 - A mobile number is confirmed in a separate step from turning on texts. Confirming never implies consent. Offer **Not now, go to the trip** after joining and **Skip for now** at account creation. These appear only when texting can actually be sent.
 - An organizer's **Share an update** can add **Or write your own**. Commons posts it into each opted-in traveler's thread, with the organizer's name and "Replies come to Commons". It is not a group chat and nothing is emailed or pushed.

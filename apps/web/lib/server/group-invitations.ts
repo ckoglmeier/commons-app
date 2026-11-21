@@ -10,7 +10,8 @@ import { getSupabaseVerifiedAuthUserEmail } from "@/lib/supabase/admin";
 export async function verifiedGroupInvitationIdentity() {
   const user = await getVerifiedAuthUser();
   if (!user?.email) throw new CommonsAuthenticationRequiredError();
-  return { authUserId: user.authUserId, email: user.email, displayName: user.displayName };
+  // Password sign-in: the address proves nothing, so the database never claims an invited person by it.
+  return { authUserId: user.authUserId, email: user.email, displayName: user.displayName, emailProvesIdentity: user.emailProvesIdentity };
 }
 /** A link keeps working only while its creator still has a provider-verified account. */
 async function creatorStillEligible(authUserId: string, _tripId: string) {

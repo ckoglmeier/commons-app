@@ -183,7 +183,8 @@ export async function loadCurrentPendingInvitations(): Promise<PendingCommonsInv
   const url = databaseUrl();
   if (!url || !isSignInConfigured()) return [];
   const identity = await getCommonsAuthIdentity();
-  if (!identity?.email) return [];
+  // With password sign-in the typed address proves nothing, so no invitation is found by it. People open their private link.
+  if (!identity?.email || identity.emailProvesIdentity === false) return [];
   return listPendingCommonsInvitationsForIdentity(identity, url);
 }
 
@@ -850,6 +851,8 @@ export async function claimAuthenticatedInvitation(token: string) {
   return claimCommonsInvitation(token, {
     ...identity,
     email: verified.email ?? undefined,
+    // Password sign-in: the address proves nothing, so holding this private link is what accepts it.
+    emailProvesIdentity: verified.emailProvesIdentity !== false && identity.emailProvesIdentity !== false,
   }, url);
 }
 

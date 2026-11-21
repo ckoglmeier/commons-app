@@ -28,6 +28,7 @@ import {
     tripTasks,
 } from "./schema";
 import { hashNormalizedEmail, mintRecoverableOpaqueToken } from "./tokens";
+import { personalInvitationExpiry } from "./onboarding-repository";
 
 export class EventCreationRepositoryError extends Error {
   constructor(
@@ -588,7 +589,7 @@ export async function commitEventCreationDraft(
           tokenVersion: 1,
           status: "pending",
           deliveryState: "not_sent",
-          expiresAt: null,
+          expiresAt: personalInvitationExpiry(),
         });
         unsentInvitationCount += 1;
       }

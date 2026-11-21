@@ -176,3 +176,51 @@ test("when the browser refuses the clipboard, the private link stays on screen t
     assert.equal(field().length, 0, "closing the row clears the link");
   } finally { renderer.unmount(); live.restore(); delete (navigator as unknown as Record<string, unknown>).clipboard; }
 });
+
+test("copying a private link says how long it works", async () => {
+  const invitation = { id: "invitation-riley", status: "pending", deliveryState: "not_sent", deliveryErrorCode: null, message: null, sentAt: null, lastAttemptAt: null, expiresAt: "2026-12-20T15:00:00.000Z" };
+  const riley = { membershipId: "membership-riley", personId: "riley", displayName: "Riley Park", email: "riley@example.com", role: "member", membershipStatus: "invited", joinedAt: null, accessMode: "account", managedByPersonIds: null, canClaimAccess: false, removal: { blocked: false, moneyItems: 0, responsibilityItems: 0 }, invitation };
+  const base = { commons: pilotSnapshot.commons, currentPersonId: pilotSnapshot.currentActor.id, organizerName: "Synthetic organizer", people: [riley] };
+  const live = installFakeBrowserEnvironment({ fetch: async (url, init) => {
+    if (url.endsWith(`/invitations/${invitation.id}/link`)) return Response.json({ link: { invitationId: invitation.id, url: "https://trips.example.com/join/riley-token", expiresAt: init?.method === "POST" ? "2027-01-05T15:00:00.000Z" : invitation.expiresAt } });
+    return Response.json({ people: base });
+  } });
+  Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async () => {} } });
+  const { PeopleSheet } = await import("./people-sheet");
+  const renderer = createHookRenderer({ expand: [PeopleSheet] });
+  const text = () => renderer.tree.map(textOf).join(" ");
+  const click = (label: string) => (renderer.find(node => node.type === "button" && textOf(node).trim() === label).props.onClick as () => void)();
+  try {
+    renderer.render(createElement(PeopleSheet, { slug: base.commons.slug, tripName: base.commons.name, tripStatus: "planning", participants: [], currentPersonId: base.currentPersonId, canManage: true, close: () => {}, emailInvitations: false }));
+    await settle(10); renderer.flush();
+    (renderer.find(node => node.type === "button" && node.props.className === "people-row__summary").props.onClick as () => void)(); renderer.flush();
+    click("Copy private link"); await settle(10); renderer.flush();
+    assert.match(text(), /Private link copied\. It works until Dec 20, 2026\./);
+    click("Replace link"); await settle(10); renderer.flush();
+    assert.match(text(), /New private link copied\. The old link no longer works\. It works until Jan 5, 2027\./);
+  } finally { renderer.unmount(); live.restore(); delete (navigator as unknown as Record<string, unknown>).clipboard; }
+});
+
+test("an expired private link reads Expired and offers Replace link first", async () => {
+  const invitation = { id: "invitation-casey", status: "expired", deliveryState: "not_sent", deliveryErrorCode: null, message: null, sentAt: null, lastAttemptAt: null, expiresAt: "2026-11-01T00:00:00.000Z" };
+  const casey = { membershipId: "membership-casey", personId: "casey", displayName: "Casey Moreno", email: "casey@example.com", role: "member", membershipStatus: "invited", joinedAt: null, accessMode: "account", managedByPersonIds: null, canClaimAccess: false, removal: { blocked: false, moneyItems: 0, responsibilityItems: 0 }, invitation };
+  const base = { commons: pilotSnapshot.commons, currentPersonId: pilotSnapshot.currentActor.id, organizerName: "Synthetic organizer", people: [casey] };
+  const live = installFakeBrowserEnvironment({ fetch: async () => Response.json({ people: base }) });
+  const { PeopleSheet } = await import("./people-sheet");
+  const renderer = createHookRenderer({ expand: [PeopleSheet] });
+  const text = () => renderer.tree.map(textOf).join(" ");
+  try {
+    renderer.render(createElement(PeopleSheet, { slug: base.commons.slug, tripName: base.commons.name, tripStatus: "planning", participants: [], currentPersonId: base.currentPersonId, canManage: true, close: () => {}, emailInvitations: false }));
+    await settle(10); renderer.flush();
+    const status = renderer.find(node => node.type === "span" && String(node.props.className).startsWith("people-status "));
+    assert.equal(textOf(status), "Expired");
+    assert.match(text(), /Replace the link and send the new one\./);
+    assert.doesNotMatch(text(), /legacy/i);
+    assert.match(textOf(renderer.find(node => node.props["aria-label"] === "Traveler status")), /1\s*Needs attention/);
+    (renderer.find(node => node.type === "button" && node.props.className === "people-row__summary").props.onClick as () => void)(); renderer.flush();
+    const note = renderer.find(node => node.props.className === "member-removal-note");
+    const buttons = renderer.findAll(node => node.type === "button" && node.props.className === "sheet-secondary").map(node => textOf(node).trim());
+    assert.match(textOf(note), /^Expired/);
+    assert.deepEqual(buttons.slice(0, 2), ["Replace link", "Copy private link"]);
+  } finally { renderer.unmount(); live.restore(); }
+});

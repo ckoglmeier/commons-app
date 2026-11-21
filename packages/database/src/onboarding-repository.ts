@@ -49,7 +49,30 @@ export type AuthenticatedIdentity = {
   email?: string;
   phone?: string;
   displayName?: string;
+  /**
+   * Whether the account's email proves who this is. The web layer sets it from this copy's sign-in method: true with emailed sign-in
+   * links, false on a copy that signs in with a password, where the address is only what the person typed. When false, nothing is
+   * matched by email: only an invitation's private link lets someone accept it or claim the invited person. Left out, it counts as true.
+   */
+  emailProvesIdentity?: boolean;
 };
+
+/** The email to match people and invitations by, or undefined when the address proves nothing (password sign-in). */
+function provenEmail(identity: AuthenticatedIdentity) {
+  return identity.emailProvesIdentity === false ? undefined : identity.email;
+}
+
+/** A personal invitation's private link works for 30 days from when the link was made. Replacing the link starts a new 30 days. */
+export const PERSONAL_INVITATION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
+
+export function personalInvitationExpiry(now = new Date()) {
+  return new Date(now.getTime() + PERSONAL_INVITATION_LIFETIME_MS);
+}
+
+/** A pending invitation with no expiry (made before links expired) stays valid until its link is next copied, replaced or re-sent. */
+export function personalInvitationExpired(expiresAt: Date | null, now = new Date()) {
+  return Boolean(expiresAt && expiresAt.getTime() <= now.getTime());
+}
 
 export type DemoUserProvisioningRequest = {
   authUserId: string;
@@ -311,6 +334,65 @@ export async function findOrClaimPersonForAuthIdentity(
   return personId;
 }
 
+export type InvitationLinkPersonResult =
+  | { status: "claimed"; personId: string }
+  /** A managed traveler's invitation: no profile is made for the account; accepting the invitation claims the traveler. */
+  | { status: "managed" }
+  /** The link can't place this account (not found, not pending, expired, or the person already has an account). */
+  | { status: "unavailable" };
+
+/**
+ * Password sign-in only (the address proves nothing): a new account that arrived through a personal invitation's private link becomes
+ * that invited person, as a confirmed email does with sign-in links. Holding the link is the proof. The invitation itself still has to
+ * be accepted. An account that already has a profile keeps it.
+ */
+export async function findOrClaimPersonForInvitationLink(
+  token: string,
+  identity: AuthenticatedIdentity,
+  databaseUrl?: string,
+): Promise<InvitationLinkPersonResult> {
+  const existingPersonId = await findPersonIdForAuthUser(identity.authUserId, databaseUrl);
+  if (existingPersonId) return { status: "claimed", personId: existingPersonId };
+  const database = createDatabase(databaseUrl);
+  let result: InvitationLinkPersonResult;
+  try {
+    result = await database.db.transaction(async (transaction): Promise<InvitationLinkPersonResult> => {
+      await transaction.execute(sql`select pg_advisory_xact_lock(hashtext('commons.auth_identity'), hashtext(${identity.authUserId}))`);
+      const [boundPerson] = await transaction.select({ id: people.id }).from(people).where(eq(people.authUserId, identity.authUserId)).limit(1);
+      if (boundPerson) return { status: "claimed", personId: boundPerson.id };
+      const [invitation] = await transaction.select().from(invitations)
+        .where(eq(invitations.tokenHash, hashOpaqueToken(token))).for("update").limit(1);
+      if (!invitation || invitation.status !== "pending" || personalInvitationExpired(invitation.expiresAt)) return { status: "unavailable" };
+      const [membership] = await transaction.select({ accessMode: memberships.accessMode, status: memberships.status }).from(memberships)
+        .where(and(eq(memberships.commonsId, invitation.commonsId), eq(memberships.personId, invitation.provisionalPersonId))).limit(1);
+      if (membership?.accessMode === "managed") return { status: "managed" };
+      if (membership?.status !== "invited") return { status: "unavailable" };
+      const displayName = identity.displayName?.trim();
+      const claimed = await transaction.update(people)
+        .set({ authUserId: identity.authUserId, ...(displayName ? { displayName } : {}), updatedAt: new Date() })
+        .where(and(eq(people.id, invitation.provisionalPersonId), isNull(people.authUserId)))
+        .returning({ id: people.id });
+      if (claimed.length !== 1) return { status: "unavailable" };
+      await attachAuthenticatedIdentities(transaction, invitation.provisionalPersonId, identity);
+      await transaction.insert(auditEvents).values({
+        commonsId: invitation.commonsId,
+        commandId: `claim-identity-${invitation.provisionalPersonId}-${identity.authUserId}`,
+        actorId: invitation.provisionalPersonId,
+        actorType: "human",
+        action: "identity.claimed",
+        resourceType: "person",
+        resourceId: invitation.provisionalPersonId,
+        summary: "A participant opened their private invitation link and claimed their profile.",
+      }).onConflictDoNothing();
+      return { status: "claimed", personId: invitation.provisionalPersonId };
+    });
+  } finally {
+    await database.close();
+  }
+  if (result.status === "claimed") await claimInstanceAdminIfUnset(result.personId, databaseUrl);
+  return result;
+}
+
 async function resolvePersonForAuthIdentity(
   identity: AuthenticatedIdentity,
   databaseUrl?: string,
@@ -320,9 +402,11 @@ async function resolvePersonForAuthIdentity(
     databaseUrl,
   );
   if (existingPersonId) return existingPersonId;
+  // With password sign-in the typed address proves nothing, so it never finds or claims an invited person.
+  const matchEmail = provenEmail(identity);
   const identityMatchers = [
-    identity.email
-      ? and(eq(identities.kind, "email"), eq(identities.normalizedHash, emailHash(identity.email)))
+    matchEmail
+      ? and(eq(identities.kind, "email"), eq(identities.normalizedHash, emailHash(matchEmail)))
       : null,
     identity.phone
       ? and(eq(identities.kind, "phone"), eq(identities.normalizedHash, hashNormalizedPhone(identity.phone)))
@@ -337,11 +421,11 @@ async function resolvePersonForAuthIdentity(
       await transaction.execute(sql`select pg_advisory_xact_lock(hashtext('commons.auth_identity'), hashtext(${identity.authUserId}))`);
       const [boundPerson] = await transaction.select({ id: people.id }).from(people).where(eq(people.authUserId, identity.authUserId)).limit(1);
       if (boundPerson) return boundPerson.id;
-      if (identity.email) {
+      if (matchEmail) {
         const pendingManaged = await transaction.select({id: invitations.id}).from(invitations)
           .innerJoin(memberships, and(eq(memberships.commonsId, invitations.commonsId), eq(memberships.personId, invitations.provisionalPersonId)))
           .where(and(eq(invitations.status, "pending"), eq(memberships.accessMode, "managed"), eq(memberships.status, "active"),
-            sql`lower(trim(${invitations.recipientEmail})) = ${identity.email.trim().toLowerCase()}`)).limit(1);
+            sql`lower(trim(${invitations.recipientEmail})) = ${matchEmail.trim().toLowerCase()}`)).limit(1);
         if (pendingManaged.length) return null;
       }
       const mappedIdentities = identityMatchers.length
@@ -619,7 +703,9 @@ export async function listPendingCommonsInvitationsForIdentity(
   identity: AuthenticatedIdentity,
   databaseUrl?: string,
 ): Promise<PendingCommonsInvitationSummary[]> {
-  if (!identity.email) return [];
+  // With password sign-in an address match proves nothing; the invitation's private link is the only way in.
+  const email = provenEmail(identity);
+  if (!email) return [];
   const database = createDatabase(databaseUrl);
   try {
     const rows = await database.db
@@ -640,7 +726,8 @@ export async function listPendingCommonsInvitationsForIdentity(
       .where(and(
         eq(invitations.status, "pending"),
         sql`${invitations.tokenValue} is not null`,
-        sql`lower(trim(${invitations.recipientEmail})) = ${identity.email.trim().toLowerCase()}`,
+        sql`lower(trim(${invitations.recipientEmail})) = ${email.trim().toLowerCase()}`,
+        or(isNull(invitations.expiresAt), gt(invitations.expiresAt, new Date())),
       ))
       .orderBy(desc(invitations.createdAt));
 
@@ -999,7 +1086,8 @@ export async function getCommonsPeople(
             invitation: invitation
               ? {
                   id: invitation.id,
-                  status: invitation.status,
+                  // A pending invitation whose private link has run out reads as expired until the organizer replaces the link.
+                  status: invitation.status === "pending" && personalInvitationExpired(invitation.expiresAt) ? "expired" : invitation.status,
                   deliveryState: invitation.deliveryState,
                   deliveryErrorCode: invitation.deliveryErrorCode,
                   message: invitation.message,
@@ -1201,7 +1289,7 @@ async function addAccountInvitationInTransaction(
     tokenHash: hashOpaqueToken(token),
     tokenValue: protectOpaqueToken(token),
     tokenVersion: 1,
-    expiresAt: null,
+    expiresAt: personalInvitationExpiry(),
   }).returning({ id: invitations.id });
   await transaction.insert(auditEvents).values({
     commonsId: context.id,
@@ -1314,7 +1402,7 @@ export async function inviteManagedTraveler(slug: string, personId: string, inpu
       const [invitation] = await transaction.insert(invitations).values({
         commonsId: context.id, provisionalPersonId: personId, createdByPersonId: options.actorPersonId,
         recipientName: person.displayName, recipientEmail: email, message: request.message,
-        tokenHash: hashOpaqueToken(token), tokenValue: protectOpaqueToken(token), tokenVersion: 1, expiresAt: null,
+        tokenHash: hashOpaqueToken(token), tokenValue: protectOpaqueToken(token), tokenVersion: 1, expiresAt: personalInvitationExpiry(),
       }).returning({id: invitations.id});
       await transaction.update(memberships).set({canClaimAccess: true, updatedAt: new Date()}).where(eq(memberships.id, member.id));
       await transaction.insert(auditEvents).values({commonsId: context.id, commandId: `invite-managed-${invitation.id}`,
@@ -1405,7 +1493,8 @@ export async function updateCommonsPendingInvitation(
         tokenHash: hashOpaqueToken(token),
         tokenValue: protectOpaqueToken(token),
         tokenVersion: tokenRotated ? invitation.tokenVersion + 1 : invitation.tokenVersion,
-        expiresAt: null,
+        // A new link gets a fresh 30 days. Editing without a new link keeps the link's expiry.
+        expiresAt: tokenRotated ? personalInvitationExpiry() : invitation.expiresAt,
         deliveryState: tokenRotated ? "not_sent" : invitation.deliveryState,
         deliveryErrorCode: null,
         queuedAt: tokenRotated ? null : invitation.queuedAt,
@@ -1479,12 +1568,13 @@ export async function rotateCommonsInvitationLink(
         throw new OnboardingRepositoryError("invitation_unavailable", "That invitation is no longer pending.");
       }
       const token = generateOpaqueToken();
+      const expiresAt = personalInvitationExpiry();
       await transaction.update(invitations).set({
         status: "pending",
         tokenHash: hashOpaqueToken(token),
         tokenValue: protectOpaqueToken(token),
         tokenVersion: invitation.tokenVersion + 1,
-        expiresAt: null,
+        expiresAt,
         deliveryState: "not_sent",
         queuedAt: null,
         sentAt: null,
@@ -1495,7 +1585,7 @@ export async function rotateCommonsInvitationLink(
         eq(invitationDeliveryAttempts.invitationId, invitation.id),
         inArray(invitationDeliveryAttempts.status, ["queued", "processing"]),
       ));
-      return { invitationId: invitation.id, token, expiresAt: null };
+      return { invitationId: invitation.id, token, expiresAt: expiresAt.toISOString() };
     });
   } finally {
     await database.close();
@@ -1517,20 +1607,29 @@ export async function getCommonsInvitationLink(
       if (!invitation || invitation.status !== "pending") {
         throw new OnboardingRepositoryError("invitation_unavailable", "That invitation is no longer pending.");
       }
+      if (personalInvitationExpired(invitation.expiresAt)) {
+        throw new OnboardingRepositoryError("invitation_unavailable", "This private link has expired. Replace the link and send the new one.");
+      }
       if (invitation.tokenValue) {
-        return { invitationId: invitation.id, token: revealOpaqueToken(invitation.tokenValue), expiresAt: null };
+        // An invitation from before links expired gets its 30 days the first time its link is copied.
+        const expiresAt = invitation.expiresAt ?? personalInvitationExpiry();
+        if (!invitation.expiresAt) {
+          await transaction.update(invitations).set({ expiresAt, updatedAt: new Date() }).where(eq(invitations.id, invitation.id));
+        }
+        return { invitationId: invitation.id, token: revealOpaqueToken(invitation.tokenValue), expiresAt: expiresAt.toISOString() };
       }
       const token = generateOpaqueToken();
+      const expiresAt = personalInvitationExpiry();
       await transaction.update(invitations).set({
         tokenHash: hashOpaqueToken(token),
         tokenValue: protectOpaqueToken(token),
         tokenVersion: invitation.tokenVersion + 1,
-        expiresAt: null,
+        expiresAt,
         deliveryState: "not_sent",
         sentAt: null,
         updatedAt: new Date(),
       }).where(eq(invitations.id, invitation.id));
-      return { invitationId: invitation.id, token, expiresAt: null };
+      return { invitationId: invitation.id, token, expiresAt: expiresAt.toISOString() };
     });
   } finally {
     await database.close();
@@ -1649,8 +1748,9 @@ export async function saveCommonsSetupTravelers(
               deliveryState: "not_sent",
               queuedAt: null,
               sentAt: null,
+              // A new link gets a fresh 30 days; resaving without one keeps the link's expiry.
+              expiresAt: personalInvitationExpiry(),
             } : {}),
-            expiresAt: null,
             updatedAt: new Date(),
           }).where(eq(invitations.id, current.invitationId));
           continue;
@@ -1707,7 +1807,7 @@ export async function saveCommonsSetupTravelers(
           recipientEmail: traveler.email,
           tokenHash: hashOpaqueToken(token),
           tokenValue: protectOpaqueToken(token),
-          expiresAt: null,
+          expiresAt: personalInvitationExpiry(),
         });
       }
       await transaction.insert(auditEvents).values({
@@ -1829,6 +1929,11 @@ async function queueInvitationDeliveriesInTransaction(
   const queued: QueuedInvitationDelivery[] = [];
   for (const invitation of pending) {
     if (!invitation.recipientEmail) continue;
+    // Never send a link that no longer works. The organizer replaces it first.
+    if (personalInvitationExpired(invitation.expiresAt)) {
+      if (invitationId) throw new OnboardingRepositoryError("invitation_unavailable", "This private link has expired. Replace the link and send the new one.");
+      continue;
+    }
     let token = invitation.tokenValue ? revealOpaqueToken(invitation.tokenValue) : null;
     let tokenVersion = invitation.tokenVersion;
     if (!token) {
@@ -1838,8 +1943,11 @@ async function queueInvitationDeliveriesInTransaction(
         tokenHash: hashOpaqueToken(token),
         tokenValue: protectOpaqueToken(token),
         tokenVersion,
-        expiresAt: null,
+        expiresAt: personalInvitationExpiry(),
       }).where(eq(invitations.id, invitation.id));
+    } else if (!invitation.expiresAt) {
+      // An invitation from before links expired gets its 30 days the first time it is sent again.
+      await transaction.update(invitations).set({ expiresAt: personalInvitationExpiry() }).where(eq(invitations.id, invitation.id));
     }
     await transaction.update(invitationDeliveryAttempts).set({
       status: "cancelled",
@@ -1947,6 +2055,7 @@ export async function leaseInvitationDeliveryAttempt(
         if (
           candidate.attempts >= DELIVERY_MAX_ATTEMPTS ||
           !["pending", "accepted"].includes(candidate.invitationStatus) ||
+          (candidate.invitationStatus === "pending" && personalInvitationExpired(candidate.expiresAt, now)) ||
           candidate.attemptTokenVersion !== candidate.invitationTokenVersion ||
           !candidate.token ||
           !candidate.recipientEmail
@@ -2050,6 +2159,7 @@ export async function revalidateInvitationDeliveryAttempt(deliveryAttemptId: str
     const now = new Date();
     return Boolean(row && ownsDeliveryLease(row.attempt, leaseAttempt, now)
       && ["pending", "accepted"].includes(row.invitation.status)
+      && !(row.invitation.status === "pending" && personalInvitationExpired(row.invitation.expiresAt, now))
       && row.invitation.tokenVersion === row.attempt.tokenVersion && row.invitation.recipientEmail);
   } finally { await database.close(); }
 }
@@ -2114,7 +2224,8 @@ export async function getCommonsInvitationPreview(
       coverImageUrl: row.coverOriginalStoragePath ? `/api/v1/invitations/${encodeURIComponent(token)}/cover` : legacyPublicCover,
       inviterName: inviter.displayName,
       managedTraveler: member?.accessMode === "managed",
-      status: row.status,
+      // An expired private link shows the same page as a cancelled one.
+      status: row.status === "pending" && personalInvitationExpired(row.expiresAt) ? "expired" : row.status,
       expiresAt: row.expiresAt?.toISOString() ?? null,
     });
   } finally {
@@ -2168,12 +2279,14 @@ export async function claimCommonsInvitation(
           "This invitation has already been accepted.",
         );
       }
-      if (invitation.status !== "pending") {
+      if (invitation.status !== "pending" || personalInvitationExpired(invitation.expiresAt)) {
         throw new OnboardingRepositoryError(
           "invitation_unavailable",
           "This invitation is no longer active.",
         );
       }
+      // With password sign-in the typed address proves nothing: holding this private link is what lets someone accept it.
+      const emailProvesIdentity = identity.emailProvesIdentity !== false;
       const [existingPerson] = await transaction
         .select({ id: people.id })
         .from(people)
@@ -2186,7 +2299,7 @@ export async function claimCommonsInvitation(
       if (managedClaim && (invitedMembership.status !== "active" || !invitedMembership.canClaimAccess)) {
         throw new OnboardingRepositoryError("invitation_unavailable", "This traveler is no longer available to claim.");
       }
-      if ((managedClaim || invitedMembership?.role === "organizer") && (!identity.email || identity.email.trim().toLowerCase() !== invitation.recipientEmail?.trim().toLowerCase())) {
+      if (emailProvesIdentity && (managedClaim || invitedMembership?.role === "organizer") && (!identity.email || identity.email.trim().toLowerCase() !== invitation.recipientEmail?.trim().toLowerCase())) {
         throw new OnboardingRepositoryError("identity_conflict", "Sign in with the invited email to accept this invitation.");
       }
       if (existingPerson && existingPerson.id !== invitation.provisionalPersonId) {
@@ -2196,14 +2309,17 @@ export async function claimCommonsInvitation(
       const claimedPersonId = invitation.provisionalPersonId;
       if (managedClaim) {
         await requireSingleTripManagedClaim(transaction, claimedPersonId, invitation.commonsId);
-        const emailPerson = await ensureInvitationEmailAvailable(transaction, invitation.commonsId, identity.email!, claimedPersonId);
+        const claimEmail = provenEmail(identity);
+        const emailPerson = claimEmail ? await ensureInvitationEmailAvailable(transaction, invitation.commonsId, claimEmail, claimedPersonId) : null;
         if (emailPerson && emailPerson !== claimedPersonId) throw new OnboardingRepositoryError("identity_conflict", "This email is connected to a different participant profile. No trip records have changed.");
       }
 
       if (!existingPerson) {
+        // A password account reaches its invitation without being matched by email first, so the name it chose arrives here.
+        const chosenName = !emailProvesIdentity && !managedClaim ? identity.displayName?.trim() : undefined;
         const updated = await transaction
           .update(people)
-          .set({ authUserId: identity.authUserId, updatedAt: new Date() })
+          .set({ authUserId: identity.authUserId, ...(chosenName ? { displayName: chosenName } : {}), updatedAt: new Date() })
           .where(
             and(
               eq(people.id, invitation.provisionalPersonId),

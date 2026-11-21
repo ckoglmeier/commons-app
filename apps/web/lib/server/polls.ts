@@ -5,6 +5,7 @@ import { getLocalDevelopmentPilotActorId, isSignInConfigured } from "@/lib/supab
 import { getCommonsAuthIdentity, getVerifiedAuthUser } from "@/lib/supabase/server";
 import { CommonsAuthenticationRequiredError, CommonsMembershipRequiredError } from "./commons";
 import { commonsDatabaseUrl } from "./runtime-environment";
+import { currentSignInMethod } from "./sign-in-method";
 import { getSupabaseVerifiedAuthUserEmail } from "@/lib/supabase/admin";
 
 function databaseUrl() {
@@ -125,6 +126,8 @@ export async function authenticatedPollViewer() {
 }
 
 export async function pendingPollInvitation(publicId: string) {
+  // With password sign-in a typed address proves nothing, so it never finds someone's personal invitation link.
+  if (await currentSignInMethod() === "password") return null;
   const viewer = await authenticatedPollViewer();
   const url = databaseUrl();
   return viewer && url ? getPendingPollInvitation(publicId, viewer, url) : null;

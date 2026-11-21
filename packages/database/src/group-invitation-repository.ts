@@ -95,7 +95,7 @@ export async function joinGroupInvitation(token: string, identity: Authenticated
   if (!preview || preview.tripId !== input.tripId || preview.linkId !== input.linkId || preview.version !== input.version) throw new GroupInvitationUnavailableError();
   // Reuse account onboarding's safe verified-contact claim. Managed profiles and
   // conflicting identities require their existing personal-claim flow, never a name/phone merge.
-  const actorPersonId = await findOrClaimPersonForAuthIdentity({ authUserId: identity.authUserId, email: identity.email, displayName: identity.displayName }, databaseUrl);
+  const actorPersonId = await findOrClaimPersonForAuthIdentity({ authUserId: identity.authUserId, email: identity.email, displayName: identity.displayName, emailProvesIdentity: identity.emailProvesIdentity }, databaseUrl);
   if (!actorPersonId) throw new GroupInvitationUnavailableError("Use your personal invitation to claim your existing traveler profile, or ask the organizer for help.");
   const database = createDatabase(databaseUrl);
   try {

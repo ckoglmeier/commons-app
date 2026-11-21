@@ -5,6 +5,7 @@ import { cookies, headers } from "next/headers";
 import { DEV_SIGN_IN_COOKIE, decodeDevIdentity, devSignInAllowedForHost, type DevIdentity } from "@/lib/dev-sign-in";
 import { getSupabaseAuthConfig, isSupabaseAuthConfigured } from "./config";
 import { getCommonsAuthCookieOptions } from "./session";
+import { currentSignInMethod } from "@/lib/server/sign-in-method";
 
 export async function createSupabaseServerClient() {
   const { url, publishableKey } = getSupabaseAuthConfig();
@@ -35,7 +36,14 @@ export type CommonsAuthIdentity = {
   email?: string;
   phone?: string;
   displayName?: string;
+  /** False on a copy that signs in with a password: the email is only what the person typed, so Commons matches nothing by it. */
+  emailProvesIdentity?: boolean;
 };
+
+/** Emailed sign-in links confirm the address. A password copy never confirms it (accounts are created confirmed), so the address proves nothing. */
+async function signInEmailProvesIdentity() {
+  return (await currentSignInMethod()) !== "password";
+}
 
 /** The local test sign-in's identity for this request, or null. Never available in a production build or away from localhost. */
 export async function getDevSignInIdentity(): Promise<DevIdentity | null> {
@@ -63,6 +71,7 @@ export async function getCommonsAuthIdentity(): Promise<CommonsAuthIdentity | nu
       typeof data.claims.user_metadata.first_name === "string"
         ? data.claims.user_metadata.first_name
         : undefined,
+    emailProvesIdentity: await signInEmailProvesIdentity(),
   };
 }
 
@@ -70,7 +79,7 @@ export async function getCommonsAuthIdentity(): Promise<CommonsAuthIdentity | nu
  * The signed-in account with its email only when confirmed. For Supabase this asks the auth server (not just the cookie). For the local
  * test sign-in the made-up email counts as confirmed, since that path only exists on a development machine.
  */
-export async function getVerifiedAuthUser(): Promise<{ authUserId: string; email: string | null; displayName?: string } | null> {
+export async function getVerifiedAuthUser(): Promise<{ authUserId: string; email: string | null; displayName?: string; emailProvesIdentity?: boolean } | null> {
   if (!isSupabaseAuthConfigured()) {
     const dev = await getDevSignInIdentity();
     return dev ? { authUserId: dev.authUserId, email: dev.email, ...(dev.displayName ? { displayName: dev.displayName } : {}) } : null;
@@ -79,5 +88,5 @@ export async function getVerifiedAuthUser(): Promise<{ authUserId: string; email
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return null;
   const firstName = data.user.user_metadata?.first_name;
-  return { authUserId: data.user.id, email: data.user.email_confirmed_at && data.user.email ? data.user.email : null, ...(typeof firstName === "string" && firstName.trim() ? { displayName: firstName.trim() } : {}) };
+  return { authUserId: data.user.id, email: data.user.email_confirmed_at && data.user.email ? data.user.email : null, ...(typeof firstName === "string" && firstName.trim() ? { displayName: firstName.trim() } : {}), emailProvesIdentity: await signInEmailProvesIdentity() };
 }

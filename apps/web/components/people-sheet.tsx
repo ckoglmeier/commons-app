@@ -42,7 +42,7 @@ function linkOnly(person: CommonsPerson, emailInvitations: boolean) {
 function deliveryLabel(person: CommonsPerson, emailInvitations = true) {
   if (person.membershipStatus === "active") return "Joined";
   if (linkOnly(person, emailInvitations)) return "Not sent";
-  if (person.invitation?.status === "expired") return "Needs attention";
+  if (person.invitation?.status === "expired") return "Expired";
   const delivery = person.invitation?.deliveryState;
   if (delivery === "failed") return "Needs attention";
   if (delivery === "queued") return "Sending";
@@ -53,7 +53,7 @@ function deliveryLabel(person: CommonsPerson, emailInvitations = true) {
 function deliveryHelp(person: CommonsPerson, emailInvitations = true) {
   if (person.membershipStatus === "active") return person.email ?? "";
   if (person.invitation?.status === "expired") {
-    return "This legacy invitation needs a new private link.";
+    return "Replace the link and send the new one.";
   }
   if (linkOnly(person, emailInvitations)) return "Copy their private link and send it yourself.";
   const code = person.invitation?.deliveryErrorCode;
@@ -70,6 +70,11 @@ function deliveryHelp(person: CommonsPerson, emailInvitations = true) {
     return `Sent to ${person.email}. Waiting for them to join.`;
   }
   return person.email ?? "";
+}
+
+/** How long a private link works, said the way the group link says it. */
+function linkWorksUntil(expiresAt: string | null) {
+  return expiresAt ? `It works until ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(expiresAt))}.` : "";
 }
 
 function deliveryErrorHelp(code: string | null) {
@@ -270,9 +275,9 @@ export function PeopleSheet({
       const link = InvitationLinkSchema.parse(payload.link);
       // A refused clipboard (common on iPhone, since the write follows a request) is not a server failure: keep the link and show it.
       try { await navigator.clipboard.writeText(link.url); }
-      catch { setLinkFallback({ invitationId, url: link.url, message: "Couldn’t copy automatically. Select and copy the link below." }); return; }
+      catch { setLinkFallback({ invitationId, url: link.url, message: `Couldn’t copy automatically. Select and copy the link below. ${linkWorksUntil(link.expiresAt)}`.trim() }); return; }
       trackProductEvent("invitation_link_copied", { commonsSlug: slug, properties: { source: "people" } });
-      setNotice("Private link copied.");
+      setNotice(`Private link copied. ${linkWorksUntil(link.expiresAt)}`.trim());
     } catch (copyError) {
       setError(personFacingError(copyError, "Private link unavailable."));
     } finally {
@@ -295,7 +300,7 @@ export function PeopleSheet({
   }
 
   async function rotateLink(invitationId: string) {
-    if (!window.confirm("Replace this private link? The old link will stop working.")) return;
+    if (!window.confirm("Replace this private link? The old link will stop working. The new one works for 30 days.")) return;
     begin(`rotate-${invitationId}`);
     setError("");
     try {
@@ -306,8 +311,8 @@ export function PeopleSheet({
       const copied = await navigator.clipboard.writeText(link.url).then(() => true, () => false);
       trackProductEvent("invitation_link_replaced", { commonsSlug: slug });
       await load();
-      if (copied) setNotice("New private link copied. The old link no longer works.");
-      else setLinkFallback({ invitationId, url: link.url, message: "Link replaced. Couldn’t copy automatically. Select and copy the new link below." });
+      if (copied) setNotice(`New private link copied. The old link no longer works. ${linkWorksUntil(link.expiresAt)}`.trim());
+      else setLinkFallback({ invitationId, url: link.url, message: `Link replaced. Couldn’t copy automatically. Select and copy the new link below. ${linkWorksUntil(link.expiresAt)}`.trim() });
     } catch (rotateError) {
       setError(personFacingError(rotateError, "Private link not replaced. Try again."));
     } finally {
@@ -368,7 +373,7 @@ export function PeopleSheet({
             {!editingId && !claimingId ? <fieldset className="people-access-choice"><legend>Access</legend><label aria-label="Invite with an account"><input type="radio" name="access-mode" checked={accessMode === "account"} onChange={() => setAccessMode("account")} /><span><strong>Invite with an account</strong><small>For someone who has their own email and will use Commons.</small></span></label><label aria-label="Add without an account"><input type="radio" name="access-mode" checked={accessMode === "managed"} onChange={() => setAccessMode("managed")} /><span><strong>Add without an account</strong><small>For a child or someone whose plans the organizer will manage.</small></span></label></fieldset> : null}
             {accessMode === "account" ? <><label className="field"><span>Email</span><input ref={inviteEmailRef} value={email} onChange={(event) => setEmail(event.target.value)} type="email" maxLength={254} required /></label>{emailInvitations ? <label className="field"><span>Invitation message <small>Optional</small></span><textarea value={message} onChange={(event) => setMessage(event.target.value)} maxLength={500} placeholder="Add a note" /></label> : null}</> : null}
             {!editingId && !claimingId && accessMode === "account" ? <label className="field"><span>Trip role</span><select aria-label="Trip role" aria-describedby="invite-role-help" value={inviteRole} onChange={event => setInviteRole(event.target.value as "member" | "organizer")}><option value="member">Traveler</option><option value="organizer">Organizer</option></select><small id="invite-role-help">{inviteRole === "organizer" ? "After joining, they can use Workspace, edit trip details, invite people, and manage organizer access." : "They can join plans, answer polls, and contribute to the trip."}</small></label> : null}
-            <p>{!emailInvitations && accessMode === "account" ? claimingId ? "Email isn’t set up on this copy, so Commons won’t send an invitation. Copy their private link and send it yourself. After they sign in with this email and accept, they’ll keep their trip history, answer polls, and manage their own private profile. Your access to their private profile will end." : editingId ? "Email isn’t set up on this copy, so the message isn’t sent. Changing the email also replaces the private link." : inviteRole === "organizer" ? "This prepares an organizer invitation. Email isn’t set up on this copy, so copy their private link and send it yourself when you’re ready. Organizer access begins after acceptance." : "Email isn’t set up on this copy, so Commons won’t send an invitation. Add them, then copy their private link and send it yourself. They still need to accept; attendance is separate." : claimingId ? "Inviting this traveler sends an email now. After verifying this email and accepting, they’ll keep their trip history, answer polls, and manage their own private profile. Your access to their private profile will end." : editingId ? "The message is included the next time you send the invitation. Changing the email also replaces the private link." : accessMode === "managed" ? "They appear in the trip, but do not receive an invitation or need to take action." : inviteRole === "organizer" ? "This prepares an organizer invitation. Send it separately when you’re ready. Organizer access begins after acceptance." : "Inviting this traveler sends their invitation email automatically. They still need to accept; attendance is separate."}</p>
+            <p>{!emailInvitations && accessMode === "account" ? claimingId ? "Email isn’t set up on this copy, so Commons won’t send an invitation. Copy their private link and send it yourself. After they open it and accept, they’ll keep their trip history, answer polls, and manage their own private profile. Your access to their private profile will end." : editingId ? "Email isn’t set up on this copy, so the message isn’t sent. Changing the email also replaces the private link." : inviteRole === "organizer" ? "This prepares an organizer invitation. Email isn’t set up on this copy, so copy their private link and send it yourself when you’re ready. Whoever opens the link can accept it. Organizer access begins after acceptance." : "Email isn’t set up on this copy, so Commons won’t send an invitation. Add them, then copy their private link and send it yourself. They still need to accept; attendance is separate." : claimingId ? "Inviting this traveler sends an email now. After verifying this email and accepting, they’ll keep their trip history, answer polls, and manage their own private profile. Your access to their private profile will end." : editingId ? "The message is included the next time you send the invitation. Changing the email also replaces the private link." : accessMode === "managed" ? "They appear in the trip, but do not receive an invitation or need to take action." : inviteRole === "organizer" ? "This prepares an organizer invitation. Send it separately when you’re ready. Organizer access begins after acceptance." : "Inviting this traveler sends their invitation email automatically. They still need to accept; attendance is separate."}</p>
             <div><button type="button" onClick={resetForm}>Cancel</button><button type="submit" disabled={busy === "save"}>{busy === "save" ? "Saving…" : editingId ? "Save changes" : claimingId || (accessMode === "account" && inviteRole === "member") ? "Invite traveler" : accessMode === "account" ? "Prepare organizer invitation" : "Add traveler"}</button></div>
           </form>
   );
@@ -476,10 +481,10 @@ export function PeopleSheet({
                           </>
                         ) : expired ? (
                           <div className="member-removal-note">
-                            <strong>This legacy invitation needs a new link.</strong>
-                            <p>Replace the private link so {person.displayName.split(" ")[0]} can join. New invitation links do not expire.</p>
+                            <strong>Expired</strong>
+                            <p>{person.displayName.split(" ")[0]}’s private link has stopped working. Replace the link and send the new one.</p>
+                            {mayInvite ? <button className="sheet-secondary" type="button" onClick={() => void rotateLink(person.invitation!.id)} disabled={Boolean(busy)}>Replace link</button> : null}
                             <button className="sheet-secondary" type="button" disabled>Copy private link</button>
-                            {mayInvite ? <button className="sheet-secondary" type="button" onClick={() => void rotateLink(person.invitation!.id)} disabled={Boolean(busy)}>Replace and copy link</button> : null}
                             {linkFallback?.invitationId === person.invitation!.id ? <><p className="form-error" role="alert">{linkFallback.message}</p><label className="field"><span>Private link</span><input readOnly value={linkFallback.url} onFocus={event => event.currentTarget.select()} /></label></> : null}
                             <button className="people-revoke" type="button" onClick={() => void revoke(person)} disabled={Boolean(busy)}>Revoke invitation</button>
                           </div>
