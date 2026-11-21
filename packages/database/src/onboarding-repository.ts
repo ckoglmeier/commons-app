@@ -286,7 +286,8 @@ async function attachAuthenticatedIdentities(
   personId: string,
   identity: AuthenticatedIdentity,
 ) {
-  await attachEmailIdentity(transaction, personId, identity.email);
+  // A password account's address is only what was typed: storing it would let a later invitation to that address find this account.
+  await attachEmailIdentity(transaction, personId, provenEmail(identity));
   await attachPhoneIdentity(transaction, personId, identity.phone);
 }
 
@@ -888,7 +889,7 @@ export async function createCommonsDraft(
           .set({ displayName: request.organizerDisplayName, updatedAt: new Date() })
           .where(eq(people.id, organizerId));
       }
-      await attachEmailIdentity(transaction, organizerId, identity.email);
+      await attachEmailIdentity(transaction, organizerId, provenEmail(identity));
 
       const slug = `${slugBase(request.name)}-${randomBytes(3).toString("hex")}`;
       const [createdCommons] = await transaction
@@ -2338,7 +2339,7 @@ export async function claimCommonsInvitation(
         .set({ status: "active", accessMode: "account", managedByPersonIds: null, canClaimAccess: false,
           ...(managedClaim ? {} : {attendanceState: "helping" as const, attendanceDates: null, joinedAt: new Date()}), updatedAt: new Date() })
         .where(and(eq(memberships.commonsId, invitation.commonsId), eq(memberships.personId, claimedPersonId)));
-      await attachEmailIdentity(transaction, claimedPersonId, identity.email);
+      await attachEmailIdentity(transaction, claimedPersonId, provenEmail(identity));
       await transaction
         .update(invitations)
         .set({

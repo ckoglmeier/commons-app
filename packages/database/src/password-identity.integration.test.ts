@@ -146,3 +146,34 @@ test("emailed sign-in links are unchanged: a confirmed address finds and claims 
     assert.equal(await claimCommonsInvitation(organizer.token, f.account(organizerEmail, true), f.url), f.trip);
   } finally { await f.cleanup(); }
 });
+
+test("password sign-in: a typed address is never stored, so a later invitation to it never lands on the account that typed it", { skip }, async () => {
+  const f = await fixture();
+  try {
+    const email = `sam-${randomUUID()}@example.com`;
+    // Someone creates an account typing Sam's address before Sam is ever invited.
+    const typer = f.account(email, false);
+    const typerPerson = await findOrClaimPersonForAuthIdentity(typer, f.url);
+    // The organizer then invites Sam at that address: it makes a new invited person, not the typer's profile.
+    const sam = await f.invite("Sam", email);
+    assert.notEqual(sam.personId, typerPerson);
+    assert.equal((await f.person(sam.personId))!.authUserId, null);
+    // Sam, holding the private link, still gets in under any address.
+    const holder = f.account(`sam-real-${randomUUID()}@example.com`, false);
+    assert.equal(await claimCommonsInvitation(sam.token, holder, f.url), f.trip);
+    assert.equal((await f.person(sam.personId))!.authUserId, holder.authUserId);
+  } finally { await f.cleanup(); }
+});
+
+test("password sign-in: accepting through a link doesn't store the typed address either", { skip }, async () => {
+  const f = await fixture();
+  try {
+    const maya = await f.invite("Maya", `maya-${randomUUID()}@example.com`);
+    const typed = `maya-typed-${randomUUID()}@example.com`;
+    const holder = f.account(typed, false);
+    assert.equal(await claimCommonsInvitation(maya.token, holder, f.url), f.trip);
+    // A later invitation to the address Maya typed is someone new, not Maya's profile.
+    const later = await f.invite("Someone at Maya's typed address", typed);
+    assert.notEqual(later.personId, maya.personId);
+  } finally { await f.cleanup(); }
+});
