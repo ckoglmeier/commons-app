@@ -44,6 +44,7 @@ import { and, asc, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm
 import { createDatabase } from "./client";
 import { runEventCommand, type CommandTransaction } from "./event-command";
 import { isCommonsId } from "./commons-identifier";
+import { tripStage } from "./trip-stage-repository";
 import {
     auditEvents,
     commons,
@@ -696,9 +697,8 @@ async function readSnapshotRows(
       welcomeMessage: commonsRecord.welcomeMessage,
       welcomeAuthorPersonId: commonsRecord.welcomeAuthorPersonId,
       letterSections: TripLetterSectionsSchema.nullable().catch(null).parse(commonsRecord.letterSections ?? null),
-      newExperience: commonsRecord.newExperience,
       templateKey: commonsRecord.templateKey ?? null,
-      stage: commonsRecord.newExperience && !commonsRecord.goingAt ? "deciding" as const : "going" as const,
+      stage: tripStage(commonsRecord),
       expensesClosedAt: commonsRecord.expensesClosedAt ? iso(commonsRecord.expensesClosedAt) : null,
       expensesClosedByPersonId: commonsRecord.expensesClosedByPersonId,
       expensesClosedByName: commonsRecord.expensesClosedByPersonId

@@ -15,6 +15,7 @@ import { z } from "zod";
 import { commandFingerprint, runEventCommand } from "./event-command";
 import { createDatabase } from "./client";
 import { isCommonsId } from "./commons-identifier";
+import { tripStage } from "./trip-stage-repository";
 import { auditEvents, commons, invitations, memberships, people, pollDecisions, pollDeliveries, pollDrafts, pollResponses, polls, stays } from "./schema";
 import { publishedPollCommunication, publishedPollCommunicationMode, publishedPollReplacement, resolvePollRecipients } from "./poll-delivery-repository";
 import { readPollEvidence } from "./poll-evidence";
@@ -247,7 +248,7 @@ async function getPublicPoll(lookup: PublicPollLookup, databaseUrl?: string, vie
     const participantDecision = decision ? { id: decision.id,
       summary: decision.summary,
       approvedByName: decision.approvedByName, approvedAt: iso(decision.approvedAt), target: decision.target, planId: decision.planId } : null;
-    const tripBrief = row.tripNewExperience && !row.tripGoingAt ? { welcome: row.tripWelcome, organizerName: row.createdByName, decideBy: row.tripBrief?.decideBy ?? null, roughCost: row.tripBrief?.roughCost ?? null } : null;
+    const tripBrief = tripStage({ newExperience: row.tripNewExperience, goingAt: row.tripGoingAt }) === "deciding" ? { welcome: row.tripWelcome, organizerName: row.createdByName, decideBy: row.tripBrief?.decideBy ?? null, roughCost: row.tripBrief?.roughCost ?? null } : null;
     return { ...publicPoll(row, responses), tripBrief, identityBound: Boolean(viewer), authenticatedName: viewer ? access.respondentName ?? null : null,
       superseded: await publishedPollReplacement(database.db, row.id),
       communication: await publishedPollCommunication(database.db, row.id),

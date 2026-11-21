@@ -26,39 +26,37 @@ async function call<T>(url: string, init?: RequestInit): Promise<T> {
  * quiet way to plan the next trip. Mounted under Money only when the server enables it. It changes no balance by itself: a report is a
  * claim, and only a recorded receipt settles anything.
  */
-export function BetaMoneyWrapUp({ slug, currentActorId, isOrganizer, participants, state, moments, defaultCurrency, balancesDisabled, ledgerClosed, endsOn, features, onState }: {
+export function BetaMoneyWrapUp({ slug, currentActorId, isOrganizer, participants, state, moments, defaultCurrency, balancesDisabled, ledgerClosed, endsOn, onState }: {
   slug: string; currentActorId: string; isOrganizer: boolean; participants: Person[];
   state: Pick<CommonsState, "expenses" | "reimbursements">; moments: { id: string; caption: string }[];
   defaultCurrency: string; balancesDisabled: boolean; ledgerClosed: boolean; endsOn: string | null;
-  features: { paymentReports: boolean; closure: boolean; recap: boolean; successor: boolean };
   onState: (state: CommonsState) => void;
 }) {
   const [reports, setReports] = useState<Report[] | null>(null);
   const [problem, setProblem] = useState(""), [refresh, setRefresh] = useState(0);
   const reload = useCallback(async () => { setRefresh(count => count + 1); }, []);
   useEffect(() => {
-    if (!features.paymentReports) return;
     let live = true;
     call<{ reports: Report[] }>(`/api/v1/commons/${slug}/payment-reports`)
       .then(result => { if (live) { setReports(result.reports); setProblem(""); } })
       .catch(error => { if (live) setProblem(personFacingError(error, "Payment reports didn’t load.")); });
     return () => { live = false; };
-  }, [features.paymentReports, slug, refresh]);
+  }, [slug, refresh]);
 
   const nameOf = (id: string) => participants.find(person => person.id === id)?.displayName ?? "Someone";
   const readiness = useMemo(() => closureReadiness({ state, personIds: participants.map(person => person.id), balancesDisabled, reports: reports ?? [] }), [state, participants, balancesDisabled, reports]);
-  const showNext = features.successor && planNextVisible({ endsOn, ledgerClosed, today: today(), isMember: participants.some(person => person.id === currentActorId) });
+  const showNext = planNextVisible({ endsOn, ledgerClosed, today: today(), isMember: participants.some(person => person.id === currentActorId) });
 
   // Nothing to pay back yet: Money stays about what was spent, with no forms ahead of the first shared expense.
   const moneyRelevant = moneyWrapUpRelevant({ reconciliation: readiness.reconciliation, reportCount: reports?.length ?? 0, reimbursementCount: state.reimbursements.length, ledgerClosed });
-  const showRecap = features.recap && (ledgerClosed || showNext);
+  const showRecap = ledgerClosed || showNext;
   if (!moneyRelevant && !showRecap && !showNext) return null;
 
   return <section className="beta-wrap" aria-labelledby="beta-wrap-title">
     <h2 id="beta-wrap-title">Payments and wrap-up</h2>
-    {features.paymentReports && moneyRelevant ? <PaymentReports slug={slug} currentActorId={currentActorId} isOrganizer={isOrganizer} participants={participants} reports={reports} nameOf={nameOf}
+    {moneyRelevant ? <PaymentReports slug={slug} currentActorId={currentActorId} isOrganizer={isOrganizer} participants={participants} reports={reports} nameOf={nameOf}
       defaultCurrency={defaultCurrency} ledgerClosed={ledgerClosed} balancesDisabled={balancesDisabled} problem={problem} reload={reload} onState={onState} /> : null}
-    {features.closure && !balancesDisabled && moneyRelevant ? <section className="beta-wrap__block" aria-labelledby="beta-closure-title">
+    {!balancesDisabled && moneyRelevant ? <section className="beta-wrap__block" aria-labelledby="beta-closure-title">
       <h3 id="beta-closure-title">{ledgerClosed ? "What’s still open" : "Before closing the ledger"}</h3>
       {readiness.reconciliation.length === 0 ? <p>No shared expenses are recorded.</p> : <ul className="beta-wrap__list">
         {readiness.reconciliation.map(row => <li key={row.currency}>

@@ -15,10 +15,10 @@ test("both account readers say whether the email proves identity, from this copy
 
 test("invitations are never found by a password account's address, and accepting carries the flag", () => {
   const commons = read("./server/commons.ts");
-  assert.match(commons, /if \(!identity\?\.email \|\| identity\.emailProvesIdentity === false\) return \[\];\n  return listPendingCommonsInvitationsForIdentity/);
+  assert.match(commons, /if \(!identity\?\.email \|\| identity\.emailProvesIdentity === false\) return \[\];\n {2}return listPendingCommonsInvitationsForIdentity/);
   assert.match(commons, /emailProvesIdentity: verified\.emailProvesIdentity !== false && identity\.emailProvesIdentity !== false,/);
   const polls = read("./server/polls.ts");
-  assert.match(polls, /export async function pendingPollInvitation\(publicId: string\) \{\n.*\n  if \(await currentSignInMethod\(\) === "password"\) return null;/);
+  assert.match(polls, /export async function pendingPollInvitation\(publicId: string\) \{\n.*\n {2}if \(await currentSignInMethod\(\) === "password"\) return null;/);
 });
 
 test("group links pass the flag through, so joining never claims an invited person by address", () => {

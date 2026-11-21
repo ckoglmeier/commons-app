@@ -59,11 +59,9 @@ export const CommonsSummarySchema = commonsZ.object({
   welcomeMessage: commonsZ.string().min(1).max(700).nullable().optional(),
   welcomeAuthorPersonId: commonsZ.string().min(1).nullable().optional(),
   letterSections: TripLetterSectionsSchema.nullable().optional(),
-  /** The two-stage experience, set per trip. */
-  newExperience: commonsZ.boolean().optional(),
   /** Which plan template the trip started from. Null or missing means the trip template. */
   templateKey: commonsZ.string().min(1).nullable().optional(),
-  /** "deciding" until the organizer says "We're going". Trips on the older experience are always "going". */
+  /** "deciding" until the organizer says "We're going". Trips created before the two stages are always "going". */
   stage: commonsZ.enum(["deciding", "going"]).optional(),
 });
 

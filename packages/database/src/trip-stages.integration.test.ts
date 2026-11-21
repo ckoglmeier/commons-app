@@ -7,7 +7,7 @@ import { commons, expenses, memberships, people, polls } from "./schema";
 import { commitEventCreationDraft, createEventCreationDraft } from "./event-creation-repository";
 import { createCommonsPoll, getPublicPollByPublicId, submitPublicPollResponseByPublicId } from "./poll-repository";
 import { queueCommonsInvitationDeliveries, addCommonsPerson } from "./onboarding-repository";
-import { setTripExperience, attachBigQuestionPoll, decideBigQuestion, markTripGoing, readBigQuestions, saveTripBrief } from "./trip-stage-repository";
+import { attachBigQuestionPoll, decideBigQuestion, markTripGoing, readBigQuestions, saveTripBrief } from "./trip-stage-repository";
 
 const skip = process.env.COMMONS_RUN_DATABASE_TESTS !== "1";
 const url = process.env.TEST_DATABASE_URL ?? "";
@@ -108,31 +108,15 @@ test("the welcome, deadline and rough cost reach the poll while deciding, and on
   } finally { await database.close(); }
 });
 
-test("existing trips stay on the old experience until an organizer switches and switching moves no record", { skip }, async () => {
-  const owner = await organizer(), stranger = await organizer(), options = { databaseUrl: url, actorPersonId: owner };
+test("a trip created before the two stages, with the column false, still reads as going", { skip }, async () => {
+  const owner = await organizer(), options = { databaseUrl: url, actorPersonId: owner };
   const legacy = await createEventCreationDraft({ sourceKind: "description", title: "Older trip", timezone: "UTC" }, options);
   const { eventId } = await commitEventCreationDraft(legacy.id, { commandId: randomUUID(), expectedVersion: legacy.version }, options);
   const database = createDatabase(url);
   try {
-    const on = async () => (await database.db.select({ on: commons.newExperience, goingAt: commons.goingAt }).from(commons).where(eq(commons.id, eventId)))[0];
-    assert.equal((await on()).on, false, "a trip with no setting stays as it was");
-    assert.equal((await readBigQuestions(eventId, options)).stage, "going");
-    await assert.rejects(setTripExperience(eventId, { enabled: true }, { databaseUrl: url, actorPersonId: stranger }));
-    await setTripExperience(eventId, { enabled: true }, options);
-    assert.equal((await readBigQuestions(eventId, options)).stage, "deciding", "a solo trip can start from the questions");
-    await database.db.insert(memberships).values({ commonsId: eventId, personId: stranger, role: "member", status: "active" });
-    await setTripExperience(eventId, { enabled: false }, options);
-    assert.equal((await readBigQuestions(eventId, options)).stage, "going");
-    await setTripExperience(eventId, { enabled: true }, options);
-    assert.ok((await on()).goingAt, "a trip with people on it is past deciding");
+    const [row] = await database.db.select({ on: commons.newExperience, goingAt: commons.goingAt }).from(commons).where(eq(commons.id, eventId));
+    assert.equal(row.on, false);
+    assert.equal(row.goingAt, null);
     assert.equal((await readBigQuestions(eventId, options)).stage, "going");
   } finally { await database.close(); }
-  // A solo trip with costs doesn't put them behind a gate.
-  const solo = await createEventCreationDraft({ sourceKind: "description", title: "Solo with costs", timezone: "UTC" }, options);
-  const soloTrip = await commitEventCreationDraft(solo.id, { commandId: randomUUID(), expectedVersion: solo.version }, options);
-  const costs = createDatabase(url);
-  try { await costs.db.insert(expenses).values({ commonsId: soloTrip.eventId, title: "Deposit", amountCents: 100, paidByPersonId: owner, occurredOn: "2027-01-01", category: "Other", status: "confirmed", splitMethod: "equal", source: "web", sourceLabel: "Test" }); }
-  finally { await costs.close(); }
-  await setTripExperience(soloTrip.eventId, { enabled: true }, options);
-  assert.equal((await readBigQuestions(soloTrip.eventId, options)).stage, "going", "recorded costs stay reachable");
 });

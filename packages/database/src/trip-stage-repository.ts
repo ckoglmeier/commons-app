@@ -1,21 +1,24 @@
-import { randomUUID } from "node:crypto";
 import { formatTripDateRange } from "@commons/contracts";
-import { and, count, eq, inArray, ne } from "drizzle-orm";
+import { and, count, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { createDatabase } from "./client";
 import { CommandAccessError, type CommandTransaction } from "./event-command";
 import { isCommonsId } from "./commons-identifier";
-import { auditEvents, commons, expenses, memberships, moments, pollResponses, polls } from "./schema";
+import { auditEvents, commons, memberships, pollResponses, polls } from "./schema";
 
 /*
- * Two stages of one trip (DESIGN.md §9 (Trip)). A new-experience trip starts out getting to a decision and moves
- * to "We're going" only when its organizer says so. Existing trips keep today's experience until an organizer turns this on. Poll answers never decide anything here: only `decideBigQuestion` does, and only an organizer can call it.
+ * Two stages of one trip (DESIGN.md §9 (Trip)). A new trip starts out getting to a decision and moves
+ * to "We're going" only when its organizer says so. Poll answers never decide anything here: only `decideBigQuestion` does, and only an organizer can call it.
  */
 
 export type TripStage = "deciding" | "going";
 export const BIG_QUESTION_IDS = ["where", "when", "who"] as const;
 export type BigQuestionId = (typeof BIG_QUESTION_IDS)[number];
 
+/**
+ * Every trip now uses the two stages, and new trips are created with `new_experience` true. The column is still read for
+ * one purpose: trips created before the stages existed have it false, and they must keep reading as "going".
+ */
 export function tripStage(trip: { newExperience: boolean; goingAt: Date | null }): TripStage {
   return trip.newExperience && !trip.goingAt ? "deciding" : "going";
 }
@@ -110,40 +113,6 @@ export async function saveTripBrief(identifier: string, raw: unknown, options: O
       void _decideBy; void _roughCost;
       await tx.update(commons).set({ bigQuestions: { ...rest, ...(input.decideBy ? { decideBy: input.decideBy } : {}), ...(input.roughCost ? { roughCost: input.roughCost } : {}) }, updatedAt: new Date() }).where(eq(commons.id, trip.id));
     });
-  } finally { await database.close(); }
-}
-
-const ExperienceSchema = z.object({ enabled: z.boolean() }).strict();
-
-/**
- * The organizer's "New experience" setting. It changes presentation only: plans, costs and people stay exactly
- * as they are, and turning it off hides nothing permanently. A trip that already has people, costs or photos is past deciding.
- */
-export async function setTripExperience(identifier: string, raw: unknown, options: Options) {
-  const input = ExperienceSchema.parse(raw), database = createDatabase(options.databaseUrl);
-  try {
-    return await database.db.transaction(async tx => {
-      const trip = await organizerTrip(tx, identifier, options.actorPersonId, true);
-      const now = new Date();
-      const [others] = await tx.select({ total: count() }).from(memberships).where(and(eq(memberships.commonsId, trip.id), inArray(memberships.status, ["active", "invited"]), ne(memberships.personId, options.actorPersonId)));
-      // Gating is for trips still deciding. A trip with people, costs or photos already has them, and switching can't put them behind a gate.
-      const [spent] = await tx.select({ total: count() }).from(expenses).where(eq(expenses.commonsId, trip.id));
-      const [photos] = await tx.select({ total: count() }).from(moments).where(eq(moments.commonsId, trip.id));
-      const underway = Number(others?.total ?? 0) + Number(spent?.total ?? 0) + Number(photos?.total ?? 0) > 0;
-      const goingAt = input.enabled && !trip.goingAt && underway ? now : trip.goingAt;
-      await tx.update(commons).set({ newExperience: input.enabled, goingAt, updatedAt: now }).where(eq(commons.id, trip.id));
-      await tx.insert(auditEvents).values({ commonsId: trip.id, commandId: `trip-experience:${randomUUID()}`, actorId: options.actorPersonId, actorType: "human", action: "trip.experience_changed", resourceType: "commons", resourceId: trip.id, summary: input.enabled ? "Turned on the new experience." : "Turned off the new experience." });
-      return { newExperience: input.enabled };
-    });
-  } finally { await database.close(); }
-}
-
-/** Whether this trip is on the new experience. Unknown trips aren't. */
-export async function tripIsNewExperience(identifier: string, databaseUrl?: string) {
-  const database = createDatabase(databaseUrl);
-  try {
-    const [trip] = await database.db.select({ on: commons.newExperience }).from(commons).where(isCommonsId(identifier) ? eq(commons.id, identifier) : eq(commons.slug, identifier));
-    return Boolean(trip?.on);
   } finally { await database.close(); }
 }
 

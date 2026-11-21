@@ -12,14 +12,14 @@ export const eventNavigationItems = [
   { id: "moments", label: "Photos", icon: ImageIcon },
 ] as const;
 
-export function EventNavigationLinks({ eventId, view, navigate, busy = false, tripStage = null }: {
-  /** New experience only: Trip · Plan · Money · Photos, with the last two marked until the trip is going. Null keeps Photos contextual under Trip, as before. */
-  tripStage?: "deciding" | "going" | null;
+export function EventNavigationLinks({ eventId, view, navigate, busy = false, tripStage }: {
+  /** Trip · Plan · Money · Photos, with Photos marked until the trip is going. */
+  tripStage: "deciding" | "going";
   eventId: string; view: EventView; navigate: (view: EventView) => void; busy?: boolean;
 }) {
-  // Photos (moments) is contextual under Trip; Travel & stays (logistics) is a section of Plan.
-  const primary = view === "logistics" ? "plan" : view === "moments" ? (tripStage ? "moments" : "home") : view;
-  return <>{eventNavigationItems.filter(item => (item.id !== "moments" || tripStage !== null)).map(item => {
+  // Travel & stays (logistics) is a section of Plan.
+  const primary = view === "logistics" ? "plan" : view;
+  return <>{eventNavigationItems.map(item => {
     const Icon = item.icon;
     return <Link key={item.id} href={commonsViewPath(eventId, item.id)} aria-current={primary === item.id ? "page" : undefined} className={primary === item.id ? "active" : ""} onClick={event => {
       if (busy) { event.preventDefault(); return; }

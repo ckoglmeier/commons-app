@@ -7,7 +7,7 @@ registerComponentImportStubs();
 
 test("Home uses progressive shortcuts", async () => {
   const actions = await readFile(new URL("./home-dashboard.tsx", import.meta.url), "utf8");
-  assert.match(actions, /!shortcuts.hasPlans/);
+  assert.match(actions, /shortcuts\.hasPlans \?/);
   assert.match(actions, /LogisticsAddMenu[^>]*choose=\{addPlan\}/);
   assert.match(actions, /Ask the group/);
 });

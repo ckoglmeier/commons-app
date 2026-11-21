@@ -27,8 +27,8 @@ const DESKTOP_QUERY = "(min-width: 1100px)";
  * It owns the single main landmark. Destination links keep real hrefs; plain clicks use the in-app `navigate` transition.
  * Class names for page content: wrap Trip, Plan, Money and Photos content in `.trip-shell-page` (add `.trip-shell-page--document` for the narrower reading width).
  */
-export function TripApplicationShell({ tripStage = null, commonsId, view, navigate, tripName, identity, account, busy = false, inert = false, contentLabel, children }: {
-  tripStage?: "deciding" | "going" | null;
+export function TripApplicationShell({ tripStage, commonsId, view, navigate, tripName, identity, account, busy = false, inert = false, contentLabel, children }: {
+  tripStage: "deciding" | "going";
   commonsId: string;
   view: EventView;
   navigate: (view: EventView) => void;

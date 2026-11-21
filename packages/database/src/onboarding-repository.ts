@@ -1906,7 +1906,7 @@ async function queueInvitationDeliveriesInTransaction(
   slug: string, invitationId: string | null, options: SetupRepositoryOptions,
 ): Promise<QueuedInvitationDelivery[]> {
   const context = await requireOrganizer(transaction, slug, options.actorPersonId);
-  // Sending invitations is saying the trip is on. Trips on the older experience have no stage to change.
+  // Sending invitations is saying the trip is on. Trips created before the two stages already read as going (see tripStage), so only trips still deciding change.
   await transaction.update(commons).set({ goingAt: new Date() }).where(and(eq(commons.id, context.id), eq(commons.newExperience, true), isNull(commons.goingAt)));
   const conditions = [
     eq(invitations.commonsId, context.id),

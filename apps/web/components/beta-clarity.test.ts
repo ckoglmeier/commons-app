@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 
-test("receipt quick action opens the existing Money receipt editor",async()=>{
+test("receipt quick action opens the existing Money receipt editor from the Add menu, in the Add menu's words",async()=>{
   const home=await readFile(new URL("./home-dashboard.tsx",import.meta.url),"utf8");
-  assert.match(home,/Add receipts/);assert.match(home,/addReceipt/);assert.doesNotMatch(home,/Get help adding receipts/);
+  assert.match(home,/<LogisticsAddMenu canAddStay=\{canAskGroup\} choose=\{addPlan\} addPhotos=\{addPhotos\} addReceipt=\{addReceipt\}/);
+  assert.doesNotMatch(home,/Add receipts|Get help adding receipts/);
+  const menu=await readFile(new URL("./logistics-add-menu.tsx",import.meta.url),"utf8");
+  assert.match(menu,/\{ label: "Cost from a receipt", action: addReceipt \}/);
 });
 test("attendance remains contextual with explicit decline and reviewed dates", async () => {
   const source = await readFile(new URL("./event-attendance.tsx", import.meta.url), "utf8");

@@ -2,7 +2,7 @@
 import { planTemplateFor } from "@commons/domain";
 import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import type { CommonsSummary, ItineraryItem, PlacePin, Stay, TravelPlan } from "@commons/contracts";
-import { directionsUrl, distanceKm, distanceLabel, filterTripMapPlaces, isRentalListing, pinSourceLabel, placeLocationNote, stayDistances, tripMapDays, tripMapPlaces, type TripMapFilter, type TripMapPlace } from "../lib/trip-map";
+import { directionsUrl, distanceKm, distanceLabel, filterTripMapPlaces, isRentalListing, placeLocationNote, stayDistances, tripMapDays, tripMapPlaces, type TripMapFilter, type TripMapPlace } from "../lib/trip-map";
 import { TripMapCanvas, type MarkedPlace } from "./trip-map-canvas";
 import { personFacingError } from "@/lib/person-facing-error";
 
@@ -11,12 +11,12 @@ const dayLabel = (day: string) => new Intl.DateTimeFormat("en-US", { weekday: "s
 
 /** Plan → Map: the stays being considered and the activities people added,
  * on one map. Pins are only ever saved by a person. */
-export function TripMapView({ commons, stays, itinerary, transport = [], canEditStays, canEditActivities, savePin, editStay, openStay, honestLocationNotes = false, openActivity, addMenu, travelPath, initialKind = "all" }: {
+export function TripMapView({ commons, stays, itinerary, transport = [], canEditStays, canEditActivities, savePin, editStay, openStay, openActivity, addMenu, travelPath, initialKind = "all" }: {
   commons: CommonsSummary; stays: Stay[]; itinerary: ItineraryItem[]; transport?: TravelPlan[]; canEditStays: boolean; canEditActivities: boolean;
   addMenu?: ReactNode; travelPath?: string; initialKind?: "all" | "stay" | "activity";
   savePin: (kind: "stay" | "activity", id: string, pin: PlacePin | null) => Promise<void>;
   /** Opens the stay's canonical record (any viewer). Edit stay stays organizer-only. */
-  editStay: (id: string) => void; openStay?: (id: string) => void; honestLocationNotes?: boolean; openActivity: (id: string) => void;
+  editStay: (id: string) => void; openStay?: (id: string) => void; openActivity: (id: string) => void;
 }) {
   const places = useMemo(() => tripMapPlaces(stays, itinerary, commons.timezone), [stays, itinerary, commons.timezone]);
   const badges = useMemo(() => {
@@ -107,7 +107,7 @@ export function TripMapView({ commons, stays, itinerary, transport = [], canEdit
           <p className="trip-map-meta">{selected.kind === "stay" ? "Stay" : "Activity"} · {selected.statusLabel}{selected.kind === "activity" ? ` · ${selected.day ? dayLabel(selected.day) : "No day set"}` : ""}</p>
           {selected.address ? <p>{selected.address}</p> : null}
           {selected.url ? <p><a href={selected.url} target="_blank" rel="noreferrer">Open link</a></p> : null}
-          <p className="trip-map-meta">{honestLocationNotes ? placeLocationNote(selected) : selected.pin ? pinSourceLabel(selected.pin) : "Not on the map yet."}</p>
+          <p className="trip-map-meta">{placeLocationNote(selected)}</p>
           {placing?.key === selected.key ? <p className="trip-map-meta">Choosing a location on the map.</p> : <div className="trip-map-actions">
             {canEdit(selected) ? <button type="button" className="cm-action" disabled={busy || Boolean(placing)}
               onClick={() => {
