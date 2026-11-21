@@ -15,6 +15,7 @@ const account: ShellAccount = { signedIn: true, actorName: "Ada Lovelace", actor
 function shell(options: { view?: EventView; account?: ShellAccount; inert?: boolean; busy?: boolean; placements?: string[] } = {}) {
   const placements = options.placements ?? [];
   const html = renderToStaticMarkup(createElement(TripApplicationShell, {
+    tripStage: "going",
     commonsId: "trip",
     view: options.view ?? "home",
     navigate() {},
@@ -33,14 +34,14 @@ function currentLabels(html: string) {
   return [...rail.matchAll(/<a [^>]*aria-current="page"[^>]*>.*?<span>(.*?)<\/span>/g)].map(match => match[1]);
 }
 
-test("renders one main landmark, a skip link, and three destination links in the rail and Menu", () => {
+test("renders one main landmark, a skip link, and four destination links in the rail and Menu", () => {
   const html = shell();
   assert.equal((html.match(/<main /g) ?? []).length, 1);
   assert.match(html, /<main id="workspace-content" class="trip-shell__content" tabindex="-1"/);
   assert.match(html, /<a class="skip-link" href="#workspace-content">/);
   assert.match(html, /<main [^>]*><h1 class="sr-only">Cape Cod week<\/h1><p>page body<\/p><\/main>/, "one page heading names the trip");
   assert.equal((html.match(/<h1[ >]/g) ?? []).length, 1);
-  const destinations = ["Trip", "Plan", "Money"];
+  const destinations = ["Trip", "Plan", "Money", "Photos"];
   for (const nav of html.split('class="trip-shell__nav"').slice(1)) {
     const links = [...nav.slice(0, nav.indexOf("</nav>")).matchAll(/<a [^>]*href="([^"]+)"[^>]*><svg[\s\S]*?<span>(.*?)<\/span>/g)];
     assert.deepEqual(links.map(link => link[2]), destinations);
@@ -49,9 +50,9 @@ test("renders one main landmark, a skip link, and three destination links in the
   assert.equal((html.match(/trip-shell__nav/g) ?? []).length, 2);
 });
 
-test("the active destination follows the view: moments is Trip, logistics is Plan", () => {
+test("the active destination follows the view: moments is Photos, logistics is Plan", () => {
   assert.deepEqual(currentLabels(shell({ view: "home" })), ["Trip"]);
-  assert.deepEqual(currentLabels(shell({ view: "moments" })), ["Trip"]);
+  assert.deepEqual(currentLabels(shell({ view: "moments" })), ["Photos"]);
   assert.deepEqual(currentLabels(shell({ view: "plan" })), ["Plan"]);
   assert.deepEqual(currentLabels(shell({ view: "logistics" })), ["Plan"]);
   assert.deepEqual(currentLabels(shell({ view: "money" })), ["Money"]);
@@ -128,8 +129,3 @@ test("TripIdentity exposes People and a Trip options menu only for authorized ca
   assert.match(solo, /aria-label="Trip options"/);
 });
 
-test("TripIdentity keeps the demo marker without a walkthrough launcher", () => {
-  const sample = identity({ demo: true });
-  assert.match(sample, /\[DEMO\]/);
-  assert.doesNotMatch(sample, /Start walkthrough/);
-});

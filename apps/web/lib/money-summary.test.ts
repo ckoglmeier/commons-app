@@ -111,11 +111,8 @@ test("the same shared URL presents the authenticated person's balance without ch
   assert.equal(moneySummaryCsv(organizer), moneySummaryCsv(traveler));
 });
 
-test("personal balance is omitted for public samples and family trips, and doesn't imply settlement when absent", () => {
+test("personal balance is omitted for family trips, and doesn't imply settlement when absent", () => {
   const snapshot = fixture();
-  const sample = buildMoneySummary(snapshot, when, true);
-  assert.equal(sample.viewer, null);
-  assert.deepEqual(moneySummaryViewerBalances(sample), []);
   snapshot.currentActor.id = "not-allocated";
   assert.deepEqual(moneySummaryViewerBalances(buildMoneySummary(snapshot, when)), []);
   snapshot.commons.balancesDisabled = true;

@@ -37,7 +37,7 @@ export async function updatePosthogRoute() {
   // Session replay is opt-in per deployment, in addition to the privacy masking in posthog-config.ts.
   if (client && !recordingAllowed && process.env.NEXT_PUBLIC_POSTHOG_REPLAY === 'true') { client.startSessionRecording(); recordingAllowed = true; }
   const route = analyticsRoute(location.pathname);
-  if (client && route !== currentRoute) { currentRoute = route; client.capture('$pageview', { ...attributionProperties(), deviceClass: deviceClass(globalThis.innerWidth ?? 0), sample: location.pathname.startsWith('/c/10000000-0000-4000-8000-000000000001') || location.pathname.startsWith('/c/cape-cod-couples-week') }); }
+  if (client && route !== currentRoute) { currentRoute = route; client.capture('$pageview', { ...attributionProperties(), deviceClass: deviceClass(globalThis.innerWidth ?? 0) }); }
 }
 
 export function capturePosthogEvent(name: string, properties?: Record<string, unknown>) {

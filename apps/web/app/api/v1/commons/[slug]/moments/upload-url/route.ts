@@ -31,9 +31,9 @@ export async function POST(
         { status: 400 },
       );
     }
-    if (getCommonsDataMode(slug) !== "database") {
+    if (getCommonsDataMode() !== "database") {
       return NextResponse.json(
-        { error: "Photos in the demo stay on this device." },
+        { error: "Photos need a database, and this copy of Commons doesn’t have one set up." },
         { status: 403 },
       );
     }

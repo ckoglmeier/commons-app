@@ -45,9 +45,6 @@ test("summary loading enforces active membership and projects family/private fie
     await assert.rejects(loadMoneySummary(trip.eventId), CommonsMembershipRequiredError);
     delete process.env.COMMONS_PILOT_ACTOR_ID;
     await assert.rejects(loadMoneySummary(trip.eventId), CommonsAuthenticationRequiredError);
-    const sample = await loadMoneySummary("10000000-0000-4000-8000-000000000001");
-    assert.equal(sample?.sample, true);
-    assert.equal(sample?.viewer, null);
   } finally {
     await trip.cleanup(); await otherTrip.cleanup();
     for (const key of Object.keys(process.env)) if (!(key in environment)) delete process.env[key];

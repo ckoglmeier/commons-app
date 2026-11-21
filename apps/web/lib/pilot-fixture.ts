@@ -1,3 +1,4 @@
+// Test data only: a made-up trip with fictional people, used by the web tests. Nothing in the app loads it.
 import type {
   Actor,
   CommonsSnapshot,
@@ -22,14 +23,14 @@ const personIds = {
   Dev: "31000000-0000-4000-8000-000000000008",
 } as const;
 
-export const currentActor: Actor = {
+const currentActor: Actor = {
   id: personIds.Jordan,
   displayName: "Jordan Reed",
   role: "organizer",
   identityState: "claimed",
 };
 
-export const participants = [
+const participants = [
   { id: personIds.Jordan, name: "Jordan Reed", initials: "JR", role: "Organizer" },
   { id: personIds.Casey, name: "Casey Reed", initials: "CR", role: "Member" },
   { id: personIds.Maya, name: "Maya Kim", initials: "MK", role: "Member" },
@@ -159,9 +160,9 @@ const messages: ConversationMessage[] = [
     source: "channel",
     attachments: [{
       kind: "photo",
-      assetUrl: "/moments/cape-beach.jpg",
+      assetUrl: "/moments/test-beach.jpg",
       altText: "Two people walking across rippled sand at low tide in Falmouth",
-      caption: "Low tide on the Cape",
+      caption: "Low tide",
     }],
   },
   {
@@ -174,7 +175,7 @@ const messages: ConversationMessage[] = [
     source: "channel",
     attachments: [{
       kind: "photo",
-      assetUrl: "/moments/cape-bike-trail.jpg",
+      assetUrl: "/moments/test-bike-trail.jpg",
       altText: "Two adults riding bikes along a coastal boardwalk",
       caption: "Coastal bike ride",
     }],
@@ -189,7 +190,7 @@ const messages: ConversationMessage[] = [
     source: "channel",
     attachments: [{
       kind: "photo",
-      assetUrl: "/moments/cape-dinner.jpg",
+      assetUrl: "/moments/test-dinner.jpg",
       altText: "A warmly lit restaurant dining room in the evening",
       caption: "Dinner out",
     }],
@@ -452,13 +453,13 @@ const moments: Moment[] = [
   {
     id: "pilot-week-old-silver",
     kind: "photo",
-    assetUrl: "/moments/cape-beach.jpg",
-    caption: "Low tide on the Cape",
+    assetUrl: "/moments/test-beach.jpg",
+    caption: "Low tide",
     altText: "Two people walking across rippled sand at low tide in Falmouth",
     occurredAt: "2027-07-20T14:08:00.000Z",
     addedByPersonId: personIds.Maya,
     addedByName: "Maya Kim",
-    sourceLabel: "Shared in the group conversation · Demo photo",
+    sourceLabel: "Shared in the group conversation · Test photo",
     itineraryItemId: "50000000-0000-4000-8000-000000000005",
     itineraryItemTitle: "Old Silver Beach",
     eventMatch: { source: "automatic", confidence: 94, reason: "Shared during the Old Silver Beach plan." },
@@ -466,13 +467,13 @@ const moments: Moment[] = [
   {
     id: "pilot-week-bike-trail",
     kind: "photo",
-    assetUrl: "/moments/cape-bike-trail.jpg",
+    assetUrl: "/moments/test-bike-trail.jpg",
     caption: "Coastal bike ride",
     altText: "Two adults riding bikes along a coastal boardwalk",
     occurredAt: "2027-07-22T17:46:00.000Z",
     addedByPersonId: personIds.Casey,
     addedByName: "Casey Reed",
-    sourceLabel: "Shared in the group conversation · Demo photo",
+    sourceLabel: "Shared in the group conversation · Test photo",
     itineraryItemId: "50000000-0000-4000-8000-000000000012",
     itineraryItemTitle: "Shining Sea bike trail",
     eventMatch: { source: "automatic", confidence: 91, reason: "Shared just after the bike ride." },
@@ -480,31 +481,31 @@ const moments: Moment[] = [
   {
     id: "pilot-week-dinner",
     kind: "photo",
-    assetUrl: "/moments/cape-dinner.jpg",
+    assetUrl: "/moments/test-dinner.jpg",
     caption: "Dinner out",
     altText: "A warmly lit restaurant dining room in the evening",
     occurredAt: "2027-07-22T23:51:00.000Z",
     addedByPersonId: personIds.Jess,
     addedByName: "Jess Parker",
-    sourceLabel: "Shared in the group conversation · Demo photo",
+    sourceLabel: "Shared in the group conversation · Test photo",
     itineraryItemTitle: "Dinner at C Salt",
     eventMatch: { source: "automatic", confidence: 88, reason: "Shared during the C Salt dinner window." },
   },
   {
     id: "pilot-week-whale-watch",
     kind: "photo",
-    assetUrl: "/moments/cape-whale-watch.jpg",
+    assetUrl: "/moments/test-whale-watch.jpg",
     caption: "Whales off the starboard side",
     altText: "Passengers on a whale-watching boat looking toward whales in the distance",
     occurredAt: "2027-07-24T14:02:00.000Z",
     addedByPersonId: personIds.Ben,
     addedByName: "Ben Kim",
-    sourceLabel: "Shared in the group conversation · Demo photo",
+    sourceLabel: "Shared in the group conversation · Test photo",
     itineraryItemTitle: "Whale watching",
   },
 ];
 
-export const initialCommonsState: CommonsState = {
+const initialCommonsState: CommonsState = {
   commonsId,
   messages,
   proposals: [dinnerProposal],
@@ -520,20 +521,19 @@ export const initialCommonsState: CommonsState = {
 export const pilotSnapshot: CommonsSnapshot = {
   commons: {
     id: commonsId,
-    slug: "cape-cod-couples-week",
-    name: "Cape Cod Couples Week",
-    newExperience: true,
+    slug: "falmouth-couples-week",
+    name: "Falmouth Couples Week",
     stage: "going",
     startsOn: "2027-07-18",
     endsOn: "2027-07-25",
     locationName: "Falmouth, Massachusetts",
     timezone: "America/New_York",
     status: "planning",
-    coverImageUrl: "/moments/cape-beach.jpg",
+    coverImageUrl: "/moments/test-beach.jpg",
     lodging: {
       name: "Falmouth Heights house",
       address: "Falmouth Heights, Falmouth, MA 02540",
-      sourceLabel: "Approximate demo location",
+      sourceLabel: "Approximate location",
     },
   },
   currentActor,

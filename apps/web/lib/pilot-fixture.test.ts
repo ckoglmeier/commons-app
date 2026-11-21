@@ -1,19 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { pilotSnapshot } from "./pilot-fixture";
-import { createPublicDemoSnapshotLookup } from "./server/public-demo";
 
-test("the public demo lookup contains only the anonymized demo", () => {
-  const lookup = createPublicDemoSnapshotLookup(pilotSnapshot);
-
-  assert.equal(lookup.get(pilotSnapshot.commons.slug), pilotSnapshot);
-  assert.equal(lookup.get(pilotSnapshot.commons.id), pilotSnapshot);
-  assert.equal(lookup.size, 2);
-  assert.equal(lookup.has("private-trip"), false);
-  assert.equal(lookup.has("private-trip-id"), false);
-});
-
-test("Cape Cod uses fictional people throughout its shared data and attribution", () => {
+test("the test fixture uses fictional people throughout its shared data and attribution", () => {
   assert.doesNotMatch(JSON.stringify(pilotSnapshot), /@gmail\.com|Rivera/i);
   assert.equal(pilotSnapshot.currentActor.displayName, "Jordan Reed");
   const jordan = pilotSnapshot.participants.find(person => person.id === pilotSnapshot.currentActor.id)!;
@@ -34,9 +23,4 @@ test("Cape Cod uses fictional people throughout its shared data and attribution"
   for (const moment of pilotSnapshot.state.moments) {
     assert.equal(moment.addedByName, names.get(moment.addedByPersonId!));
   }
-});
-
-test("public sample demonstrates the going-stage release experience", () => {
-  assert.equal(pilotSnapshot.commons.newExperience, true);
-  assert.equal(pilotSnapshot.commons.stage, "going");
 });

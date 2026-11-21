@@ -9,7 +9,7 @@ export const metadata = { title: "Polls — Commons" };
 
 export default async function PollsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  if (getCommonsDataMode(slug) !== "database") notFound();
+  if (getCommonsDataMode() !== "database") notFound();
   let snapshot;
   try { snapshot = await loadCommonsSnapshot(slug); }
   catch (error) {

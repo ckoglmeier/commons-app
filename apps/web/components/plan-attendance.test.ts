@@ -19,7 +19,7 @@ for (const parallel of [false, true]) test(`only open-invitation plans offer att
     const before = structuredClone(state);
     const renderer = createHookRenderer({expand:[PlanView]});
     try {
-      renderer.render(createElement(PlanView, {state, commons:{...pilotSnapshot.commons, timezone:"America/Denver"}, days:tripDays(day,day), selectedDay:day, seededPilot:false, openItem:noop, canSchedule:true, setSelectedDay:noop, activityParticipation:state.participation, respondToActivity:noop, openMoments:noop, travelPlans:[], openTravelPlans:noop, participantCount:pilotSnapshot.participants.length, participants:pilotSnapshot.participants, addPlan:noop, editPlan:noop, scheduleIdea:noop, canEditPlan:true, openStay:noop, openTripDetails:noop,}));
+      renderer.render(createElement(PlanView, {state, commons:{...pilotSnapshot.commons, timezone:"America/Denver"}, days:tripDays(day,day), selectedDay:day, openItem:noop, canSchedule:true, setSelectedDay:noop, activityParticipation:state.participation, respondToActivity:noop, openMoments:noop, travelPlans:[], openTravelPlans:noop, participantCount:pilotSnapshot.participants.length, participants:pilotSnapshot.participants, addPlan:noop, editPlan:noop, scheduleIdea:noop, canEditPlan:true, openStay:noop, openTripDetails:noop,}));
       renderer.flush();
       let present = false;
       try { renderer.find(node => typeof node.type === "function" && node.type.name === "AttendanceControl"); present = true; } catch { /* No attendance control is expected for assigned people. */ }

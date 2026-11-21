@@ -5,9 +5,6 @@ type TripCardCover = Pick<CommonsSummary, "coverCardImageUrl" | "coverImageUrl" 
 export function tripCardCoverUrl(commons: TripCardCover) {
   const storedUrl = commons.coverCardImageUrl ?? commons.coverImageUrl;
   if (!storedUrl) return null;
-  if (commons.slug === "cape-cod-couples-week" && storedUrl.startsWith("/moments/")) {
-    return storedUrl;
-  }
   const coverRoute = `/api/v1/commons/${commons.slug}/cover-image`;
   if (storedUrl.startsWith(coverRoute)) {
     const url = new URL(storedUrl, "https://commons.invalid");

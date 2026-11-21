@@ -11,7 +11,7 @@ import { ResilientCoverImage } from "./resilient-cover-image";
  * Presentational trip identity for the persistent rail and the compact Menu.
  * It performs no fetching and infers no permissions: an action appears only when its callback or href is supplied.
  */
-export function TripIdentity({ placement, commons, meta, coverImage, participants, openPeople, openCoverPicker, openSettings, demo, onAction }: {
+export function TripIdentity({ placement, commons, meta, coverImage, participants, openPeople, openCoverPicker, openSettings, onAction }: {
   placement: "rail" | "menu";
   commons: CommonsSummary;
   meta: string;
@@ -20,7 +20,6 @@ export function TripIdentity({ placement, commons, meta, coverImage, participant
   openPeople?: () => void;
   openCoverPicker?: () => void;
   openSettings?: () => void;
-  demo?: boolean;
   onAction?: () => void;
 }) {
   const [dimensions, setDimensions] = useState<{ src: string; width: number; height: number } | null>(null);
@@ -67,7 +66,6 @@ export function TripIdentity({ placement, commons, meta, coverImage, participant
         />
       </div>
       <div className="trip-identity__text">
-        {demo ? <span className="trip-identity__demo">[DEMO]</span> : null}
         <p className="trip-identity__name">{commons.name}</p>
         {meta ? <p className="trip-identity__meta">{meta}</p> : null}
       </div>

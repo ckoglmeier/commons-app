@@ -1,4 +1,3 @@
-export const PUBLIC_DEMO_COMMONS_ID = "10000000-0000-4000-8000-000000000001";
 
 export const eventViews = ["home", "plan", "logistics", "money", "moments"] as const;
 export type EventView = typeof eventViews[number];

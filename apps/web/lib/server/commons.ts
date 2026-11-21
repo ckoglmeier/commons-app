@@ -67,7 +67,6 @@ import {
 } from "@commons/database";
 import { CommonsPeopleSchema, formatTripDateRange, InvitationDeliveryActionSchema, InvitationLinkSchema, SendSetupInvitationsResultSchema, type CommonsMembershipSummary, type CommonsSnapshot } from "@commons/contracts";
 import type { PendingCommonsInvitationSummary } from "@commons/database";
-import { pilotSnapshot } from "@/lib/pilot-fixture";
 import {
     getLocalDevelopmentPilotActorId,
     isSignInConfigured,
@@ -82,7 +81,6 @@ import { renderCommonsAuthenticationEmail } from "@/lib/email/authentication-ema
 import { createPasswordlessEmailProof, getSupabaseAuthUserEmail, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { invitationReturnPath } from "@/lib/invitation-entry-flow";
 import { EmailDeliveryError, emailDeliveryAvailable, sendEmail } from "@/lib/email/resend";
-import { createPublicDemoSnapshotLookup } from "./public-demo";
 import {
     CommonsAuthenticationRequiredError,
     CommonsMembershipRequiredError,
@@ -95,9 +93,6 @@ export {
 } from "./commons-access-errors";
 
 export type CommonsDataMode = "database" | "demo";
-
-const publicDemoSlug = pilotSnapshot.commons.slug;
-const publicDemoId = pilotSnapshot.commons.id;
 
 function databaseUrl() {
   return commonsDatabaseUrl();
@@ -136,15 +131,9 @@ export async function authenticatedCommonsRepositoryOptions() {
   return options;
 }
 
-export function getCommonsDataMode(identifier?: string): CommonsDataMode {
-  if (identifier && publicDemoSnapshotByIdentifier.has(identifier)) return "demo";
+/** "demo" now only means this copy has no database configured: no trip can load. */
+export function getCommonsDataMode(): CommonsDataMode {
   return databaseUrl() ? "database" : "demo";
-}
-
-const publicDemoSnapshotByIdentifier = createPublicDemoSnapshotLookup(pilotSnapshot);
-
-export function isPublicDemoCommonsIdentifier(identifier: string) {
-  return identifier === publicDemoId || identifier === publicDemoSlug;
 }
 
 export function loadPublicCommonsMemberships(): CommonsMembershipSummary[] {
@@ -161,22 +150,14 @@ export async function loadCurrentCommonsMemberships(): Promise<
     const identity = await getCommonsAuthIdentity();
     if (!identity) return [];
     const personId = await findOrClaimPersonForAuthIdentity(identity!, url);
-    const memberships = personId
+    return personId
       ? await listCommonsMembershipsForPerson(personId, url)
       : [];
-    return memberships.filter(
-      (membership) => membership.commons.slug !== publicDemoSlug,
-    );
   }
 
   const personId = getLocalDevelopmentPilotActorId();
   if (!personId) return [];
-  const memberships = personId
-    ? await listCommonsMembershipsForPerson(personId, url)
-    : [];
-  return memberships.filter(
-    (membership) => membership.commons.slug !== publicDemoSlug,
-  );
+  return listCommonsMembershipsForPerson(personId, url);
 }
 
 export async function loadCurrentPendingInvitations(): Promise<PendingCommonsInvitationSummary[]> {
@@ -191,8 +172,6 @@ export async function loadCurrentPendingInvitations(): Promise<PendingCommonsInv
 export async function loadCommonsSnapshot(
   identifier: string,
 ): Promise<CommonsSnapshot | null> {
-  const demoSnapshot = publicDemoSnapshotByIdentifier.get(identifier);
-  if (demoSnapshot) return demoSnapshot;
   const options = await databaseOptions();
   if (options) {
     try {
@@ -212,9 +191,6 @@ export async function loadCommonsSnapshot(
 }
 
 export async function persistTravelPlan(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo travel plans stay on this device.");
-  }
   const options = await databaseOptions();
   if (!options) {
     throw new Error("Commons database persistence is not configured.");
@@ -223,30 +199,24 @@ export async function persistTravelPlan(slug: string, input: unknown) {
 }
 
 export async function persistFlightBooking(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) throw new Error("Cape Cod demo flight bookings stay on this device.");
   const options = await databaseOptions();
   if (!options) throw new Error("Commons database persistence is not configured.");
   return upsertCommonsFlightBooking(slug, input, options);
 }
 
 export async function persistTravelPlanSharing(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) throw new Error("Cape Cod demo travel plans stay on this device.");
   const options = await databaseOptions();
   if (!options) throw new Error("Commons database persistence is not configured.");
   return updateCommonsTravelPlanSharing(slug, input, options);
 }
 
 export async function persistTravelPlanDelete(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) throw new Error("Cape Cod demo travel plans stay on this device.");
   const options = await databaseOptions();
   if (!options) throw new Error("Commons database persistence is not configured.");
   return deleteCommonsTravelPlan(slug, input, options);
 }
 
 export async function persistTargetBudget(slug: string, input: unknown) {
-  if (getCommonsDataMode(slug) === "demo") {
-    throw new Error("Demo target budgets stay on this device.");
-  }
   const options = await databaseOptions();
   if (!options) throw new Error("Commons database persistence is not configured.");
   const snapshot = await updateCommonsTargetBudget(slug, input, options);
@@ -255,9 +225,6 @@ export async function persistTargetBudget(slug: string, input: unknown) {
 }
 
 export async function persistCoverUpdate(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo covers stay on this device.");
-  }
   const options = await databaseOptions();
   if (!options) {
     throw new Error("Commons database persistence is not configured.");
@@ -266,9 +233,6 @@ export async function persistCoverUpdate(slug: string, input: unknown) {
 }
 
 export async function persistTripLetterUpdate(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) {
-    throw new Error("The demo trip page stays unchanged.");
-  }
   const options = await databaseOptions();
   if (!options) {
     throw new Error("Commons database persistence is not configured.");
@@ -277,9 +241,6 @@ export async function persistTripLetterUpdate(slug: string, input: unknown) {
 }
 
 export async function persistTitleUpdate(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) {
-    throw new Error("The demo trip title stays unchanged.");
-  }
   const options = await databaseOptions();
   if (!options) {
     throw new Error("Commons database persistence is not configured.");
@@ -288,37 +249,30 @@ export async function persistTitleUpdate(slug: string, input: unknown) {
 }
 
 export async function persistDetailsUpdate(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) {
-    throw new Error("The demo trip details stay unchanged.");
-  }
   const options = await databaseOptions();
   if (!options) throw new Error("Commons database persistence is not configured.");
   return updateCommonsDetails(slug, input, options);
 }
 
 export async function persistStay(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) throw new Error("Demo stays stay on this device.");
   const options = await databaseOptions();
   if (!options) throw new Error("Commons database persistence is not configured.");
   return addCommonsStay(slug, input, options);
 }
 
 export async function persistStayUpdate(slug: string, stayId: string, input: unknown) {
-  if (slug === publicDemoSlug) throw new Error("Demo stays stay on this device.");
   const options = await databaseOptions();
   if (!options) throw new Error("Commons database persistence is not configured.");
   return updateCommonsStay(slug, stayId, input, options);
 }
 
 export async function persistPlacePin(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) throw new Error("Demo places stay on this device.");
   const options = await databaseOptions();
   if (!options) throw new Error("Commons database persistence is not configured.");
   return setCommonsPlacePin(slug, input, options);
 }
 
 export async function persistStayDelete(slug: string, stayId: string, input: unknown) {
-  if (slug === publicDemoSlug) throw new Error("Demo stays stay on this device.");
   const options = await databaseOptions();
   if (!options) throw new Error("Commons database persistence is not configured.");
   return deleteCommonsStay(slug, stayId, input, options);
@@ -329,9 +283,6 @@ export async function persistMomentUpdate(
   momentId: string,
   input: unknown,
 ) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo photos stay on this device.");
-  }
   const options = await databaseOptions();
   if (!options) {
     throw new Error("Commons database persistence is not configured.");
@@ -344,9 +295,6 @@ export async function persistMomentDelete(
   momentId: string,
   input: unknown,
 ) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo photos stay on this device.");
-  }
   const options = await databaseOptions();
   if (!options) {
     throw new Error("Commons database persistence is not configured.");
@@ -355,9 +303,6 @@ export async function persistMomentDelete(
 }
 
 export async function persistExpense(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo expenses stay on this device.");
-  }
   const options = await databaseOptions();
   if (!options) {
     throw new Error("Commons database persistence is not configured.");
@@ -370,9 +315,6 @@ export async function persistExpenseUpdate(
   expenseId: string,
   input: unknown,
 ) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo expenses stay on this device.");
-  }
   const options = await databaseOptions();
   if (!options) {
     throw new Error("Commons database persistence is not configured.");
@@ -385,9 +327,6 @@ export async function persistExpenseDelete(
   expenseId: string,
   input: unknown,
 ) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo expenses stay on this device.");
-  }
   const options = await databaseOptions();
   if (!options) {
     throw new Error("Commons database persistence is not configured.");
@@ -396,9 +335,6 @@ export async function persistExpenseDelete(
 }
 
 export async function persistReimbursement(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo payments stay on this device.");
-  }
   const options = await databaseOptions();
   if (!options) {
     throw new Error("Commons database persistence is not configured.");
@@ -411,9 +347,6 @@ export async function persistReimbursementUpdate(
   reimbursementId: string,
   input: unknown,
 ) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo payments stay on this device.");
-  }
   const options = await databaseOptions();
   if (!options) {
     throw new Error("Commons database persistence is not configured.");
@@ -426,9 +359,6 @@ export async function persistReimbursementDelete(
   reimbursementId: string,
   input: unknown,
 ) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo payments stay on this device.");
-  }
   const options = await databaseOptions();
   if (!options) {
     throw new Error("Commons database persistence is not configured.");
@@ -437,9 +367,6 @@ export async function persistReimbursementDelete(
 }
 
 export async function persistExpensesComplete(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo confirmations stay on this device.");
-  }
   const options = await databaseOptions();
   if (!options) {
     throw new Error("Commons database persistence is not configured.");
@@ -448,9 +375,6 @@ export async function persistExpensesComplete(slug: string, input: unknown) {
 }
 
 export async function persistExpensesReopen(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo confirmations stay on this device.");
-  }
   const options = await databaseOptions();
   if (!options) {
     throw new Error("Commons database persistence is not configured.");
@@ -459,9 +383,6 @@ export async function persistExpensesReopen(slug: string, input: unknown) {
 }
 
 export async function persistCommonsArchived(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) {
-    throw new Error("The Cape Cod demo cannot be archived.");
-  }
   const options = await databaseOptions();
   if (!options) {
     throw new Error("Commons database persistence is not configured.");
@@ -474,18 +395,12 @@ export async function persistItineraryItemUpdate(
   itineraryItemId: string,
   input: unknown,
 ) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo plans stay in this browser session.");
-  }
   const options = await databaseOptions();
   if (!options) throw new Error("Commons database persistence is not configured.");
   return updateCommonsItineraryItem(slug, itineraryItemId, input, options);
 }
 
 export async function persistItineraryItemCreate(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo plans stay in this browser session.");
-  }
   const options = await databaseOptions();
   if (!options) throw new Error("Commons database persistence is not configured.");
   return addCommonsItineraryItem(slug, input, options);
@@ -496,9 +411,6 @@ export async function persistItineraryItemDelete(
   itineraryItemId: string,
   input: unknown,
 ) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo plans stay in this browser session.");
-  }
   const options = await databaseOptions();
   if (!options) throw new Error("Commons database persistence is not configured.");
   return deleteCommonsItineraryItem(slug, itineraryItemId, input, options);
@@ -509,18 +421,12 @@ export async function persistParticipation(
   itineraryItemId: string,
   input: unknown,
 ) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo responses stay in this browser session.");
-  }
   const options = await databaseOptions();
   if (!options) throw new Error("Commons database persistence is not configured.");
   return updateCommonsParticipation(slug, itineraryItemId, input, options);
 }
 
 export async function persistMomentCreate(slug: string, input: unknown) {
-  if (slug === publicDemoSlug) {
-    throw new Error("Cape Cod demo photos stay in this browser session.");
-  }
   const options = await databaseOptions();
   if (!options) throw new Error("Commons database persistence is not configured.");
   return addCommonsMoment(slug, input, options);
@@ -532,16 +438,8 @@ export async function loadCommonsMomentAsset(
   identity?: CommonsAuthIdentity,
 ) {
   const options = await databaseOptions(identity);
-  if (options) return getCommonsMomentAsset(slug, momentId, options);
-
-  const snapshot = await loadCommonsSnapshot(slug);
-  const moment = snapshot?.state.moments.find((entry) => entry.id === momentId);
-  if (!moment) return null;
-  return {
-    id: moment.id,
-    storagePath: `${slug}/${moment.id}.jpg`,
-    mimeType: "image/jpeg",
-  };
+  if (!options) return null;
+  return getCommonsMomentAsset(slug, momentId, options);
 }
 
 export async function loadCommonsCoverAsset(
@@ -894,9 +792,6 @@ export async function authenticatedConfirmationIntakeOptions() {
 }
 
 export async function persistMoneySettings(slug: string, input: unknown) {
-  if (getCommonsDataMode(slug) === "demo") {
-    throw new Error("Demo target budgets stay on this device.");
-  }
   const options = await databaseOptions();
   if (!options) throw new Error("Commons database persistence is not configured.");
   const snapshot = await updateCommonsMoneySettings(slug, input, options);

@@ -12,13 +12,6 @@ export function shouldPreserveVercelCronHost(pathname: string, authorization: st
 }
 
 export async function proxy(request: NextRequest) {
-  // Retired public sample: old pages return home; sample API links are gone.
-  const retiredSample = /^\/(?:c|api\/v1\/commons)\/(?:10000000-0000-4000-8000-000000000001|cape-cod-couples-week|austin-weekend)(?:\/|$)/.test(request.nextUrl.pathname);
-  if (retiredSample) {
-    if (request.nextUrl.pathname.startsWith("/api/")) return new NextResponse(null, { status: 410 });
-    return NextResponse.redirect(new URL("/", request.url), 307);
-  }
-
   const preserveCronHost = shouldPreserveVercelCronHost(
     request.nextUrl.pathname,
     request.headers.get("authorization"),

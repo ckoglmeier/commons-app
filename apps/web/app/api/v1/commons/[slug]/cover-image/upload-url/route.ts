@@ -18,7 +18,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     const mimeType = typeof input?.mimeType === "string" ? input.mimeType : "";
     const extension = supportedTypes.get(mimeType);
     if (!uuidPattern.test(id) || !extension) return NextResponse.json({ error: "Choose a JPG, PNG, or WebP cover photo." }, { status: 400 });
-    if (getCommonsDataMode(slug) !== "database") return NextResponse.json({ error: "Demo covers stay on this device." }, { status: 403 });
+    if (getCommonsDataMode() !== "database") return NextResponse.json({ error: "Covers need a database, and this copy of Commons doesn’t have one set up." }, { status: 403 });
     const snapshot = await loadCommonsSnapshot(slug);
     if (!snapshot) return NextResponse.json({ error: "Trip not found." }, { status: 404 });
     const originalStoragePath = `${slug}/covers/${id}/original.${extension}`;

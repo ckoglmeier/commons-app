@@ -14,7 +14,7 @@ export const metadata = { title: "Ask the group — Commons" };
 export default async function NewPollPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ question?: string; stayIds?: string; transportIds?: string; activityIds?: string; template?: string; draft?: string; followUp?: string }> }) {
   const { slug } = await params;
   const { stayIds: rawStayIds, transportIds: rawTransportIds, activityIds: rawActivityIds, template, draft: draftId, followUp, question } = await searchParams;
-  if (getCommonsDataMode(slug) !== "database") notFound();
+  if (getCommonsDataMode() !== "database") notFound();
   let snapshot: Awaited<ReturnType<typeof loadCommonsSnapshot>>;
   try {
     snapshot = await loadCommonsSnapshot(slug);

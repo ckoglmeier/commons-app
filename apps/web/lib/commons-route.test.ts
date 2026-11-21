@@ -1,15 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { commonsPath, commonsSetupPath, commonsWorkspacePath, commonsViewPath, commonsTravelPath, eventLocation, planSectionPath, itemDetailPath, parseEventView, travelReturnView, eventViews, PUBLIC_DEMO_COMMONS_ID, parsePlanSection, planSections, visiblePlanSection } from "./commons-route";
+import { commonsPath, commonsSetupPath, commonsWorkspacePath, commonsViewPath, commonsTravelPath, eventLocation, planSectionPath, itemDetailPath, parseEventView, travelReturnView, eventViews, parsePlanSection, planSections, visiblePlanSection } from "./commons-route";
 
 test("builds canonical event URLs from opaque IDs", () => {
   assert.equal(commonsPath("8b26fd00-0000-4000-8000-000000000001"), "/c/8b26fd00-0000-4000-8000-000000000001");
-  assert.equal(commonsPath(PUBLIC_DEMO_COMMONS_ID), "/c/10000000-0000-4000-8000-000000000001");
 });
 
 test("every primary destination survives a copied URL with an allowlisted view", () => {
   for (const view of eventViews) {
-    const url = new URL(commonsViewPath(PUBLIC_DEMO_COMMONS_ID, view), "https://commons.test");
+    const url = new URL(commonsViewPath("8b26fd00-0000-4000-8000-000000000001", view), "https://commons.test");
     assert.equal(url.searchParams.get("arrival"), "0");
     assert.equal(eventLocation(url.searchParams), view);
   }

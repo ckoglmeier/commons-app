@@ -22,9 +22,6 @@ import { PlanPeopleField } from "./plan-people-field";
 import { CommonsMark, CommonsWordmark } from "@commons/ui";
 import {
     CommonsSnapshotSchema,
-    CommonsStateSchema,
-    StaySchema,
-    TravelPlanSchema,
     ConfirmationPreviewResponseSchema,
     LinkPreviewSchema,
     type CommonsParticipant,
@@ -56,14 +53,12 @@ import { LocationTimezoneField } from "./location-timezone-field";
 import { MealTypeField, MealTypeLine, MealReservationFields } from "./meal-fields";
 import { LogisticsAddMenu, type LogisticsAddKind } from "./logistics-add-menu";
 import { mergeTravelPlans } from "@/lib/merge-travel-plans";
-import { publicDemoTravelPlans } from "@/lib/public-demo-travel";
-import { appendPublicDemoStay, publicDemoStays } from "@/lib/public-demo-stays";
 import { currencyLedger } from "@/lib/currency-ledger";
 import { SUPPORTED_CURRENCIES, currencyLabel, currencySymbol } from "@commons/contracts";
 import { normalizeMoneyInput, parseMoneyInput } from "@/lib/money-input";
 import { planDays, selectedPlanDay, tripDays, type DayOption } from "@/lib/plan-days";
 import { planAudienceValue, type PlanAudience } from "@/lib/plan-audience";
-import { commonsPath, commonsViewPath, commonsTravelPath, eventLocation, parsePlanSection, planSectionPath, PUBLIC_DEMO_COMMONS_ID, visiblePlanSection, type EventView, type PlanSection } from "@/lib/commons-route";
+import { commonsPath, commonsViewPath, commonsTravelPath, eventLocation, parsePlanSection, planSectionPath, visiblePlanSection, type EventView, type PlanSection } from "@/lib/commons-route";
 import { trackProductEvent } from "@/lib/product-analytics";
 import { getSupabaseBrowserClient, uploadCommonsConfirmation, uploadCommonsCover, uploadCommonsPhoto } from "@/lib/supabase/browser";
 import { createCoverCardImage, rasterizeCoverDrawing } from "@/lib/cover-image";
@@ -100,11 +95,6 @@ import {
 type Tab = EventView;
 type Sheet = "add-item" | "item-detail" | "add-receipt" | "expense" | "add-expense" | "edit-expense" | "payment" | "add-payment" | "edit-payment" | "close-expenses" | "reopen-expenses" | "money-settings" | "add-plan" | "add-meal" | "edit-plan" | "cover" | "edit-trip-details" | "add-stay" | "edit-stay" | "add-flight" | "add-rental" | "moment" | "edit-moment" | "photo-mapping" | "travel" | "people" | null;
 type ParticipationChoice = "in" | "maybe" | "skip";
-
-const initialPilotParticipation: Record<string, ParticipationChoice> = {
-  "50000000-0000-4000-8000-000000000011": "maybe",
-  "50000000-0000-4000-8000-000000000012": "maybe",
-};
 
 
 
@@ -334,15 +324,6 @@ function localDateTimeToIso(date: string, time: string, timeZone: string) {
     value("minute"),
   );
   return new Date(guess - (representedAsUtc - guess)).toISOString();
-}
-
-function sortItinerary(items: CommonsState["itinerary"]) {
-  return [...items].sort((first, second) => {
-    if (!first.startsAt && !second.startsAt) return first.title.localeCompare(second.title);
-    if (!first.startsAt) return -1;
-    if (!second.startsAt) return 1;
-    return new Date(first.startsAt).valueOf() - new Date(second.startsAt).valueOf();
-  });
 }
 
 function formatTripDates(startsOn: string | null, endsOn: string | null) {
@@ -608,9 +589,8 @@ function TripArrival({
   );
 }
 
-function TripDetailsEditorSheet({ commons, close, save, inline = false, sampleOnly = false }: {
+function TripDetailsEditorSheet({ commons, close, save, inline = false }: {
   inline?: boolean;
-  sampleOnly?: boolean;
   commons: CommonsSummary;
   close: () => void;
   save: (input: TripDetailsInput) => Promise<void>;
@@ -656,7 +636,7 @@ function TripDetailsEditorSheet({ commons, close, save, inline = false, sampleOn
       <div className="sheet-handle" />
       <header className="sheet-header"><div><span className="people-sheet-mark"><EditIcon /></span><span><small>Logistics</small><strong>Edit trip</strong></span></div><button type="button" onClick={close} aria-label={inline ? "Cancel trip editor" : "Close trip editor"}>{inline ? "Cancel" : <CloseIcon />}</button></header>
       <h2 id="trip-details-editor-title">Trip settings</h2>
-      {sampleOnly ? <p className="event-logistics-note">Sample only. Changes reset when you reload.</p> : null}
+      
       <form className="trip-details-form" onSubmit={submit}>
         <label className="field"><span>Trip name</span><input required maxLength={100} value={title} onChange={(event) => setTitle(event.target.value)} /></label>
         <PlacesField value={locationNames} onChange={setLocationNames} />
@@ -772,9 +752,7 @@ function StayEditorSheet({
   linkedExpense,
   recordExpense,
   openLinkedExpense,
-  confirmationUploadEnabled,
   inline = false,
-  sampleOnly = false,
   initialStatus,
 }: {
   /** Preset when an organizer is confirming a poll's chosen option; still saved only by Save stay. */
@@ -788,9 +766,7 @@ function StayEditorSheet({
   linkedExpense?: Expense;
   recordExpense?: () => void;
   openLinkedExpense?: () => void;
-  confirmationUploadEnabled: boolean;
   inline?: boolean;
-  sampleOnly?: boolean;
 }) {
   const defaultPersonIds = participants.map((participant) => participant.id);
   const [name, setName] = useState(stay?.name ?? "");
@@ -891,9 +867,9 @@ function StayEditorSheet({
     <section className="sheet stay-editor-sheet logistics-editor-sheet" role={inline ? undefined : "dialog"} aria-modal={inline ? undefined : true} aria-labelledby="stay-editor-title">
       <div className="sheet-handle" />
       <header className="sheet-header logistics-editor-header"><div><span className="people-sheet-mark"><PinIcon /></span><h2 id="stay-editor-title">{stay ? "Edit stay" : "Add stay"}</h2></div><button type="button" onClick={close} aria-label={inline ? "Cancel stay editor" : "Close stay editor"}>{inline ? "Cancel" : <CloseIcon />}</button></header>
-      {sampleOnly ? <p className="event-logistics-note">Sample only. Changes reset when you reload.</p> : null}
+      
       <form className="stay-editor-form" onSubmit={submit}>
-        {confirmationUploadEnabled ? <ConfirmationUploadControl commonsSlug={commons.slug} expectedKind="stay" review={pendingConfirmation ? {...pendingConfirmation.draft, name:name || null, address:address || null, startsOn:startsOn || null, endsOn:endsOn || null, startTime:checkInTime || null, endTime:checkOutTime || null, confirmationCode:confirmationCode || null, totalCents:totalCost ? Math.round(Number(totalCost)*100) : null, currency} : undefined} onReviewSaved={revision=>setPendingConfirmation(value=>value?{...value,intakeVersion:revision}:value)} currentFileName={pendingConfirmation?.draft.sourceLabel ?? stay?.confirmationDocumentFileName} warnings={pendingConfirmation?.draft.warnings} onReady={(pending) => {
+        <ConfirmationUploadControl commonsSlug={commons.slug} expectedKind="stay" review={pendingConfirmation ? {...pendingConfirmation.draft, name:name || null, address:address || null, startsOn:startsOn || null, endsOn:endsOn || null, startTime:checkInTime || null, endTime:checkOutTime || null, confirmationCode:confirmationCode || null, totalCents:totalCost ? Math.round(Number(totalCost)*100) : null, currency} : undefined} onReviewSaved={revision=>setPendingConfirmation(value=>value?{...value,intakeVersion:revision}:value)} currentFileName={pendingConfirmation?.draft.sourceLabel ?? stay?.confirmationDocumentFileName} warnings={pendingConfirmation?.draft.warnings} onReady={(pending) => {
           setPendingConfirmation(pending);
           setConfirmationUploaded(Boolean(pending.alreadyUploaded));
           const { draft } = pending;
@@ -908,7 +884,7 @@ function StayEditorSheet({
           if (draft.totalCents) { setTotalCost((draft.totalCents / 100).toFixed(2)); setCostSource("confirmation"); }
           if (draft.includesTaxesAndFees !== null) setTaxesAndFees(draft.includesTaxesAndFees ? "included" : "not_included");
           setStatus("confirmed");
-          }} /> : null}
+          }} />
         <label className="field"><span>Property name</span><input required maxLength={160} value={name} onChange={(event) => setName(event.target.value)} placeholder="The Inn by Sea Island" /></label>
         <label className="field"><span>Address{status === "considering" ? <small> Optional while considering</small> : null}</span><input required={status !== "considering"} maxLength={240} value={address} onChange={(event) => setAddress(event.target.value)} placeholder="100 Salt Marsh Drive" /></label>
         <label className="field"><span>Status</span><select value={status} onChange={(event) => setStatus(event.target.value as Stay["status"])}><option value="considering">Considering</option><option value="planned">Planned</option><option value="confirmed">Confirmed</option></select></label>
@@ -967,14 +943,14 @@ function SectionHeading({ title, detail }: { title: string; detail?: string }) {
 export function HomeView(props: {
   coverImage?: string | null;
   decidingStage?: boolean;
-  openItem?: (id: string) => void; canAskGroup?: boolean; addPhotos?: () => void; openPhotos?: () => void; photoCount?: number;
+  canAskGroup?: boolean; addPhotos?: () => void; openPhotos?: () => void; photoCount?: number;
   state: CommonsState; commons: CommonsSummary; participants: CommonsParticipant[]; currentActorId: string; activityParticipation: Record<string, ParticipationChoice>;
   travelUploadAvailable?: boolean;
   confirmationIntakeEnabled?: boolean;
   addPlan: (kind?: LogisticsAddKind) => void; addTravelPlans: (step?: import("@commons/domain").NextStep) => void;
-  goToPlan: (date?: string) => void; goToMoney: () => void; goToChoiceDay: () => void; copyAddress: (address: string, label?: string) => void;
-  openTripDetails: () => void; openStay: (id: string) => void; addReceipt?: () => void;
-  openTodo?: (id: string) => void; tasksPanel?: React.ReactNode; tripLetter?: boolean; textMessaging?: TextMessagingChannel;
+  goToPlan: (date?: string) => void; goToMoney: () => void;
+  openTripDetails: () => void; addReceipt?: () => void;
+  openTodo?: (id: string) => void; tasksPanel?: React.ReactNode; textMessaging?: TextMessagingChannel;
 }) {
   return <HomeDashboard {...props} addReceipt={props.addReceipt ?? props.goToMoney} />;
 }
@@ -1109,7 +1085,6 @@ export function PlanView({
   state,
   commons,
   days,
-  seededPilot,
   selectedDay,
   setSelectedDay,
   activityParticipation,
@@ -1139,7 +1114,6 @@ export function PlanView({
   state: CommonsState;
   commons: CommonsSummary;
   days: DayOption[];
-  seededPilot: boolean;
   selectedDay: string;
   setSelectedDay: (day: string) => void;
   activityParticipation: Record<string, ParticipationChoice>;
@@ -1173,7 +1147,6 @@ export function PlanView({
   const items = selectedDayOption
     ? scheduledItems.filter((item) => (item.scheduledDate ?? (item.startsAt ? localDateKey(item.startsAt, commons.timezone) : null)) === selectedDayOption.id)
     : [];
-  const isChoiceDay = seededPilot && selectedDayOption?.id === "2027-07-22";
   const dayTravelPlans = travelPlans.filter(plan => plan.date === selectedDayOption?.id || (plan.kind === "car_rental" && plan.returnDate === selectedDayOption?.id));
   const travelKinds = [...new Set(dayTravelPlans.map(plan => plan.kind))];
   const dayStays = selectedDayOption
@@ -1184,9 +1157,7 @@ export function PlanView({
     item.participantScope === "optional";
   const dayNote = selectedDayOption?.outsideTrip ? "Outside trip dates" : selectedIndex < 0
     ? "Dates not set"
-    : isChoiceDay
-      ? "Choose your own afternoon"
-      : items.length > 1
+    : items.length > 1
         ? `${items.length} plans`
       : selectedIndex === 0
         ? "First day"
@@ -1265,7 +1236,7 @@ export function PlanView({
     <div className={`product-view plan-view${section === "ideas" ? " plan-view--ideas" : ""}${selectedDayOption ? "" : " plan-view--undated"}`}>
       <div className="view-intro view-intro--with-action event-page-header">
         <div><h2>{planTemplateFor(commons.templateKey).planSections.activities.label}</h2><p>{scheduledItems.length} with a day{ideas.length ? ` · ${ideas.length} without a day` : ""}.</p></div>
-        <div className="plan-actions">{!seededPilot && askHref ? <Link className="view-secondary-action" href={askHref}><QuestionIcon /> Ask the group</Link> : null}<LogisticsAddMenu canAddStay={canSchedule} choose={addPlan} /></div>
+        <div className="plan-actions">{askHref ? <Link className="view-secondary-action" href={askHref}><QuestionIcon /> Ask the group</Link> : null}<LogisticsAddMenu canAddStay={canSchedule} choose={addPlan} /></div>
       </div>
       {sectionNavigation}
       {days.length ? <EventDaySelector days={days} selected={selectedDayOption?.id ?? ""} select={setSelectedDay} label="Trip days" dragging={Boolean(draggedIdeaId)} dropDay={ideaDropDay} allowDrop={allowIdeaDrop} leaveDrop={id => setIdeaDropDay(current => current === id ? null : current)} drop={dropIdea} /> : null}
@@ -1300,7 +1271,7 @@ export function PlanView({
         ) : null}
         {state.itinerary.length === 0 && planTemplateFor(commons.templateKey).planSections.outline.length ? <div className="plan-outline"><p>A rough outline to start from</p><ul>{planTemplateFor(commons.templateKey).planSections.outline.map(line => <li key={line}>{line}</li>)}</ul></div> : null}
         {timeGroups.map((group) => group.length > 1 ? (
-          <div className="parallel-block" key={group[0].startsAt} data-walkthrough-target={isChoiceDay ? "parallel-plans" : undefined}>
+          <div className="parallel-block" key={group[0].startsAt}>
             <div className="timeline-time"><time>{group[0].startsAt ? formatTime(group[0].startsAt, commons.timezone) : "Time not set"}</time><i /></div>
             <div><span className="parallel-label">The group is splitting up</span>
               {group.map((item) => {
@@ -1655,7 +1626,6 @@ function MoneyCurrencySection({
 
 function MomentsView({
   notify,
-  localMoments,
   startPhotoUpload,
   openMoment,
   moveMoment,
@@ -1665,7 +1635,6 @@ function MomentsView({
   timeZone,
 }: {
   notify: (message: string) => void;
-  localMoments: Moment[];
   startPhotoUpload: (files: File[]) => void;
   openMoment: (moment: Moment) => void;
   moveMoment: (moment: Moment, day: string) => Promise<void>;
@@ -1679,10 +1648,7 @@ function MomentsView({
   const [draggedMomentId, setDraggedMomentId] = useState<string | null>(null);
   const [dropDay, setDropDay] = useState<string | null>(null);
   const [photoDay, setPhotoDay] = useState("all");
-  const archivedMoments = [
-    ...moments,
-    ...localMoments,
-  ].sort(
+  const archivedMoments = [...moments].sort(
     (a, b) => {
       const aUnsorted = a.dateStatus === "unconfirmed";
       const bUnsorted = b.dateStatus === "unconfirmed";
@@ -1864,7 +1830,6 @@ function PhotoMappingSheet({
   close,
   addMoment,
   notify,
-  persistent,
 }: {
   initialActivityId?: string | null;
   photos: PendingPhoto[];
@@ -1875,7 +1840,6 @@ function PhotoMappingSheet({
   close: () => void;
   addMoment: (moment: Moment) => Promise<Moment>;
   notify: (message: string) => void;
-  persistent: boolean;
 }) {
   const firstSuggestion = inferPhotoMapping(photos[0], itinerary, timeZone, null);
   const [index, setIndex] = useState(0);
@@ -1933,7 +1897,7 @@ function PhotoMappingSheet({
       occurredAt,
       addedByPersonId: actorId,
       addedByName: actorName,
-      sourceLabel: persistent ? `Added by ${actorName}` : "Added from this device · This session",
+      sourceLabel: `Added by ${actorName}`,
       dateStatus: selectedEvent?.startsAt ? "confirmed" : "unconfirmed",
       itineraryItemId: selectedEvent?.id,
       itineraryItemTitle: selectedEvent?.title,
@@ -2013,7 +1977,7 @@ function PhotoMappingSheet({
           <button type="button" onClick={() => void addCurrentPhoto()} disabled={busy}>{busy ? "Adding…" : index === photos.length - 1 ? "Add photo" : "Add + next"}</button>
         </div>
         {error ? <p className="form-error" role="alert">{error}</p> : null}
-        <p className="sheet-footnote">{persistent ? "Everyone on this trip can see added photos." : "These photos stay in this browser session."}</p>
+        <p className="sheet-footnote">Everyone on this trip can see added photos.</p>
       </section>
     </ModalLayer>
   );
@@ -2021,7 +1985,6 @@ function PhotoMappingSheet({
 
 function CoverPickerSheet({
   moments,
-  localMoments,
   coverImage,
   coverSourceMomentId,
   close,
@@ -2030,7 +1993,6 @@ function CoverPickerSheet({
   notify,
 }: {
   moments: Moment[];
-  localMoments: Moment[];
   coverImage: string | null;
   coverSourceMomentId: string | null;
   close: () => void;
@@ -2054,10 +2016,7 @@ function CoverPickerSheet({
       close(); notify("Cover updated.");
     } catch (cause) { setError(personFacingError(cause, "Cover not updated. Try again.")); setBusyId(null); }
   }
-  const choices = [
-    ...localMoments,
-    ...moments,
-  ];
+  const choices = moments;
 
   async function choose(moment: Moment) {
     if (busyId) return;
@@ -2894,7 +2853,6 @@ function AddPlanSheet({
   currency = "USD",
   participants,
   currentActorId,
-  persistent,
   close,
   save,
 }: {
@@ -2907,7 +2865,6 @@ function AddPlanSheet({
   currency?: string;
   participants: CommonsParticipant[];
   currentActorId: string;
-  persistent: boolean;
   close: () => void;
   save: (input: AddPlanInput) => Promise<void>;
 }) {
@@ -3066,7 +3023,7 @@ function AddPlanSheet({
           {error ? <p className="form-error" role="alert">{error}</p> : null}
           <button className="sheet-primary" type="submit" disabled={!title.trim() || Boolean(linkPreview?.existingItem) || (scheduled && !date) || Boolean(busy)}>{busy === "add" ? "Adding…" : <><CheckIcon /> {meal ? "Add meal" : "Add activity"}</>}</button>
         </form>
-        <p className="sheet-footnote">{persistent ? "Everyone on this trip can see ideas and scheduled plans." : "Changes to this demo stay on your device."}</p>
+        <p className="sheet-footnote">Everyone on this trip can see ideas and scheduled plans.</p>
       </section>
     </ModalLayer>
   );
@@ -3082,7 +3039,6 @@ function EditPlanSheet({
   close,
   save,
   remove,
-  persistent,
 }: {
   item: CommonsState["itinerary"][number];
   days: DayOption[];
@@ -3093,7 +3049,6 @@ function EditPlanSheet({
   close: () => void;
   save: (input: EditPlanInput) => Promise<void>;
   remove: () => Promise<void>;
-  persistent: boolean;
 }) {
   const [mealType, setMealType] = useState(item.mealType ?? null);
   const [reservationNumber, setReservationNumber] = useState(item.mealReservation?.number ?? "");
@@ -3213,7 +3168,7 @@ function EditPlanSheet({
             </div>
           )}
         </section>
-        <p className="sheet-footnote">{persistent ? "Everyone on this trip can see these changes." : "Changes stay in this browser session."}</p>
+        <p className="sheet-footnote">Everyone on this trip can see these changes.</p>
       </section>
     </ModalLayer>
   );
@@ -3238,11 +3193,9 @@ export function TravelPlansSheet({
   linkedExpense,
   recordExpense,
   openLinkedExpense,
-  confirmationUploadEnabled,
   inline = false,
   selectedRentalPlanId,
   initialIntakeId,
-  sampleOnly = false,
 }: {
   commonsSlug: string;
   kind: TravelPlan["kind"];
@@ -3262,11 +3215,9 @@ export function TravelPlansSheet({
   linkedExpense?: Expense;
   recordExpense?: () => void;
   openLinkedExpense?: () => void;
-  confirmationUploadEnabled: boolean;
   inline?: boolean;
   selectedRentalPlanId: string | null;
   initialIntakeId?:string|null;
-  sampleOnly?: boolean;
 }) {
   const isGround = kind === "car_rental" || kind === "transport";
   const existing = isGround
@@ -3394,8 +3345,8 @@ export function TravelPlansSheet({
             .catch((saveError) => { setError(personFacingError(saveError, "Travel plan not saved. Try again.")); setBusy(false); });
         }}>
           <p className="logistics-editor-owner">{currentActorName}</p>
-          {sampleOnly ? <p className="event-logistics-note">Sample only. Changes reset when you reload.</p> : null}
-          {confirmationUploadEnabled && kind !== "transport" ? <ConfirmationUploadControl intakeId={initialIntakeId} commonsSlug={commonsSlug} expectedKind={isGround ? "car_rental" : "flight"} review={pendingConfirmation ? {...pendingConfirmation.draft, startsOn:date || null, endsOn:returnDate || null, startTime:time || null, endTime:returnTime || null, route:route || null, note:note || null, name:isGround ? provider || null : pendingConfirmation.draft.name, confirmationCode:confirmationCode || null, totalCents:totalCost ? Math.round(Number(totalCost)*100) : null, currency, travelSegments:flightSegments.map(segment=>({...segment,date:segment.date || null,route:segment.route || null,time:segment.time || null,departureTime:null,arrivalTime:null}))} : undefined} onReviewSaved={revision=>setPendingConfirmation(value=>value?{...value,intakeVersion:revision}:value)} currentFileName={pendingConfirmation?.draft.sourceLabel ?? existing?.confirmationDocumentFileName} warnings={pendingConfirmation?.draft.warnings} onReady={(pending) => {
+          
+          {kind !== "transport" ? <ConfirmationUploadControl intakeId={initialIntakeId} commonsSlug={commonsSlug} expectedKind={isGround ? "car_rental" : "flight"} review={pendingConfirmation ? {...pendingConfirmation.draft, startsOn:date || null, endsOn:returnDate || null, startTime:time || null, endTime:returnTime || null, route:route || null, note:note || null, name:isGround ? provider || null : pendingConfirmation.draft.name, confirmationCode:confirmationCode || null, totalCents:totalCost ? Math.round(Number(totalCost)*100) : null, currency, travelSegments:flightSegments.map(segment=>({...segment,date:segment.date || null,route:segment.route || null,time:segment.time || null,departureTime:null,arrivalTime:null}))} : undefined} onReviewSaved={revision=>setPendingConfirmation(value=>value?{...value,intakeVersion:revision}:value)} currentFileName={pendingConfirmation?.draft.sourceLabel ?? existing?.confirmationDocumentFileName} warnings={pendingConfirmation?.draft.warnings} onReady={(pending) => {
             setPendingConfirmation(pending);
             setConfirmationUploaded(Boolean(pending.alreadyUploaded));
             setReviewedReplacement(false);
@@ -3477,7 +3428,6 @@ export function TravelPlansSheet({
 
 export function CommonsApp({
   initialSnapshot,
-  dataMode,
   signedIn,
   showArrival = true,
   openTravelExpense,
@@ -3493,7 +3443,6 @@ export function CommonsApp({
   instanceAdmin = false,
 }: {
   initialSnapshot: CommonsSnapshot;
-  dataMode: "database" | "demo";
   signedIn: boolean;
   showArrival?: boolean;
   openTravelExpense?: string;
@@ -3522,25 +3471,15 @@ export function CommonsApp({
   const [detailRef, setDetailRef] = useState(initialItem);
   const [photoActivityId, setPhotoActivityId] = useState<string | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
-  const seededPilot = initialSnapshot.commons.slug === "cape-cod-couples-week";
   const [travelIntakeId,setTravelIntakeId]=useState<string|null>(null);
   const [participants, setParticipants] = useState(initialSnapshot.participants);
   const [savedWorksheet, setSavedWorksheet] = useState<BudgetInputs | null>(null);
   const [commonsSummary, setCommonsSummary] = useState(initialSnapshot.commons);
   const tripStarted = hasTripStarted(commonsSummary);
   const postTrip = isPostTrip(commonsSummary);
-  const [savedState, setState] = useState<CommonsState>(initialSnapshot.state);
-  const [sampleStays, setSampleStays] = useState<Stay[] | null>(null);
-  const [sampleTravelPlans, setSampleTravelPlans] = useState<TravelPlan[] | null>(null);
-  const sampleStayRecords = dataMode === "demo" && commonsSummary.id === PUBLIC_DEMO_COMMONS_ID ? sampleStays ?? publicDemoStays(commonsSummary, participants, savedState.stays ?? []) : null;
-  const state: CommonsState = { ...savedState, ...(sampleStayRecords ? { stays: sampleStayRecords } : {}), ...(sampleTravelPlans ? { travelPlans: sampleTravelPlans } : {}) };
+  const [state, setState] = useState<CommonsState>(initialSnapshot.state);
   const days = planDays(commonsSummary.startsOn, commonsSummary.endsOn, [...state.itinerary.flatMap(item => item.scheduledDate ? [item.scheduledDate] : item.startsAt ? [localDateKey(item.startsAt, commonsSummary.timezone)] : []), ...(state.travelPlans ?? []).flatMap(plan => [plan.date, ...(plan.returnDate ? [plan.returnDate] : [])])]);
-  const defaultDay = seededPilot ? "2027-07-22" : days[0]?.id ?? "";
-  // Start the renamed public sample fresh; older browser copies contain its old cast.
-  // Other demo state and real, database-backed events keep their existing behavior.
-  const storageKey = `commons:trip:${initialSnapshot.commons.slug}:${seededPilot ? "v5" : "v4"}`;
-  const coverStorageKey = `commons:trip:${initialSnapshot.commons.slug}:cover:v1`;
-  const [loadedDemoStorageKey, setLoadedDemoStorageKey] = useState<string | null>(null);
+  const defaultDay = days[0]?.id ?? "";
   const [expenseCompletionByPerson, setExpenseCompletionByPerson] = useState<Record<string, string | null>>(() => Object.fromEntries(participants.map((participant) => [participant.id, participant.expensesCompleteAt ?? null])));
   const [moneyStatus, setMoneyStatus] = useState({
     expensesClosedAt: initialSnapshot.commons.expensesClosedAt ?? null,
@@ -3670,24 +3609,18 @@ export function CommonsApp({
   const [planScheduleDate, setPlanScheduleDate] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState(defaultDay);
   const [travelKind, setTravelKind] = useState<TravelPlan["kind"]>("arrival");
-  const travelPlans = sampleTravelPlans ?? mergeTravelPlans(
-    mergeTravelPlans(
-      dataMode === "demo" ? publicDemoTravelPlans(commonsSummary, participants) : [],
-      travelPlansFromConversation(commonsSummary, state.messages, participants),
-    ),
+  const travelPlans = mergeTravelPlans(
+    travelPlansFromConversation(commonsSummary, state.messages, participants),
     state.travelPlans ?? [],
   );
   const [activityParticipation, setActivityParticipation] = useState<Record<string, ParticipationChoice>>({
-    ...(seededPilot ? initialPilotParticipation : {}),
     ...initialSnapshot.state.participation,
   });
-  const [localMoments, setLocalMoments] = useState<Moment[]>([]);
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [coverImage, setCoverImage] = useState<string | null>(
-    initialSnapshot.commons.coverImageUrl ?? (seededPilot ? "/moments/cape-beach.jpg" : null),
+    initialSnapshot.commons.coverImageUrl ?? null,
   );
   const displayedCoverImage = coverImage ?? suggestTripCover({ ...commonsSummary, title: commonsSummary.name })?.src ?? null;
-  const [coverStorageReady, setCoverStorageReady] = useState(dataMode !== "demo");
   const [toast, setToast] = useState("");
   // Persistent shell: the last canonical save, with an exact way to see it in Plan. Never set for drafts or failures.
   const [planReceipt, setPlanReceipt] = useState<PlanReceipt | null>(null);
@@ -3696,55 +3629,12 @@ export function CommonsApp({
   useEffect(() => {
     trackProductEvent("trip_tab_viewed", {
       commonsSlug: initialSnapshot.commons.slug,
-      // role and sample separate organizer, participant and public-sample activity in reports.
-      properties: { tab, mode: dataMode, demo: seededPilot, sample: seededPilot, role: initialSnapshot.currentActor.role === "organizer" ? "organizer" : "participant" },
+      // role separates organizer and participant activity in reports.
+      properties: { tab, mode: "database", role: initialSnapshot.currentActor.role === "organizer" ? "organizer" : "participant" },
     });
-  }, [dataMode, initialSnapshot.commons.slug, initialSnapshot.currentActor.role, seededPilot, tab]);
+  }, [initialSnapshot.commons.slug, initialSnapshot.currentActor.role, tab]);
 
   useEffect(() => {
-    if (dataMode !== "demo") return;
-    const saved = window.localStorage.getItem(storageKey);
-    const timer = window.setTimeout(() => {
-      if (saved) {
-        try {
-          const restored = CommonsStateSchema.parse(JSON.parse(saved));
-          setState(restored);
-          setActivityParticipation(restored.participation);
-        } catch {
-          window.localStorage.removeItem(storageKey);
-        }
-      }
-      setLoadedDemoStorageKey(storageKey);
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [dataMode, storageKey]);
-
-  useEffect(() => {
-    if (dataMode !== "demo" || loadedDemoStorageKey !== storageKey) return;
-    window.localStorage.setItem(storageKey, JSON.stringify(savedState));
-  }, [dataMode, loadedDemoStorageKey, savedState, storageKey]);
-
-  useEffect(() => {
-    if (dataMode !== "demo") return;
-    const savedCover = window.localStorage.getItem(coverStorageKey);
-    const timer = window.setTimeout(() => {
-      if (savedCover !== null) setCoverImage(savedCover || null);
-      setCoverStorageReady(true);
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [coverStorageKey, dataMode]);
-
-  useEffect(() => {
-    if (dataMode !== "demo" || !coverStorageReady) return;
-    try {
-      window.localStorage.setItem(coverStorageKey, coverImage ?? "");
-    } catch {
-      // Keep the selected cover for this session if browser storage is full.
-    }
-  }, [coverImage, coverStorageKey, coverStorageReady, dataMode]);
-
-  useEffect(() => {
-    if (dataMode !== "database") return;
     let cancelled = false;
 
     async function refreshTripState() {
@@ -3785,7 +3675,7 @@ export function CommonsApp({
       window.removeEventListener("commons:trip-state-changed", refreshTripState);
       document.removeEventListener("visibilitychange", refreshTripState);
     };
-  }, [dataMode, initialSnapshot.commons.slug]);
+  }, [initialSnapshot.commons.slug]);
 
   const closeArrival = useCallback(() => {
     setArrivalOpen(false);
@@ -3824,7 +3714,7 @@ export function CommonsApp({
   const activePlanParticipants = participants.filter((participant) => participant.membershipStatus === "active");
   const expenseHandoffOpened = useRef(false);
   useEffect(() => {
-    if (expenseHandoffOpened.current || (dataMode === "demo" && !coverStorageReady)) return;
+    if (expenseHandoffOpened.current) return;
     const search = new URLSearchParams(window.location.search);
     if (search.get("convertExpense") !== "1" || search.get("item") !== "plan") return;
     expenseHandoffOpened.current = true;
@@ -3837,7 +3727,7 @@ export function CommonsApp({
     window.history.replaceState(null, "", url.pathname + url.search);
     // This is a one-time navigation handoff; changes after it must not reopen the editor.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coverStorageReady]);
+  }, []);
   const ledgerOpen = !moneyStatus.expensesClosedAt && !(activeMoneyParticipants.length && activeMoneyParticipants.every(person => person.expensesCompleteAt));
   function convertActivityToExpense(item: CommonsState["itinerary"][number]) {
     if (!ledgerOpen) { notify("Expenses are closed. Reopen the ledger in Money before recording this cost."); return; }
@@ -3851,16 +3741,15 @@ export function CommonsApp({
     setSelectedExpenseId(conversion.expenseId ?? null);
     setSheet(conversion.expenseId ? "edit-expense" : "add-expense");
   }
-  const canManageTrip = dataMode === "database" && participants.some(person => person.id === initialSnapshot.currentActor.id && person.role === "organizer");
-  const previewBasics = dataMode === "demo" && initialSnapshot.commons.id === PUBLIC_DEMO_COMMONS_ID;
-  const canEditBasics = canManageTrip || previewBasics;
-  const canManageStays = canManageTrip || previewBasics;
+  const canManageTrip = participants.some(person => person.id === initialSnapshot.currentActor.id && person.role === "organizer");
+  const canEditBasics = canManageTrip;
+  const canManageStays = canManageTrip;
   const completedExpenseCount = activeMoneyParticipants.filter((participant) => participant.expensesCompleteAt).length;
   const actorInitials = participants.find((participant) => participant.id === initialSnapshot.currentActor.id)?.initials ?? initialSnapshot.currentActor.displayName.slice(0, 2).toUpperCase();
-  const travelEditor = ["travel", "add-flight", "add-rental"].includes(sheet ?? "") ? <TravelPlansSheet defaultCurrency={commonsSummary.currency ?? "USD"} initialIntakeId={travelIntakeId} sampleOnly={previewBasics} key={sheet === "travel" ? `${(travelKind === "car_rental" || travelKind === "transport") ? "rental" : "flights"}:${(travelKind === "car_rental" || travelKind === "transport") ? selectedTravelPlanId ?? "new" : "mine"}` : sheet} commonsSlug={initialSnapshot.commons.slug} kind={travelKind} defaultDate={(travelKind === "departure" ? commonsSummary.endsOn : travelKind === "transport" && tab === "plan" && days.some(day => day.id === selectedDay) ? selectedDay : commonsSummary.startsOn) ?? new Date().toISOString().slice(0, 10)} returnDefaultDate={commonsSummary.endsOn ?? ""} plans={(travelKind === "car_rental" || travelKind === "transport") ? travelPlans.filter((plan) => plan.kind === travelKind) : travelPlans.filter((plan) => (plan.kind === "arrival" || plan.kind === "departure"))} allPlans={travelPlans} participants={participants} currentActorId={initialSnapshot.currentActor.id} currentActorName={initialSnapshot.currentActor.displayName} close={() => setSheet(null)} save={saveTravelPlan} saveBooking={saveFlightBooking} updateSharing={updateTravelPlanSharing} remove={deleteTravelPlan} linkedExpense={currentTravelExpense} recordExpense={currentTravelPlan?.totalCents ? () => { setSelectedTravelPlanId(currentTravelPlan.id); setSheet("add-expense"); } : undefined} openLinkedExpense={currentTravelExpense ? () => { setSelectedExpenseId(currentTravelExpense.id); setTab("money"); setSheet("expense"); } : undefined} confirmationUploadEnabled={dataMode === "database"} selectedRentalPlanId={selectedTravelPlanId ?? currentTravelPlan?.id ?? null} /> : null;
-  const basicsEditor = sheet === "edit-trip-details" && canEditBasics ? <TripDetailsEditorSheet inline={false} sampleOnly={previewBasics} commons={commonsSummary} close={() => setSheet(null)} save={saveTripDetails} /> : null;
-  const newStayEditor = sheet === "add-stay" && canManageStays ? <StayEditorSheet sampleOnly={previewBasics} commons={commonsSummary} participants={participants} close={() => setSheet(null)} save={addStay} confirmationUploadEnabled={dataMode === "database"} /> : null;
-  const existingStayEditor = sheet === "edit-stay" && canManageStays && selectedStay ? <StayEditorSheet sampleOnly={previewBasics} key={selectedStay.id} initialStatus={confirmingStayId === selectedStay.id ? "planned" : undefined} stay={selectedStay} commons={commonsSummary} participants={participants} close={() => { setSelectedStayId(null); setConfirmingStayId(null); setSheet(null); }} save={updateStay} remove={deleteStay} linkedExpense={selectedStayExpense} recordExpense={dataMode === "database" ? () => setSheet("add-expense") : undefined} openLinkedExpense={selectedStayExpense ? () => { setSelectedExpenseId(selectedStayExpense.id); setSelectedStayId(null); setTab("money"); setSheet("expense"); } : undefined} confirmationUploadEnabled={dataMode === "database"} /> : null;
+  const travelEditor = ["travel", "add-flight", "add-rental"].includes(sheet ?? "") ? <TravelPlansSheet defaultCurrency={commonsSummary.currency ?? "USD"} initialIntakeId={travelIntakeId} key={sheet === "travel" ? `${(travelKind === "car_rental" || travelKind === "transport") ? "rental" : "flights"}:${(travelKind === "car_rental" || travelKind === "transport") ? selectedTravelPlanId ?? "new" : "mine"}` : sheet} commonsSlug={initialSnapshot.commons.slug} kind={travelKind} defaultDate={(travelKind === "departure" ? commonsSummary.endsOn : travelKind === "transport" && tab === "plan" && days.some(day => day.id === selectedDay) ? selectedDay : commonsSummary.startsOn) ?? new Date().toISOString().slice(0, 10)} returnDefaultDate={commonsSummary.endsOn ?? ""} plans={(travelKind === "car_rental" || travelKind === "transport") ? travelPlans.filter((plan) => plan.kind === travelKind) : travelPlans.filter((plan) => (plan.kind === "arrival" || plan.kind === "departure"))} allPlans={travelPlans} participants={participants} currentActorId={initialSnapshot.currentActor.id} currentActorName={initialSnapshot.currentActor.displayName} close={() => setSheet(null)} save={saveTravelPlan} saveBooking={saveFlightBooking} updateSharing={updateTravelPlanSharing} remove={deleteTravelPlan} linkedExpense={currentTravelExpense} recordExpense={currentTravelPlan?.totalCents ? () => { setSelectedTravelPlanId(currentTravelPlan.id); setSheet("add-expense"); } : undefined} openLinkedExpense={currentTravelExpense ? () => { setSelectedExpenseId(currentTravelExpense.id); setTab("money"); setSheet("expense"); } : undefined} selectedRentalPlanId={selectedTravelPlanId ?? currentTravelPlan?.id ?? null} /> : null;
+  const basicsEditor = sheet === "edit-trip-details" && canEditBasics ? <TripDetailsEditorSheet inline={false} commons={commonsSummary} close={() => setSheet(null)} save={saveTripDetails} /> : null;
+  const newStayEditor = sheet === "add-stay" && canManageStays ? <StayEditorSheet commons={commonsSummary} participants={participants} close={() => setSheet(null)} save={addStay} /> : null;
+  const existingStayEditor = sheet === "edit-stay" && canManageStays && selectedStay ? <StayEditorSheet key={selectedStay.id} initialStatus={confirmingStayId === selectedStay.id ? "planned" : undefined} stay={selectedStay} commons={commonsSummary} participants={participants} close={() => { setSelectedStayId(null); setConfirmingStayId(null); setSheet(null); }} save={updateStay} remove={deleteStay} linkedExpense={selectedStayExpense} recordExpense={() => setSheet("add-expense")} openLinkedExpense={selectedStayExpense ? () => { setSelectedExpenseId(selectedStayExpense.id); setSelectedStayId(null); setTab("money"); setSheet("expense"); } : undefined} /> : null;
   async function startPhotoUpload(files: File[]) {
     try {
       const photos = await preparePhotoFiles(files);
@@ -3870,7 +3759,7 @@ export function CommonsApp({
       }
       trackProductEvent("photo_upload_started", {
         commonsSlug: initialSnapshot.commons.slug,
-        properties: { count: photos.length, mode: dataMode },
+        properties: { count: photos.length, mode: "database" },
       });
       setPendingPhotos(photos);
       setSheet("photo-mapping");
@@ -3883,22 +3772,22 @@ export function CommonsApp({
   function chooseTripAdd(kind?: LogisticsAddKind) {
     // Bookings are held for "We're going"; the locked page says so, and ideas stay open.
     if (!kind) { setSheet("add-item"); return; }
-    // Signed-in trips capture ideas and stay options with quick add; the sample keeps its forms.
-    if (kind === "thing") { if (dataMode === "database") { setSheet(null); setQuickAdd("activity"); } else setSheet("add-plan"); }
+    // Ideas and stay options open with quick add.
+    if (kind === "thing") { setSheet(null); setQuickAdd("activity"); }
     else if (kind === "meal") setSheet("add-meal");
-    else if (kind === "stay") { if (dataMode === "database" && canManageTrip) { setSheet(null); setQuickAdd("stay"); } else setSheet("add-stay"); }
+    else if (kind === "stay") { if (canManageTrip) { setSheet(null); setQuickAdd("stay"); } else setSheet("add-stay"); }
     else { setTravelKind(kind === "flight" ? "arrival" : "transport"); setSelectedTravelPlanId(kind === "transport" ? "" : null); setSheet(kind === "flight" ? "add-flight" : "add-rental"); }
   }
   // Trip carries polls and the ordinary to-do list.
   const tripHome = {
     openTodo: () => { const panel = document.getElementById("trip-todos"); panel?.scrollIntoView({ block: "start" }); panel?.focus({ preventScroll: true }); },
-    tasksPanel: dataMode === "database" ? <><TripTasks showSuggestions={false} slug={initialSnapshot.commons.id} actorId={initialSnapshot.currentActor.id} context={{ people: participants, state: { ...state, travelPlans }, commons: commonsSummary, organizer: canManageTrip, confirmationIntakeEnabled }} onOpenPollResults={id => router.push(`${commonsPath(initialSnapshot.commons.id)}/polls/${id}`)} /></> : undefined,
+    tasksPanel: <><TripTasks showSuggestions={false} slug={initialSnapshot.commons.id} actorId={initialSnapshot.currentActor.id} context={{ people: participants, state: { ...state, travelPlans }, commons: commonsSummary, organizer: canManageTrip, confirmationIntakeEnabled }} onOpenPollResults={id => router.push(`${commonsPath(initialSnapshot.commons.id)}/polls/${id}`)} /></>,
   };
-  const overviewView = () => <HomeView coverImage={displayedCoverImage} {...tripHome} tripLetter decidingStage={tripStage === "deciding" && canManageTrip} textMessaging={textMessagingEnabled} addPhotos={() => addActivityPhotos()} openPhotos={() => setTab("moments")} photoCount={state.moments.length + localMoments.length} openItem={id => openItem("plan", id)} canAskGroup={canManageTrip} confirmationIntakeEnabled={confirmationIntakeEnabled} travelUploadAvailable={dataMode === "database"} addReceipt={() => { setMoneyEntryCurrency(undefined); setSelectedStayId(null); setSelectedTravelPlanId(null); setSheet("add-receipt"); }} state={state} commons={commonsSummary} participants={participants} currentActorId={initialSnapshot.currentActor.id} activityParticipation={activityParticipation} copyAddress={copyAddress} openTripDetails={() => { trackProductEvent("trip_details_opened", { commonsSlug: initialSnapshot.commons.slug, properties: { source: "home_stays" } }); openStays(); }} openStay={stayId => openItem("stay", stayId)} addPlan={chooseTripAdd} addTravelPlans={step => {
+  const overviewView = () => <HomeView coverImage={displayedCoverImage} {...tripHome} decidingStage={tripStage === "deciding" && canManageTrip} textMessaging={textMessagingEnabled} addPhotos={() => addActivityPhotos()} openPhotos={() => setTab("moments")} photoCount={state.moments.length} canAskGroup={canManageTrip} confirmationIntakeEnabled={confirmationIntakeEnabled} travelUploadAvailable addReceipt={() => { setMoneyEntryCurrency(undefined); setSelectedStayId(null); setSelectedTravelPlanId(null); setSheet("add-receipt"); }} state={state} commons={commonsSummary} participants={participants} currentActorId={initialSnapshot.currentActor.id} activityParticipation={activityParticipation} openTripDetails={() => { trackProductEvent("trip_details_opened", { commonsSlug: initialSnapshot.commons.slug, properties: { source: "home_stays" } }); openStays(); }} addPlan={chooseTripAdd} addTravelPlans={step => {
         openLogistics();
         if(!step || step.reason === "arrival_processing" || !step.target.canEdit)return;
         setTravelIntakeId(step?.intakeId ?? null);setTravelKind("arrival");setSelectedTravelPlanId(step?.target.planId ?? null);setSheet(step?.target.planId ? "travel" : "add-flight");
-      }} goToPlan={(date) => { setTab("plan"); setSelectedDay(date ?? defaultDay); }} goToMoney={() => setTab("money")} goToChoiceDay={() => { setTab("plan"); setSelectedDay(seededPilot ? "2027-07-22" : days[1]?.id ?? defaultDay); }} />
+      }} goToPlan={(date) => { setTab("plan"); setSelectedDay(date ?? defaultDay); }} goToMoney={() => setTab("money")} />
 ;
   const visibleSection = tab === "logistics" ? "travel" : tab === "plan" ? visiblePlanSection(planSection) : null;
   const sectionLink = (section: PlanSection, label: ReactNode, className?: string) => <Link key={section} className={className} href={planSectionPath(initialSnapshot.commons.id, section)}
@@ -3912,15 +3801,15 @@ export function CommonsApp({
     // Photos is contextual under Trip, with an obvious way back.
     : null;
   const view = tab === "home" ? overviewView()
-    : tripStage === "deciding" && tab === "money" ? <div className="product-view"><TripBudgetPanel tripId={initialSnapshot.commons.id} destinationName={commonsSummary.locationName ?? undefined} startsOn={commonsSummary.startsOn} endsOn={commonsSummary.endsOn} travelerCount={participants.length} currency={commonsSummary.currency} templateKey={commonsSummary.templateKey} canEdit={canManageTrip} persistent={dataMode === "database"} onSaved={setSavedWorksheet} goingSlot={canManageTrip ? <GoingAction slug={initialSnapshot.commons.id} lead="Ready to go? Track shared expenses, split costs and record repayments." /> : undefined} /></div>
+    : tripStage === "deciding" && tab === "money" ? <div className="product-view"><TripBudgetPanel tripId={initialSnapshot.commons.id} destinationName={commonsSummary.locationName ?? undefined} startsOn={commonsSummary.startsOn} endsOn={commonsSummary.endsOn} travelerCount={participants.length} currency={commonsSummary.currency} templateKey={commonsSummary.templateKey} canEdit={canManageTrip} onSaved={setSavedWorksheet} goingSlot={canManageTrip ? <GoingAction slug={initialSnapshot.commons.id} lead="Ready to go? Track shared expenses, split costs and record repayments." /> : undefined} /></div>
     : tripStage === "deciding" && tab === "moments" ? <StageLockedPage slug={initialSnapshot.commons.id} kind="photos" />
     : tripStage === "deciding" && tab === "plan" && planSection === "map" ? <StageLockedPage slug={initialSnapshot.commons.id} kind="map" />
     : tab === "plan" && planSection === "map" && tripMapEnabled
       ? <TripMapView key={mapOrigin} initialKind={mapOrigin === "travel" ? "stay" : "activity"} commons={commonsSummary} stays={state.stays ?? []} itinerary={state.itinerary}
           transport={travelPlans.filter(plan => plan.kind === "transport" || plan.kind === "car_rental")}
           travelPath={planSectionPath(initialSnapshot.commons.id, "travel")}
-          canEditStays={dataMode === "database" && canManageTrip} canEditActivities={dataMode === "database" && participants.some(person => person.id === initialSnapshot.currentActor.id)}
-          savePin={savePlacePin} editStay={id => { setSelectedStayId(id); setSheet("edit-stay"); }} honestLocationNotes openStay={id => openItem("stay", id)} openActivity={id => openItem("plan", id)}
+          canEditStays={canManageTrip} canEditActivities={participants.some(person => person.id === initialSnapshot.currentActor.id)}
+          savePin={savePlacePin} editStay={id => { setSelectedStayId(id); setSheet("edit-stay"); }} openStay={id => openItem("stay", id)} openActivity={id => openItem("plan", id)}
           addMenu={<LogisticsAddMenu canAddStay={canManageStays} disabled={Boolean(sheet)} choose={chooseTripAdd} />} />
     : tab === "logistics" || (tab === "plan" && planSection === "stays")
       ? <div className="product-view trip-travel-stays-view">
@@ -3929,24 +3818,22 @@ export function CommonsApp({
           {contextNavigation}
           <TripStaysView commons={commonsSummary} participants={participants} stays={state.stays ?? []} itinerary={state.itinerary} canEditStays={canManageStays}
           saveNote={saveStayOptionNote}
-          canAskGroup={dataMode === "database" && canManageTrip} editorOpen={Boolean(sheet)}
+          canAskGroup={canManageTrip} editorOpen={Boolean(sheet)}
           editStay={id => { setSelectedStayId(id); setSheet("edit-stay"); }} openStay={id => openItem("stay", id)}
           addOption={() => setQuickAdd("stay")} copyAddress={copyAddress} mapPath={tripMapEnabled ? planSectionPath(initialSnapshot.commons.id, "map") : undefined} />
           <TripTravelView commons={commonsSummary} participants={participants} travelPlans={travelPlans} actorId={initialSnapshot.currentActor.id}
-          canAskGroup={dataMode === "database" && canManageTrip} editorOpen={Boolean(sheet)} choose={chooseTripAdd}
+          canAskGroup={canManageTrip} editorOpen={Boolean(sheet)} choose={chooseTripAdd}
           editTravel={plan => { setTravelKind(plan.kind); setSelectedTravelPlanId(plan.id); setSheet("travel"); }} />
         </div>
     : tab === "plan"
-      ? <>{tripStage === "deciding" ? <PlanStageBanner slug={initialSnapshot.commons.id} /> : null}<PlanView sectionNavigation={contextNavigation} section={planSection === "map" || planSection === "stays" ? "schedule" : planSection} openItem={id => openItem("plan", id)} canSchedule={canManageTrip || previewBasics} state={{...state, moments: [...state.moments, ...localMoments]}} commons={commonsSummary} days={days} seededPilot={seededPilot} selectedDay={selectedDay} setSelectedDay={setSelectedDay} activityParticipation={activityParticipation} respondToActivity={respondToActivity} openMoments={() => setTab("moments")} travelPlans={travelPlans} openTravelPlans={(kind) => { setTravelKind(kind); setSheet("travel"); }} participantCount={participants.length} participants={participants} addPlan={chooseTripAdd} editPlan={(itemId) => { setPlanScheduleDate(null); setSelectedPlanId(itemId); setSheet("edit-plan"); }} scheduleIdea={(itemId, day) => { setPlanScheduleDate(day); setSelectedPlanId(itemId); setSheet("edit-plan"); }} canEditPlan openStay={stayId => openItem("stay", stayId)} openTripDetails={() => { trackProductEvent("trip_details_opened", { commonsSlug: initialSnapshot.commons.slug, properties: { source: "plan" } }); openLogistics(); }} askHref={tripStage === "deciding" || !canManageTrip ? undefined : `${commonsPath(initialSnapshot.commons.id)}/polls/new`} askGroupPath={dataMode === "database" && canManageTrip ? ids => `${commonsPath(initialSnapshot.commons.id)}/polls/new?activityIds=${ids.map(encodeURIComponent).join(",")}` : undefined} /></>
+      ? <>{tripStage === "deciding" ? <PlanStageBanner slug={initialSnapshot.commons.id} /> : null}<PlanView sectionNavigation={contextNavigation} section={planSection === "map" || planSection === "stays" ? "schedule" : planSection} openItem={id => openItem("plan", id)} canSchedule={canManageTrip} state={state} commons={commonsSummary} days={days} selectedDay={selectedDay} setSelectedDay={setSelectedDay} activityParticipation={activityParticipation} respondToActivity={respondToActivity} openMoments={() => setTab("moments")} travelPlans={travelPlans} openTravelPlans={(kind) => { setTravelKind(kind); setSheet("travel"); }} participantCount={participants.length} participants={participants} addPlan={chooseTripAdd} editPlan={(itemId) => { setPlanScheduleDate(null); setSelectedPlanId(itemId); setSheet("edit-plan"); }} scheduleIdea={(itemId, day) => { setPlanScheduleDate(day); setSelectedPlanId(itemId); setSheet("edit-plan"); }} canEditPlan openStay={stayId => openItem("stay", stayId)} openTripDetails={() => { trackProductEvent("trip_details_opened", { commonsSlug: initialSnapshot.commons.slug, properties: { source: "plan" } }); openLogistics(); }} askHref={tripStage === "deciding" || !canManageTrip ? undefined : `${commonsPath(initialSnapshot.commons.id)}/polls/new`} askGroupPath={canManageTrip ? ids => `${commonsPath(initialSnapshot.commons.id)}/polls/new?activityIds=${ids.map(encodeURIComponent).join(",")}` : undefined} /></>
       : tab === "money"
-        ? <><MoneyView budgetEditor={targetControl => <TripBudgetPanel targetControl={targetControl} embedded tripId={initialSnapshot.commons.id} destinationName={commonsSummary.locationName ?? undefined} startsOn={commonsSummary.startsOn} endsOn={commonsSummary.endsOn} travelerCount={participants.length} currency={commonsSummary.currency} templateKey={commonsSummary.templateKey} canEdit={canManageTrip} persistent={dataMode === "database"} onSaved={setSavedWorksheet} />} worksheet={savedWorksheet} openItem={openItem} state={state} commons={commonsSummary} participants={activeMoneyParticipants} tripStarted={tripStarted} postTrip={postTrip} currentActorId={initialSnapshot.currentActor.id} openExpense={(expenseId) => { setStartExpenseAsRecorded(false); setSelectedExpenseId(expenseId); setSheet("expense"); }} openPayment={(paymentId) => { setSelectedPaymentId(paymentId); setSheet("payment"); }} addExpense={(currency) => { setMoneyEntryCurrency(currency); setSelectedStayId(null); setSelectedTravelPlanId(null); setSheet("add-expense"); }} openMoneySettings={canManageTrip ? () => setSheet("money-settings") : undefined} recordPayment={(currency) => { setMoneyEntryCurrency(currency); setSheet("add-payment"); }} markExpensesComplete={markExpensesComplete} closeExpenses={() => setSheet("close-expenses")} reopenExpenses={() => setSheet("reopen-expenses")} expensesClosedAt={moneyStatus.expensesClosedAt} expensesClosedByName={moneyStatus.expensesClosedByName} saveTargetBudget={saveTargetBudget} />
+        ? <><MoneyView budgetEditor={targetControl => <TripBudgetPanel targetControl={targetControl} embedded tripId={initialSnapshot.commons.id} destinationName={commonsSummary.locationName ?? undefined} startsOn={commonsSummary.startsOn} endsOn={commonsSummary.endsOn} travelerCount={participants.length} currency={commonsSummary.currency} templateKey={commonsSummary.templateKey} canEdit={canManageTrip} onSaved={setSavedWorksheet} />} worksheet={savedWorksheet} openItem={openItem} state={state} commons={commonsSummary} participants={activeMoneyParticipants} tripStarted={tripStarted} postTrip={postTrip} currentActorId={initialSnapshot.currentActor.id} openExpense={(expenseId) => { setStartExpenseAsRecorded(false); setSelectedExpenseId(expenseId); setSheet("expense"); }} openPayment={(paymentId) => { setSelectedPaymentId(paymentId); setSheet("payment"); }} addExpense={(currency) => { setMoneyEntryCurrency(currency); setSelectedStayId(null); setSelectedTravelPlanId(null); setSheet("add-expense"); }} openMoneySettings={canManageTrip ? () => setSheet("money-settings") : undefined} recordPayment={(currency) => { setMoneyEntryCurrency(currency); setSheet("add-payment"); }} markExpensesComplete={markExpensesComplete} closeExpenses={() => setSheet("close-expenses")} reopenExpenses={() => setSheet("reopen-expenses")} expensesClosedAt={moneyStatus.expensesClosedAt} expensesClosedByName={moneyStatus.expensesClosedByName} saveTargetBudget={saveTargetBudget} />
 
-          {dataMode === "database"
-            ? <BetaMoneyWrapUp slug={initialSnapshot.commons.slug} currentActorId={initialSnapshot.currentActor.id} isOrganizer={canManageTrip} participants={activeMoneyParticipants}
+          <BetaMoneyWrapUp slug={initialSnapshot.commons.slug} currentActorId={initialSnapshot.currentActor.id} isOrganizer={canManageTrip} participants={activeMoneyParticipants}
                 state={state} moments={state.moments.map(moment => ({ id: moment.id, caption: moment.caption }))} defaultCurrency={commonsSummary.currency ?? "USD"}
-                balancesDisabled={commonsSummary.balancesDisabled ?? false} ledgerClosed={!ledgerOpen} endsOn={commonsSummary.endsOn} features={{ paymentReports: true, closure: true, recap: true, successor: true }} onState={setState} />
-            : null}</>
-        : <MomentsView notify={notify} localMoments={localMoments} startPhotoUpload={files => { setPhotoActivityId(null); void startPhotoUpload(files); }} openMoment={(moment) => { setSelectedMoment(moment); setSheet("moment"); }} moveMoment={moveMomentToDay} commonsSlug={initialSnapshot.commons.slug} days={tripDays(commonsSummary.startsOn, commonsSummary.endsOn)} moments={state.moments} timeZone={commonsSummary.timezone} />;
+                balancesDisabled={commonsSummary.balancesDisabled ?? false} ledgerClosed={!ledgerOpen} endsOn={commonsSummary.endsOn} onState={setState} /></>
+        : <MomentsView notify={notify} startPhotoUpload={files => { setPhotoActivityId(null); void startPhotoUpload(files); }} openMoment={(moment) => { setSelectedMoment(moment); setSheet("moment"); }} moveMoment={moveMomentToDay} commonsSlug={initialSnapshot.commons.slug} days={tripDays(commonsSummary.startsOn, commonsSummary.endsOn)} moments={state.moments} timeZone={commonsSummary.timezone} />;
 
   function notify(message: string) {
     setToast(message);
@@ -3992,11 +3879,6 @@ export function CommonsApp({
   }
 
   async function persistNewMoment(moment: Moment, sourcePhoto?: Blob) {
-    if (dataMode === "demo") {
-      setLocalMoments((current) => [...current, moment]);
-      trackProductEvent("photo_added", { commonsSlug: initialSnapshot.commons.slug, properties: { mode: dataMode } });
-      return moment;
-    }
     let blob: Blob;
     if (sourcePhoto) {
       blob = sourcePhoto;
@@ -4065,7 +3947,7 @@ export function CommonsApp({
     if (!savedMoment) throw new Error("Photo was uploaded but could not be loaded. Refresh the page.");
     setState(snapshot.state);
     setCoverImage(snapshot.commons.coverImageUrl);
-    trackProductEvent("photo_added", { commonsSlug: initialSnapshot.commons.slug, properties: { mode: dataMode } });
+    trackProductEvent("photo_added", { commonsSlug: initialSnapshot.commons.slug, properties: { mode: "database" } });
     return savedMoment;
   }
 
@@ -4074,10 +3956,6 @@ export function CommonsApp({
   }
 
   async function saveCover(moment: Moment) {
-    if (dataMode === "demo") {
-      setCoverImage(moment.assetUrl);
-      return;
-    }
     const assetResponse = await fetch(moment.assetUrl);
     if (!assetResponse.ok) throw new Error("That trip photo could not be loaded. Try again.");
     await persistCover(await assetResponse.blob(), moment.id);
@@ -4086,10 +3964,6 @@ export function CommonsApp({
   async function persistCover(photo: Blob, sourceMomentId: string | null) {
     if (!["image/jpeg", "image/png", "image/webp"].includes(photo.type)) throw new Error("Choose a JPG, PNG, or WebP cover photo.");
     if (photo.size > 50 * 1024 * 1024) throw new Error("The cover photo is over 50 MB. Choose a smaller copy.");
-    if (dataMode === "demo") {
-      setCoverImage(URL.createObjectURL(photo));
-      return;
-    }
     const id = crypto.randomUUID();
     const card = await createCoverCardImage(photo);
     const paths = await uploadCommonsCover(initialSnapshot.commons.slug, id, photo, card);
@@ -4118,17 +3992,6 @@ export function CommonsApp({
   }
 
   async function saveTripDetails(input: TripDetailsInput) {
-    if (dataMode === "demo") {
-      if (!previewBasics) throw new Error("This sample cannot be edited.");
-      // Sample review only: no shared-state command, analytics, or persistent write.
-      setCommonsSummary(previous => ({ ...previous, name: input.title, timezone: input.timezone ?? previous.timezone, startsOn: input.startsOn, endsOn: input.endsOn, locationName: input.locationName, locationNames: input.locationNames, balancesDisabled: input.balancesDisabled, currency: input.currency }));
-      if (!tripDays(input.startsOn, input.endsOn).some(day => day.id === selectedDay)) {
-        setSelectedDay(tripDays(input.startsOn, input.endsOn)[0]?.id ?? "");
-      }
-      setSheet(null);
-      notify("Sample updated. Changes reset when you reload.");
-      return;
-    }
     const response = await fetch(
       `/api/v1/commons/${initialSnapshot.commons.slug}/details`,
       {
@@ -4151,37 +4014,32 @@ export function CommonsApp({
   }
 
   async function saveMoneySettings(balancesDisabled: boolean, currency: string) {
-    if (dataMode === "database") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/money-settings`,
-        {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            commandId: crypto.randomUUID(),
-            currency,
-            expectedCurrency: commonsSummary.currency ?? "USD",
-            expectedBalancesDisabled: commonsSummary.balancesDisabled ?? false,
-            balancesDisabled,
-          }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Money settings not updated. Try again.");
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      setCommonsSummary(snapshot.commons);
-      setState(snapshot.state);
-    } else {
-      setCommonsSummary((current) => ({ ...current, balancesDisabled, currency }));
-    }
+    const response = await fetch(
+      `/api/v1/commons/${initialSnapshot.commons.slug}/money-settings`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          commandId: crypto.randomUUID(),
+          currency,
+          expectedCurrency: commonsSummary.currency ?? "USD",
+          expectedBalancesDisabled: commonsSummary.balancesDisabled ?? false,
+          balancesDisabled,
+        }),
+      },
+    );
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error ?? "Money settings not updated. Try again.");
+    const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
+    setCommonsSummary(snapshot.commons);
+    setState(snapshot.state);
     setMoneyEntryCurrency(undefined);
     setSheet(null);
-    trackProductEvent("money_settings_updated", { commonsSlug: initialSnapshot.commons.slug, properties: { balancesDisabled, mode: dataMode } });
+    trackProductEvent("money_settings_updated", { commonsSlug: initialSnapshot.commons.slug, properties: { balancesDisabled, mode: "database" } });
     notify(`Money settings saved. New costs default to ${currency}.`);
   }
 
   async function savePlacePin(kind: "stay" | "activity", id: string, pin: import("@commons/contracts").PlacePin | null) {
-    if (dataMode === "demo") throw new Error("This sample cannot be edited.");
     const response = await fetch(`/api/v1/commons/${initialSnapshot.commons.slug}/places/pin`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -4244,7 +4102,7 @@ export function CommonsApp({
   /** Notes on an option being considered. Sends the option's saved fields
    * unchanged; booked stays keep their private details in the full editor. */
   async function saveStayOptionNote(stay: Stay, note: string) {
-    if (dataMode !== "database" || stay.status !== "considering") throw new Error("Edit this stay to change its notes.");
+    if (stay.status !== "considering") throw new Error("Edit this stay to change its notes.");
     const response = await fetch(`/api/v1/commons/${initialSnapshot.commons.slug}/stays/${stay.id}`, {
       method: "PATCH", headers: { "content-type": "application/json" },
       body: JSON.stringify({ commandId: crypto.randomUUID(), name: stay.name, address: stay.address, startsOn: stay.startsOn, endsOn: stay.endsOn,
@@ -4261,15 +4119,6 @@ export function CommonsApp({
   }
 
   async function addStay(input: StayInput) {
-    if (dataMode === "demo") {
-      if (!previewBasics) throw new Error("This sample cannot be edited.");
-      const added = StaySchema.parse({ ...Object.fromEntries(Object.entries(input).filter(([, value]) => value != null)), id: crypto.randomUUID(), sourceLabel: `Sample stay · added by ${initialSnapshot.currentActor.displayName}` });
-      setSampleStays(appendPublicDemoStay(commonsSummary, participants, state.stays ?? [], added));
-      setCommonsSummary(current => ({ ...current, lodging: undefined }));
-      setSheet(null);
-      notify("Sample stay added. Changes reset when you reload.");
-      return;
-    }
     const response = await fetch(`/api/v1/commons/${initialSnapshot.commons.slug}/stays`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -4289,15 +4138,6 @@ export function CommonsApp({
 
   async function updateStay(input: StayInput) {
     if (!selectedStay) throw new Error("That stay is no longer available.");
-    if (dataMode === "demo") {
-      if (!previewBasics) throw new Error("This sample cannot be edited.");
-      const updated = StaySchema.parse({ ...Object.fromEntries(Object.entries(input).filter(([, value]) => value != null)), id: selectedStay.id, sourceLabel: selectedStay.sourceLabel });
-      setSampleStays((state.stays ?? []).map(stay => stay.id === selectedStay.id ? updated : stay));
-      setSelectedStayId(null);
-      setSheet(null);
-      notify("Sample stay updated. Changes reset when you reload.");
-      return;
-    }
     const response = await fetch(`/api/v1/commons/${initialSnapshot.commons.slug}/stays/${selectedStay.id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -4317,14 +4157,6 @@ export function CommonsApp({
 
   async function deleteStay() {
     if (!selectedStay) throw new Error("That stay is no longer available.");
-    if (dataMode === "demo") {
-      if (!previewBasics) throw new Error("This sample cannot be edited.");
-      setSampleStays((state.stays ?? []).filter(stay => stay.id !== selectedStay.id));
-      setSelectedStayId(null);
-      setSheet(null);
-      notify("Sample stay removed. Changes reset when you reload.");
-      return;
-    }
     const response = await fetch(`/api/v1/commons/${initialSnapshot.commons.slug}/stays/${selectedStay.id}`, {
       method: "DELETE",
       headers: { "content-type": "application/json" },
@@ -4365,40 +4197,27 @@ export function CommonsApp({
         reason: `Linked by ${initialSnapshot.currentActor.displayName}`,
       } : undefined,
     };
-    const isLocal = localMoments.some((entry) => entry.id === moment.id);
-
-    if (isLocal) {
-      setLocalMoments((current) => current.map((entry) => entry.id === updatedMoment.id ? updatedMoment : entry));
-    } else if (dataMode === "database") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/moments/${moment.id}`,
-        {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            commandId: crypto.randomUUID(),
-            caption: updatedMoment.caption,
-            occurredOn,
-            itineraryItemId,
-          }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Photo not updated. Try again.");
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      const savedMoment = snapshot.state.moments.find((entry) => entry.id === moment.id);
-      setState(snapshot.state);
-      setCoverImage(snapshot.commons.coverImageUrl);
-      if (selectedMoment?.id === moment.id) setSelectedMoment(savedMoment ?? null);
-      return savedMoment ?? updatedMoment;
-    } else {
-      setState((current) => ({
-        ...current,
-        moments: current.moments.map((entry) => entry.id === updatedMoment.id ? updatedMoment : entry),
-      }));
-    }
-    if (selectedMoment?.id === moment.id) setSelectedMoment(updatedMoment);
-    return updatedMoment;
+    const response = await fetch(
+      `/api/v1/commons/${initialSnapshot.commons.slug}/moments/${moment.id}`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          commandId: crypto.randomUUID(),
+          caption: updatedMoment.caption,
+          occurredOn,
+          itineraryItemId,
+        }),
+      },
+    );
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error ?? "Photo not updated. Try again.");
+    const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
+    const savedMoment = snapshot.state.moments.find((entry) => entry.id === moment.id);
+    setState(snapshot.state);
+    setCoverImage(snapshot.commons.coverImageUrl);
+    if (selectedMoment?.id === moment.id) setSelectedMoment(savedMoment ?? null);
+    return savedMoment ?? updatedMoment;
   }
 
   async function updateMoment(caption: string, itineraryItemId: string | null, occurredOn: string | null) {
@@ -4427,32 +4246,19 @@ export function CommonsApp({
   async function deleteMoment() {
     if (!selectedMoment) return;
     const moment = selectedMoment;
-    const isLocal = localMoments.some((entry) => entry.id === moment.id);
-
-    if (isLocal) {
-      setLocalMoments((current) => current.filter((entry) => entry.id !== moment.id));
-      if (coverImage === moment.assetUrl) setCoverImage(null);
-    } else if (dataMode === "database") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/moments/${moment.id}`,
-        {
-          method: "DELETE",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ commandId: crypto.randomUUID() }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Photo not deleted. Try again.");
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      applyMoneySnapshot(snapshot);
-      setCoverImage(snapshot.commons.coverImageUrl);
-    } else {
-      setState((current) => ({
-        ...current,
-        moments: current.moments.filter((entry) => entry.id !== moment.id),
-      }));
-      if (coverImage === moment.assetUrl) setCoverImage(null);
-    }
+    const response = await fetch(
+      `/api/v1/commons/${initialSnapshot.commons.slug}/moments/${moment.id}`,
+      {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ commandId: crypto.randomUUID() }),
+      },
+    );
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error ?? "Photo not deleted. Try again.");
+    const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
+    applyMoneySnapshot(snapshot);
+    setCoverImage(snapshot.commons.coverImageUrl);
     setSelectedMoment(null);
     setSheet(null);
     notify("Photo deleted.");
@@ -4460,114 +4266,30 @@ export function CommonsApp({
 
   async function respondToActivity(itemId: string, response: ParticipationChoice) {
     const item = state.itinerary.find((entry) => entry.id === itemId);
-    if (dataMode === "database") {
-      const request = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/itinerary/${itemId}/participation`,
-        {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            commandId: crypto.randomUUID(),
-            response,
-            occurredAt: new Date().toISOString(),
-          }),
-        },
-      );
-      const payload = await request.json();
-      if (!request.ok) {
-        notify(payload.error ?? "Response not saved. Try again.");
-        return;
-      }
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      setState(snapshot.state);
-      setActivityParticipation(snapshot.state.participation);
-      notify(response === "in" ? `You’re in for ${item?.title ?? "this activity"}.` : response === "maybe" ? `Marked maybe for ${item?.title ?? "this activity"}.` : `Marked skip for ${item?.title ?? "this activity"}.`);
+    const request = await fetch(
+      `/api/v1/commons/${initialSnapshot.commons.slug}/itinerary/${itemId}/participation`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          commandId: crypto.randomUUID(),
+          response,
+          occurredAt: new Date().toISOString(),
+        }),
+      },
+    );
+    const payload = await request.json();
+    if (!request.ok) {
+      notify(payload.error ?? "Response not saved. Try again.");
       return;
     }
-    const actorId = initialSnapshot.currentActor.id;
-    const actorFirstName = initialSnapshot.currentActor.displayName.split(" ")[0];
-    const commandId = crypto.randomUUID();
-    const occurredAt = new Date().toISOString();
-    setActivityParticipation((current) => {
-      const next = { ...current, [itemId]: response };
-      if (response === "in" && item) {
-        state.itinerary.forEach((entry) => {
-          if (entry.id !== itemId && entry.startsAt === item.startsAt) next[entry.id] = "skip";
-        });
-      }
-      return next;
-    });
-    if (item) {
-      setState((current) => {
-        const participation = { ...current.participation, [itemId]: response };
-        if (response === "in") {
-          current.itinerary.forEach((entry) => {
-            if (entry.id !== itemId && entry.startsAt === item.startsAt) participation[entry.id] = "skip";
-          });
-        }
-        return {
-          ...current,
-          participation,
-          itinerary: current.itinerary.map((entry) => {
-            const sameTime = entry.startsAt === item.startsAt;
-            const participantIds = entry.participantIds ?? [];
-            const actorWasGoing = participantIds.includes(actorId);
-            const actorIsJoining = entry.id === itemId && response === "in";
-            if (!sameTime && entry.id !== itemId) return entry;
-            if (actorIsJoining) {
-              return {
-                ...entry,
-                participantIds: [actorId, ...participantIds.filter((personId) => personId !== actorId)],
-                respondedParticipantIds: [actorId, ...(entry.respondedParticipantIds ?? participantIds).filter((personId) => personId !== actorId)],
-                expectedParticipantIds: [actorId, ...(entry.expectedParticipantIds ?? []).filter((personId) => personId !== actorId)],
-                provenanceLabel: `${actorFirstName} joined in Commons`,
-              };
-            }
-            if (entry.id === itemId) {
-              return {
-                ...entry,
-                participantIds: participantIds.filter((personId) => personId !== actorId),
-                expectedParticipantIds: response === "maybe"
-                  ? [actorId, ...(entry.expectedParticipantIds ?? []).filter((personId) => personId !== actorId)]
-                  : (entry.expectedParticipantIds ?? []).filter((personId) => personId !== actorId),
-                respondedParticipantIds: response === "maybe" ? [actorId, ...(entry.respondedParticipantIds ?? participantIds).filter((id) => id !== actorId)] : (entry.respondedParticipantIds ?? participantIds).filter((id) => id !== actorId),
-                provenanceLabel: response === "maybe"
-                  ? `${actorFirstName} marked maybe in Commons`
-                  : `${actorFirstName} skipped in Commons`,
-              };
-            }
-            if (response === "in" && actorWasGoing) {
-              return {
-                ...entry,
-                participantIds: participantIds.filter((personId) => personId !== actorId),
-                expectedParticipantIds: (entry.expectedParticipantIds ?? []).filter((personId) => personId !== actorId),
-                provenanceLabel: `${actorFirstName} moved to ${item.title}`,
-                respondedParticipantIds: (entry.respondedParticipantIds ?? participantIds).filter((id) => id !== actorId),
-              };
-            }
-            return entry;
-          }),
-          auditEvents: [...current.auditEvents, {
-            id: crypto.randomUUID(),
-            commandId,
-            actorId,
-            action: "participation.updated",
-            targetId: itemId,
-            occurredAt,
-            summary: `${initialSnapshot.currentActor.displayName} responded ${response} to ${item.title}`,
-          }],
-          processedCommandIds: [...current.processedCommandIds, commandId],
-        };
-      });
-    }
+    const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
+    setState(snapshot.state);
+    setActivityParticipation(snapshot.state.participation);
     notify(response === "in" ? `You’re in for ${item?.title ?? "this activity"}.` : response === "maybe" ? `Marked maybe for ${item?.title ?? "this activity"}.` : `Marked skip for ${item?.title ?? "this activity"}.`);
   }
 
   async function saveTargetBudget(amountCents: number | null, currency: string) {
-    if (dataMode === "demo") {
-      setState((current) => ({ ...current, targetBudgetCents: amountCents ?? undefined, targetBudgetCurrency: currency }));
-      return;
-    }
     const response = await fetch(`/api/v1/commons/${initialSnapshot.commons.slug}/target-budget`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
@@ -4594,91 +4316,52 @@ export function CommonsApp({
     if (companionConflict && (kind === "arrival" || kind === "departure")) {
       throw new Error(`${companionConflict.displayName.split(" ")[0]} already has a ${kind} plan. Ask them to update it first.`);
     }
-    if (dataMode === "database") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/travel-plans`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            commandId: stableCommandId(commandIds.current, `travel:${kind}:${input.travelPlanId ?? "new"}`, input),
-            travelPlanId: input.travelPlanId,
-            kind,
-            date: input.date,
-            route: input.route,
-            time: input.time,
-            note: input.note,
-            companionPersonId: input.companionPersonId || null,
-            includedPersonIds: input.includedPersonIds,
-            driverPersonId: input.driverPersonId,
-            provider: input.provider || null,
-            vehicle: input.vehicle || null,
-            returnDate: input.returnDate,
-            returnTime: input.returnTime,
-            status: input.status,
-            confirmationCode: input.confirmationCode || null,
-            totalCents: input.totalCents,
-            currency: input.currency ?? "USD",
-            confirmationDocument: input.confirmationDocument,
-          }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Travel plan not saved. Try again.");
-      }
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      const addedTravel = input.travelPlanId ? null : addedRecord(new Set((state.travelPlans ?? []).map(plan => plan.id)), snapshot.state.travelPlans ?? [], plan => plan.kind === kind && plan.date === input.date && sameText(plan.route, input.route));
-      setState(snapshot.state);
-      if (addedTravel) setPlanReceipt(travelReceipt(initialSnapshot.commons.id, addedTravel));
-      if (kind === "car_rental") {
-        const ownedRentals = snapshot.state.travelPlans?.filter((plan) => plan.kind === "car_rental" && plan.personId === initialSnapshot.currentActor.id) ?? [];
-        const savedRental = ownedRentals.find((plan) => plan.id === input.travelPlanId)
-          ?? ownedRentals.filter((plan) => plan.date === input.date && plan.route === input.route).at(-1);
-        if (savedRental) setSelectedTravelPlanId(savedRental.id);
-      }
-    } else {
-      if (!previewBasics) throw new Error("This sample cannot be edited.");
-      const existing = travelPlans.find(plan => plan.id === input.travelPlanId && plan.personId === initialSnapshot.currentActor.id);
-      const saved = TravelPlanSchema.parse({
-        id: existing?.id ?? crypto.randomUUID(), personId: initialSnapshot.currentActor.id,
-        personIds: input.includedPersonIds, personName: companions.map(person => person.displayName).join(" + "),
-        kind, date: input.date, route: input.route, time: input.time || undefined, note: input.note,
-        provider: input.provider || undefined, vehicle: input.vehicle || undefined,
-        driverPersonId: input.driverPersonId || undefined, driverName: participants.find(person => person.id === input.driverPersonId)?.displayName,
-        returnDate: input.returnDate || undefined, returnTime: input.returnTime || undefined, status: input.status,
-        confirmationCode: input.confirmationCode || undefined, totalCents: input.totalCents ?? undefined, currency: input.currency ?? "USD",
-        visibility: existing?.visibility ?? (input.kind === "transport" ? "basic" : "private"), sourceLabel: `Sample travel · added by ${initialSnapshot.currentActor.displayName}`,
-      });
-      setSampleTravelPlans(mergeTravelPlans(travelPlans, [saved]));
-      if (kind === "car_rental") setSelectedTravelPlanId(saved.id);
-      notify("Sample travel saved. Changes reset when you reload.");
-      return;
+    const response = await fetch(
+      `/api/v1/commons/${initialSnapshot.commons.slug}/travel-plans`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          commandId: stableCommandId(commandIds.current, `travel:${kind}:${input.travelPlanId ?? "new"}`, input),
+          travelPlanId: input.travelPlanId,
+          kind,
+          date: input.date,
+          route: input.route,
+          time: input.time,
+          note: input.note,
+          companionPersonId: input.companionPersonId || null,
+          includedPersonIds: input.includedPersonIds,
+          driverPersonId: input.driverPersonId,
+          provider: input.provider || null,
+          vehicle: input.vehicle || null,
+          returnDate: input.returnDate,
+          returnTime: input.returnTime,
+          status: input.status,
+          confirmationCode: input.confirmationCode || null,
+          totalCents: input.totalCents,
+          currency: input.currency ?? "USD",
+          confirmationDocument: input.confirmationDocument,
+        }),
+      },
+    );
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Travel plan not saved. Try again.");
+    }
+    const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
+    const addedTravel = input.travelPlanId ? null : addedRecord(new Set((state.travelPlans ?? []).map(plan => plan.id)), snapshot.state.travelPlans ?? [], plan => plan.kind === kind && plan.date === input.date && sameText(plan.route, input.route));
+    setState(snapshot.state);
+    if (addedTravel) setPlanReceipt(travelReceipt(initialSnapshot.commons.id, addedTravel));
+    if (kind === "car_rental") {
+      const ownedRentals = snapshot.state.travelPlans?.filter((plan) => plan.kind === "car_rental" && plan.personId === initialSnapshot.currentActor.id) ?? [];
+      const savedRental = ownedRentals.find((plan) => plan.id === input.travelPlanId)
+        ?? ownedRentals.filter((plan) => plan.date === input.date && plan.route === input.route).at(-1);
+      if (savedRental) setSelectedTravelPlanId(savedRental.id);
     }
     notify(input.kind === "transport" ? "Transport saved as shared trip details." : "Travel plan saved.");
   }
 
   async function saveFlightBooking(input: { legs: FlightLegReview[]; expectedPlanVersions?: Array<{ id: string; version: string }>; removeLegKinds: Array<"arrival" | "departure">; includedPersonIds: string[]; note: string; confirmationCode: string; totalCents: number | null; currency?: string; confirmationDocument?: ConfirmationDocumentInput }) {
-    if (dataMode !== "database") {
-      if (!previewBasics) throw new Error("This sample cannot be edited.");
-      if (travelPlans.some(plan => plan.personId !== initialSnapshot.currentActor.id && input.legs.some(leg => leg.kind === plan.kind) && (plan.personIds ?? [plan.personId]).some(id => input.includedPersonIds.includes(id)))) throw new Error("One of these travelers already has a flight plan. Ask its owner to update it first.");
-      const saved = input.legs.map((leg, index) => {
-        const existing = travelPlans.find(plan => plan.personId === initialSnapshot.currentActor.id && plan.kind === leg.kind);
-        return TravelPlanSchema.parse({
-          ...leg, id: existing?.id ?? crypto.randomUUID(), time: leg.time || undefined,
-          personId: initialSnapshot.currentActor.id, personIds: input.includedPersonIds,
-          personName: participants.filter(person => input.includedPersonIds.includes(person.id)).map(person => person.displayName).join(" + "),
-          note: input.note, confirmationCode: input.confirmationCode || undefined,
-          totalCents: index === 0 ? input.totalCents ?? undefined : undefined, currency: input.currency ?? "USD",
-          visibility: existing?.visibility ?? "basic", sourceLabel: `Sample flight · added by ${initialSnapshot.currentActor.displayName}`,
-        });
-      });
-      const retained = travelPlans.filter(plan => plan.personId !== initialSnapshot.currentActor.id || (plan.kind === "car_rental" || plan.kind === "transport") || !input.removeLegKinds.includes(plan.kind));
-      const updated = mergeTravelPlans(retained, saved);
-      setSampleTravelPlans(updated);
-      notify("Sample flights saved. Changes reset when you reload.");
-      return updated;
-    }
     const response = await fetch(`/api/v1/commons/${initialSnapshot.commons.slug}/travel-plans`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
@@ -4693,13 +4376,6 @@ export function CommonsApp({
   }
 
   async function updateTravelPlanSharing(travelPlanId: string, visibility: "private" | "basic" | "all", expectedVersion?: string) {
-    if (dataMode !== "database") {
-      if (!previewBasics) throw new Error("This sample cannot be edited.");
-      const updated = travelPlans.map(plan => plan.id === travelPlanId && plan.personId === initialSnapshot.currentActor.id ? { ...plan, visibility } : plan);
-      setSampleTravelPlans(updated);
-      notify("Sample sharing updated. Changes reset when you reload.");
-      return updated;
-    }
     const response = await fetch(`/api/v1/commons/${initialSnapshot.commons.slug}/travel-plans`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -4714,20 +4390,15 @@ export function CommonsApp({
   }
 
   async function deleteTravelPlan(travelPlanId: string) {
-    if (dataMode !== "database") {
-      if (!previewBasics) throw new Error("This sample cannot be edited.");
-      setSampleTravelPlans(travelPlans.filter(plan => plan.id !== travelPlanId || plan.personId !== initialSnapshot.currentActor.id));
-    } else {
-      const response = await fetch(`/api/v1/commons/${initialSnapshot.commons.slug}/travel-plans`, {
-        method: "DELETE",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ commandId: crypto.randomUUID(), travelPlanId }),
-      });
-      const payload = await response.json() as { snapshot?: CommonsSnapshot; error?: string };
-      if (!response.ok || !payload.snapshot) throw new Error(payload.error ?? "Travel plan not removed. Try again.");
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      setState(snapshot.state);
-    }
+    const response = await fetch(`/api/v1/commons/${initialSnapshot.commons.slug}/travel-plans`, {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ commandId: crypto.randomUUID(), travelPlanId }),
+    });
+    const payload = await response.json() as { snapshot?: CommonsSnapshot; error?: string };
+    if (!response.ok || !payload.snapshot) throw new Error(payload.error ?? "Travel plan not removed. Try again.");
+    const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
+    setState(snapshot.state);
     setSelectedTravelPlanId(null);
     setSheet(null);
     notify("Travel plan removed.");
@@ -4737,46 +4408,6 @@ export function CommonsApp({
     const startsAt = input.date && input.time
       ? localDateTimeToIso(input.date, input.time, initialSnapshot.commons.timezone)
       : null;
-    if (dataMode === "demo") {
-      const firstName = initialSnapshot.currentActor.displayName.split(" ")[0];
-      const newItem: CommonsState["itinerary"][number] = {
-        id: crypto.randomUUID(),
-        title: input.title,
-        mealType: input.mealType ?? undefined,
-        mealReservation: input.mealReservation ?? undefined,
-        startsAt,
-        durationMinutes: input.durationMinutes,
-        endsAt: itineraryEndTime(startsAt, input.durationMinutes ?? null),
-        arrangerPersonId: input.arrangerPersonId ?? undefined,
-        arrangerName: participants.find((person) => person.id === input.arrangerPersonId)?.displayName,
-        arrangerActive: input.arrangerPersonId ? true : undefined,
-        location: input.location || undefined,
-        note: input.note || undefined,
-        expectedCostCents: input.expectedCostCents ?? undefined,
-        expectedCostCurrency: input.expectedCostCurrency ?? "USD",
-        expectedCostBasis: input.expectedCostBasis,
-        expectedParticipantIds: input.participantScope === "self" ? [initialSnapshot.currentActor.id] : input.expectedParticipantIds,
-        participantScope: input.participantScope === "self" ? "subgroup" : input.participantScope,
-        participantIds: input.participantScope === "self" ? [initialSnapshot.currentActor.id] : undefined,
-        status: input.status ?? (input.date ? "planned" : "idea"),
-        scheduledDate: input.date,
-        sourceUrl: input.sourceUrl ?? undefined,
-        provenanceLabel: input.sourceUrl
-          ? `${firstName} shared this from ${new URL(input.sourceUrl).hostname.replace(/^www\./, "")}`
-          : `${firstName} added this in Commons`,
-      };
-      setState((current) => ({
-        ...current,
-        itinerary: sortItinerary([...current.itinerary, newItem]),
-        participation: input.participantScope === "self" ? { ...current.participation, [newItem.id]: "in" } : current.participation,
-      }));
-      if (input.participantScope === "self") setActivityParticipation((current) => ({ ...current, [newItem.id]: "in" }));
-      if (input.date) setSelectedDay(input.date);
-      setSheet(null);
-      trackProductEvent("plan_added", { commonsSlug: initialSnapshot.commons.slug, properties: { mode: dataMode, scope: input.participantScope } });
-      notify(startsAt ? `${input.title} added to the plan.` : `${input.title} added as an idea.`);
-      return;
-    }
 
     const response = await fetch(
       `/api/v1/commons/${initialSnapshot.commons.slug}/itinerary`,
@@ -4799,237 +4430,83 @@ export function CommonsApp({
     // Keep your place; the receipt offers View in Plan instead of moving the day.
     setPlanReceipt(added ? activityReceipt(initialSnapshot.commons.id, added, commonsSummary.timezone) : null);
     setSheet(null);
-    trackProductEvent("plan_added", { commonsSlug: initialSnapshot.commons.slug, properties: { mode: dataMode, scope: input.participantScope } });
+    trackProductEvent("plan_added", { commonsSlug: initialSnapshot.commons.slug, properties: { mode: "database", scope: input.participantScope } });
     notify(startsAt ? `${input.title} added to the plan.` : `${input.title} added as an idea.`);
   }
 
   async function updatePlan(input: EditPlanInput) {
     if (!selectedPlan) throw new Error("Choose a plan to edit.");
-    if (dataMode === "database") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/itinerary/${selectedPlan.id}`,
-        {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            commandId: crypto.randomUUID(),
-            ...input,
-            occurredAt: new Date().toISOString(),
-          }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Plan not updated. Try again.");
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      setState(snapshot.state);
-      setActivityParticipation(snapshot.state.participation);
-      if (input.date) setSelectedDay(input.date);
-      setSelectedPlanId(null);
-      setPlanScheduleDate(null);
-      setSheet(null);
-      notify(`${input.title} updated.`);
-      return;
-    }
-    if (input.participantScope === "self" && (selectedPlan.participantIds ?? []).some((id) => id !== initialSnapshot.currentActor.id)) {
-      throw new Error("Other travelers have responded to this plan. Add a separate plan for just you.");
-    }
-    if (input.participantScope === "subgroup" && (selectedPlan.respondedParticipantIds ?? selectedPlan.participantIds ?? []).some((id) => !input.expectedParticipantIds.includes(id))) {
-      throw new Error("Someone has responded to this plan. Reopen it to keep their response, or add a separate plan.");
-    }
-    const startsAt = input.date && input.time
-      ? localDateTimeToIso(input.date, input.time, initialSnapshot.commons.timezone)
-      : null;
-    const durationMinutes = input.durationMinutes === undefined ? itineraryDurationMinutes(selectedPlan) : input.durationMinutes;
-    const endsAt = itineraryEndTime(startsAt, durationMinutes);
-    const actorFirstName = initialSnapshot.currentActor.displayName.split(" ")[0];
-    const commandId = crypto.randomUUID();
-    const occurredAt = new Date().toISOString();
-
-    setState((current) => ({
-      ...current,
-      participation: input.participantScope === "self" ? { ...current.participation, [selectedPlan.id]: "in" } : current.participation,
-      itinerary: current.itinerary.map((item) => item.id === selectedPlan.id ? {
-        ...item,
-        title: input.title,
-        mealType: input.mealType === undefined ? item.mealType : input.mealType ?? undefined,
-        mealReservation: input.mealReservation === undefined ? item.mealReservation : input.mealReservation ?? undefined,
-        startsAt,
-        endsAt,
-        durationMinutes,
-        ...(input.arrangerPersonId !== undefined ? {
-          arrangerPersonId: input.arrangerPersonId ?? undefined,
-          arrangerName: participants.find((person) => person.id === input.arrangerPersonId)?.displayName,
-          arrangerActive: input.arrangerPersonId ? true : undefined,
-        } : {}),
-        location: input.location || undefined,
-        note: input.note || undefined,
-        expectedCostCents: input.expectedCostCents ?? undefined,
-        expectedCostCurrency: input.expectedCostCurrency ?? "USD",
-        expectedCostBasis: input.expectedCostBasis,
-        expectedParticipantIds: input.participantScope === "self" ? [initialSnapshot.currentActor.id] : input.expectedParticipantIds,
-        participantScope: input.participantScope === "self" ? "subgroup" : input.participantScope,
-        status: input.status ?? item.status,
-        scheduledDate: input.date,
-        participantIds: input.participantScope === "self" ? [initialSnapshot.currentActor.id] : item.participantIds,
-        provenanceLabel: `${actorFirstName} updated this in Commons`,
-      } : item),
-      moments: current.moments.map((moment) => moment.itineraryItemId === selectedPlan.id ? {
-        ...moment,
-        itineraryItemTitle: input.title,
-      } : moment),
-      auditEvents: [...current.auditEvents, {
-        id: crypto.randomUUID(),
-        commandId,
-        actorId: initialSnapshot.currentActor.id,
-        action: "itinerary.updated",
-        targetId: selectedPlan.id,
-        occurredAt,
-        summary: `${initialSnapshot.currentActor.displayName} updated ${input.title}`,
-      }],
-      processedCommandIds: [...current.processedCommandIds, commandId],
-    }));
-    if (input.participantScope === "self") setActivityParticipation((current) => ({ ...current, [selectedPlan.id]: "in" }));
-    setLocalMoments((current) => current.map((moment) => moment.itineraryItemId === selectedPlan.id ? {
-      ...moment,
-      itineraryItemTitle: input.title,
-    } : moment));
-    setState((current) => ({ ...current, itinerary: sortItinerary(current.itinerary) }));
+    const response = await fetch(
+      `/api/v1/commons/${initialSnapshot.commons.slug}/itinerary/${selectedPlan.id}`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          commandId: crypto.randomUUID(),
+          ...input,
+          occurredAt: new Date().toISOString(),
+        }),
+      },
+    );
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error ?? "Plan not updated. Try again.");
+    const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
+    setState(snapshot.state);
+    setActivityParticipation(snapshot.state.participation);
     if (input.date) setSelectedDay(input.date);
     setSelectedPlanId(null);
     setPlanScheduleDate(null);
-    setExpensePlanId(null);
-    if (expensePlan) closeItem(); else setSheet(null);
+    setSheet(null);
     notify(`${input.title} updated.`);
   }
 
   async function deletePlan() {
     if (!selectedPlan) return;
     const deletedPlan = selectedPlan;
-    if (dataMode === "database") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/itinerary/${deletedPlan.id}`,
-        {
-          method: "DELETE",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            commandId: crypto.randomUUID(),
-            occurredAt: new Date().toISOString(),
-          }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Plan not deleted. Try again.");
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      setState(snapshot.state);
-      setActivityParticipation(snapshot.state.participation);
-      setSelectedPlanId(null);
-      setSheet(null);
-      notify(`${deletedPlan.title} removed from the plan.`);
-      return;
-    }
-    const commandId = crypto.randomUUID();
-    const occurredAt = new Date().toISOString();
-
-    setState((current) => {
-      const participation = { ...current.participation };
-      delete participation[deletedPlan.id];
-      return {
-        ...current,
-        itinerary: current.itinerary.filter((item) => item.id !== deletedPlan.id),
-        participation,
-        moments: current.moments.map((moment) => moment.itineraryItemId === deletedPlan.id ? {
-          ...moment,
-          itineraryItemId: undefined,
-          itineraryItemTitle: undefined,
-          eventMatch: undefined,
-        } : moment),
-        auditEvents: [...current.auditEvents, {
-          id: crypto.randomUUID(),
-          commandId,
-          actorId: initialSnapshot.currentActor.id,
-          action: "itinerary.deleted",
-          targetId: deletedPlan.id,
-          occurredAt,
-          summary: `${initialSnapshot.currentActor.displayName} deleted ${deletedPlan.title}`,
-        }],
-        processedCommandIds: [...current.processedCommandIds, commandId],
-      };
-    });
-    setLocalMoments((current) => current.map((moment) => moment.itineraryItemId === deletedPlan.id ? {
-      ...moment,
-      itineraryItemId: undefined,
-      itineraryItemTitle: undefined,
-      eventMatch: undefined,
-    } : moment));
-    setActivityParticipation((current) => {
-      const next = { ...current };
-      delete next[deletedPlan.id];
-      return next;
-    });
+    const response = await fetch(
+      `/api/v1/commons/${initialSnapshot.commons.slug}/itinerary/${deletedPlan.id}`,
+      {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          commandId: crypto.randomUUID(),
+          occurredAt: new Date().toISOString(),
+        }),
+      },
+    );
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error ?? "Plan not deleted. Try again.");
+    const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
+    setState(snapshot.state);
+    setActivityParticipation(snapshot.state.participation);
     setSelectedPlanId(null);
     setSheet(null);
     notify(`${deletedPlan.title} removed from the plan.`);
   }
 
   async function addExpense(input: AddExpenseInput) {
-    if (dataMode === "database") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/expenses`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            commandId: crypto.randomUUID(),
-            ...input,
-          }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Expense not added. Try again.");
-      }
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      applyMoneySnapshot(snapshot);
-    } else {
-      const payer = participants.find(
-        (participant) => participant.id === input.paidByPersonId,
-      );
-      if (!payer) throw new Error("Choose someone on this trip as the payer.");
-      const expense: Expense = {
-        id: crypto.randomUUID(),
-        title: input.title,
-        amountCents: input.amountCents,
-        currency: input.currency,
-        paidByPersonId: input.paidByPersonId,
-        paidByName: payer.displayName,
-        occurredOn: input.occurredOn,
-        category: input.category,
-        itineraryItemId: input.itineraryItemId ?? undefined,
-        stayId: input.stayId ?? undefined,
-        travelPlanId: input.travelPlanId ?? undefined,
-        status: "confirmed",
-        splitMethod: input.splitMethod,
-        balanceMode: input.balanceMode,
-        confirmationCode: input.confirmationCode,
-        receiptStatus: "not_attached",
-        sourceLabel: `Added in Commons by ${initialSnapshot.currentActor.displayName}`,
-        note: input.note,
-        shares: input.shares,
-      };
-      setState((current) => ({
-        ...current,
-        expenses: [expense, ...current.expenses],
-      }));
-      setExpenseCompletionByPerson((current) => ({
-        ...current,
-        [initialSnapshot.currentActor.id]: null,
-      }));
+    const response = await fetch(
+      `/api/v1/commons/${initialSnapshot.commons.slug}/expenses`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          commandId: crypto.randomUUID(),
+          ...input,
+        }),
+      },
+    );
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Expense not added. Try again.");
     }
+    const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
+    applyMoneySnapshot(snapshot);
     setSelectedStayId(null);
     setSelectedTravelPlanId(null);
     setExpensePlanId(null);
     if (expensePlan) closeItem(); else setSheet(null);
-    trackProductEvent("expense_added", { commonsSlug: initialSnapshot.commons.slug, properties: { mode: dataMode, splitMethod: input.splitMethod, participantCount: input.shares.length } });
+    trackProductEvent("expense_added", { commonsSlug: initialSnapshot.commons.slug, properties: { mode: "database", splitMethod: input.splitMethod, participantCount: input.shares.length } });
     notify("Expense added to the group ledger.");
   }
 
@@ -5037,40 +4514,20 @@ export function CommonsApp({
     const expense = state.expenses.find((entry) => entry.id === selectedExpenseId);
     if (!expense) throw new Error("Expense not found. Close this editor and try again.");
 
-    if (dataMode === "database") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/expenses/${expense.id}`,
-        {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ commandId: crypto.randomUUID(), ...input }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Expense not updated. Try again.");
-      }
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      setState(snapshot.state);
-    } else {
-      const payer = participants.find(
-        (participant) => participant.id === input.paidByPersonId,
-      );
-      if (!payer) throw new Error("Choose someone on this trip as the payer.");
-      const originalSource = expense.sourceLabel.replace(/ · Updated by .+$/, "");
-      setState((current) => ({
-        ...current,
-        expenses: current.expenses.map((entry) => entry.id === expense.id ? {
-          ...entry,
-          ...input,
-          itineraryItemId: input.itineraryItemId ?? undefined,
-          stayId: input.stayId ?? undefined,
-          travelPlanId: input.travelPlanId ?? undefined,
-          paidByName: payer.displayName,
-          sourceLabel: `${originalSource} · Updated by ${initialSnapshot.currentActor.displayName}`,
-        } : entry),
-      }));
+    const response = await fetch(
+      `/api/v1/commons/${initialSnapshot.commons.slug}/expenses/${expense.id}`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ commandId: crypto.randomUUID(), ...input }),
+      },
+    );
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Expense not updated. Try again.");
     }
+    const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
+    setState(snapshot.state);
     setExpensePlanId(null);
     if (expensePlan) closeItem(); else setSheet(null);
     notify(`${input.title} updated.`);
@@ -5080,103 +4537,58 @@ export function CommonsApp({
     const expense = state.expenses.find((entry) => entry.id === selectedExpenseId);
     if (!expense) throw new Error("Expense not found. Close this detail and try again.");
 
-    if (dataMode === "database") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/expenses/${expense.id}`,
-        {
-          method: "DELETE",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ commandId: crypto.randomUUID() }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Expense not deleted. Try again.");
-      }
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      setState(snapshot.state);
-    } else {
-      setState((current) => ({
-        ...current,
-        expenses: current.expenses.filter((entry) => entry.id !== expense.id),
-      }));
+    const response = await fetch(
+      `/api/v1/commons/${initialSnapshot.commons.slug}/expenses/${expense.id}`,
+      {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ commandId: crypto.randomUUID() }),
+      },
+    );
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Expense not deleted. Try again.");
     }
+    const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
+    setState(snapshot.state);
     setSelectedExpenseId(null);
     setSheet(null);
     notify(`${expense.title} deleted.`);
   }
 
   async function addPayment(input: PaymentInput) {
-    if (dataMode === "database") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/reimbursements`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ commandId: crypto.randomUUID(), ...input }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Payment not recorded. Try again.");
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      setState(snapshot.state);
-    } else {
-      const sender = participants.find((participant) => participant.id === input.fromPersonId);
-      const recipient = participants.find((participant) => participant.id === input.toPersonId);
-      if (!sender || !recipient) throw new Error("Choose two people on this trip.");
-      const payment: Reimbursement = {
-        id: crypto.randomUUID(),
-        fromPersonId: sender.id,
-        fromPersonName: sender.displayName,
-        toPersonId: recipient.id,
-        toPersonName: recipient.displayName,
-        amountCents: input.amountCents,
-        currency: input.currency,
-        occurredOn: input.occurredOn,
-        sourceLabel: `Recorded in Commons by ${initialSnapshot.currentActor.displayName}`,
-      };
-      setState((current) => ({
-        ...current,
-        reimbursements: [payment, ...current.reimbursements],
-      }));
-    }
+    const response = await fetch(
+      `/api/v1/commons/${initialSnapshot.commons.slug}/reimbursements`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ commandId: crypto.randomUUID(), ...input }),
+      },
+    );
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error ?? "Payment not recorded. Try again.");
+    const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
+    setState(snapshot.state);
     setSheet(null);
-    trackProductEvent("payment_recorded", { commonsSlug: initialSnapshot.commons.slug, properties: { mode: dataMode } });
+    trackProductEvent("payment_recorded", { commonsSlug: initialSnapshot.commons.slug, properties: { mode: "database" } });
     notify("Payment recorded. Balances updated.");
   }
 
   async function updatePayment(input: PaymentInput) {
     const payment = state.reimbursements.find((entry) => entry.id === selectedPaymentId);
     if (!payment) throw new Error("Payment not found. Close this editor and try again.");
-    if (dataMode === "database") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/reimbursements/${payment.id}`,
-        {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ commandId: crypto.randomUUID(), ...input }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Payment not updated. Try again.");
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      setState(snapshot.state);
-    } else {
-      const sender = participants.find((participant) => participant.id === input.fromPersonId);
-      const recipient = participants.find((participant) => participant.id === input.toPersonId);
-      if (!sender || !recipient) throw new Error("Choose two people on this trip.");
-      const originalSource = payment.sourceLabel.replace(/ · Updated by .+$/, "");
-      setState((current) => ({
-        ...current,
-        reimbursements: current.reimbursements.map((entry) => entry.id === payment.id ? {
-          ...entry,
-          ...input,
-          fromPersonName: sender.displayName,
-          toPersonName: recipient.displayName,
-          sourceLabel: `${originalSource} · Updated by ${initialSnapshot.currentActor.displayName}`,
-        } : entry),
-      }));
-    }
+    const response = await fetch(
+      `/api/v1/commons/${initialSnapshot.commons.slug}/reimbursements/${payment.id}`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ commandId: crypto.randomUUID(), ...input }),
+      },
+    );
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error ?? "Payment not updated. Try again.");
+    const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
+    setState(snapshot.state);
     setSheet(null);
     notify("Payment updated. Balances recalculated.");
   }
@@ -5184,60 +4596,39 @@ export function CommonsApp({
   async function deletePayment() {
     const payment = state.reimbursements.find((entry) => entry.id === selectedPaymentId);
     if (!payment) throw new Error("Payment not found. Close this detail and try again.");
-    if (dataMode === "database") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/reimbursements/${payment.id}`,
-        {
-          method: "DELETE",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ commandId: crypto.randomUUID() }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Payment not deleted. Try again.");
-      const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
-      setState(snapshot.state);
-    } else {
-      setState((current) => ({
-        ...current,
-        reimbursements: current.reimbursements.filter((entry) => entry.id !== payment.id),
-      }));
-    }
+    const response = await fetch(
+      `/api/v1/commons/${initialSnapshot.commons.slug}/reimbursements/${payment.id}`,
+      {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ commandId: crypto.randomUUID() }),
+      },
+    );
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error ?? "Payment not deleted. Try again.");
+    const snapshot = CommonsSnapshotSchema.parse(payload.snapshot);
+    setState(snapshot.state);
     setSelectedPaymentId(null);
     setSheet(null);
     notify("Payment deleted. Balances recalculated.");
   }
 
   async function updateExpensesComplete(scope: "self" | "group") {
-    if (dataMode === "database") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/money-status`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ commandId: crypto.randomUUID(), scope }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Expense status not updated. Try again.");
-      applyMoneySnapshot(CommonsSnapshotSchema.parse(payload.snapshot));
-    } else if (scope === "group") {
-      const now = new Date().toISOString();
-      setMoneyStatus({
-        expensesClosedAt: now,
-        expensesClosedByPersonId: initialSnapshot.currentActor.id,
-        expensesClosedByName: initialSnapshot.currentActor.displayName,
-      });
-    } else {
-      setExpenseCompletionByPerson((current) => ({
-        ...current,
-        [initialSnapshot.currentActor.id]: new Date().toISOString(),
-      }));
-    }
+    const response = await fetch(
+      `/api/v1/commons/${initialSnapshot.commons.slug}/money-status`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ commandId: crypto.randomUUID(), scope }),
+      },
+    );
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error ?? "Expense status not updated. Try again.");
+    applyMoneySnapshot(CommonsSnapshotSchema.parse(payload.snapshot));
     setSheet(null);
     trackProductEvent(scope === "group" ? "expenses_closed" : "expenses_marked_complete", {
       commonsSlug: initialSnapshot.commons.slug,
-      properties: { mode: dataMode },
+      properties: { mode: "database" },
     });
     notify(scope === "group" ? "Expenses closed for the group." : "You marked your expenses complete.");
   }
@@ -5251,26 +4642,21 @@ export function CommonsApp({
   }
 
   async function reopenExpensesForGroup() {
-    if (dataMode === "database") {
-      const response = await fetch(
-        `/api/v1/commons/${initialSnapshot.commons.slug}/money-status`,
-        {
-          method: "DELETE",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ commandId: crypto.randomUUID() }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error ?? "Expenses not reopened. Try again.");
-      applyMoneySnapshot(CommonsSnapshotSchema.parse(payload.snapshot));
-    } else {
-      setExpenseCompletionByPerson(Object.fromEntries(participants.map((participant) => [participant.id, null])));
-      setMoneyStatus({ expensesClosedAt: null, expensesClosedByPersonId: null, expensesClosedByName: null });
-    }
+    const response = await fetch(
+      `/api/v1/commons/${initialSnapshot.commons.slug}/money-status`,
+      {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ commandId: crypto.randomUUID() }),
+      },
+    );
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error ?? "Expenses not reopened. Try again.");
+    applyMoneySnapshot(CommonsSnapshotSchema.parse(payload.snapshot));
     setSheet(null);
     trackProductEvent("expenses_reopened", {
       commonsSlug: initialSnapshot.commons.slug,
-      properties: { mode: dataMode },
+      properties: { mode: "database" },
     });
     notify("Expenses reopened. The group can add to the ledger again.");
   }
@@ -5283,8 +4669,7 @@ export function CommonsApp({
         account={{ signedIn, actorName: initialSnapshot.currentActor.displayName, actorInitials, roleLabel: canManageTrip ? "Organizer" : "Traveler", signInHref: `/sign-in?next=${encodeURIComponent(commonsPath(initialSnapshot.commons.id))}`, instanceAdmin }}
         identity={(placement, closeMenu) => <TripIdentity placement={placement} onAction={closeMenu} commons={commonsSummary} meta={[formatTripDates(commonsSummary.startsOn, commonsSummary.endsOn), formatTripPlaces(commonsSummary)].filter(Boolean).join(" · ")} coverImage={displayedCoverImage} participants={participants}
           openPeople={() => { trackProductEvent("people_opened", { commonsSlug: initialSnapshot.commons.slug }); setSheet("people"); }} openCoverPicker={() => setSheet("cover")}
-          openSettings={canEditBasics ? () => setSheet("edit-trip-details") : undefined}
-          demo={seededPilot} />}>
+          openSettings={canEditBasics ? () => setSheet("edit-trip-details") : undefined} />}>
           <div className="trip-shell-page">
               {decisionHandoff ? <p className="decision-return"><a href={`${commonsPath(initialSnapshot.commons.id)}/polls/${decisionHandoff.pollId}`}>Back to decision</a></p> : null}
               {decisionHandoffUnavailable ? <p role="status">Couldn’t open those details. Nothing changed. Try opening the poll again.</p> : null}
@@ -5294,10 +4679,10 @@ export function CommonsApp({
         </TripApplicationShell>
       {arrivalOpen ? <TripArrival coverImage={displayedCoverImage} commons={commonsSummary} close={closeArrival} /> : null}
       <input className="sr-only" tabIndex={-1} aria-label="Choose trip photos" ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={event => { const files = Array.from(event.target.files ?? []); event.target.value = ""; if (files.length) void startPhotoUpload(files); }} />
-      {sheet === "item-detail" ? detailItem || detailStay ? <TripItemDetail commons={commonsSummary} item={detailItem} stay={detailStay} close={closeItem} edit={detailItem ? () => { setSelectedPlanId(detailItem.id); setPlanScheduleDate(null); setSheet("edit-plan"); } : canManageStays && detailStay ? () => { setSelectedStayId(detailStay.id); setSheet("edit-stay"); } : undefined} addPhotos={detailItem ? () => addActivityPhotos(detailItem.id) : undefined} convertToExpense={detailItem && ledgerOpen && (detailItem.mealType || activityExpenseConversion(detailItem, state.expenses)) ? () => convertActivityToExpense(detailItem) : undefined} photoCount={detailItem ? [...state.moments, ...localMoments].filter(photo => photo.itineraryItemId === detailItem.id).length : 0} viewPhotos={() => setTab("moments")} /> : <ModalLayer close={closeItem}><section className="sheet" role="dialog" aria-modal="true" aria-labelledby="item-missing"><h2 id="item-missing">Item unavailable</h2><button type="button" className="sheet-secondary" onClick={closeItem}>Close</button></section></ModalLayer> : null}
+      {sheet === "item-detail" ? detailItem || detailStay ? <TripItemDetail commons={commonsSummary} item={detailItem} stay={detailStay} close={closeItem} edit={detailItem ? () => { setSelectedPlanId(detailItem.id); setPlanScheduleDate(null); setSheet("edit-plan"); } : canManageStays && detailStay ? () => { setSelectedStayId(detailStay.id); setSheet("edit-stay"); } : undefined} addPhotos={detailItem ? () => addActivityPhotos(detailItem.id) : undefined} convertToExpense={detailItem && ledgerOpen && (detailItem.mealType || activityExpenseConversion(detailItem, state.expenses)) ? () => convertActivityToExpense(detailItem) : undefined} photoCount={detailItem ? state.moments.filter(photo => photo.itineraryItemId === detailItem.id).length : 0} viewPhotos={() => setTab("moments")} /> : <ModalLayer close={closeItem}><section className="sheet" role="dialog" aria-modal="true" aria-labelledby="item-missing"><h2 id="item-missing">Item unavailable</h2><button type="button" className="sheet-secondary" onClick={closeItem}>Close</button></section></ModalLayer> : null}
       {sheet === "add-item" ? <ModalLayer close={() => setSheet(null)}><section className="sheet" role="dialog" aria-modal="true" aria-labelledby="add-item-title"><header className="sheet-header"><h2 id="add-item-title">Add to trip</h2><button type="button" onClick={() => setSheet(null)}>Close</button></header><LogisticsAddMenu canAddStay={canManageStays} choose={chooseTripAdd} /></section></ModalLayer> : null}
-      {sheet === "add-plan" || sheet === "add-meal" ? <AddPlanSheet key={sheet} meal={sheet === "add-meal"} currency={commonsSummary.currency ?? "USD"} timeZone={initialSnapshot.commons.timezone} commonsSlug={initialSnapshot.commons.slug} days={days} defaultDate={selectedDay} participants={activePlanParticipants} currentActorId={initialSnapshot.currentActor.id} persistent={dataMode === "database"} close={() => setSheet(null)} save={savePlan} /> : null}
-      {sheet === "edit-plan" && selectedPlan ? <EditPlanSheet key={`${selectedPlan.id}:${planScheduleDate ?? "edit"}`} item={selectedPlan} days={days} participants={activePlanParticipants} currentActorId={initialSnapshot.currentActor.id} timeZone={initialSnapshot.commons.timezone} initialDate={planScheduleDate} close={() => { setPlanScheduleDate(null); setSheet(null); }} save={updatePlan} remove={deletePlan} persistent={dataMode === "database"} /> : null}
+      {sheet === "add-plan" || sheet === "add-meal" ? <AddPlanSheet key={sheet} meal={sheet === "add-meal"} currency={commonsSummary.currency ?? "USD"} timeZone={initialSnapshot.commons.timezone} commonsSlug={initialSnapshot.commons.slug} days={days} defaultDate={selectedDay} participants={activePlanParticipants} currentActorId={initialSnapshot.currentActor.id} close={() => setSheet(null)} save={savePlan} /> : null}
+      {sheet === "edit-plan" && selectedPlan ? <EditPlanSheet key={`${selectedPlan.id}:${planScheduleDate ?? "edit"}`} item={selectedPlan} days={days} participants={activePlanParticipants} currentActorId={initialSnapshot.currentActor.id} timeZone={initialSnapshot.commons.timezone} initialDate={planScheduleDate} close={() => { setPlanScheduleDate(null); setSheet(null); }} save={updatePlan} remove={deletePlan} /> : null}
       {travelEditor}
       {sheet === "expense" && selectedExpense ? <ExpenseSheet expense={selectedExpense} participants={activeMoneyParticipants} itinerary={state.itinerary} balancesDisabled={commonsSummary.balancesDisabled ?? false} close={() => setSheet(null)} edit={() => { setStartExpenseAsRecorded(false); setSheet("edit-expense"); }} markRecorded={() => { setStartExpenseAsRecorded(true); setSheet("edit-expense"); }} remove={deleteExpense} /> : null}
       {sheet === "add-expense" || sheet === "add-receipt" ? <ExpenseEditorSheet defaultCurrency={moneyEntryCurrency ?? commonsSummary.currency ?? "USD"} receiptEntry={sheet === "add-receipt"} startAsRecorded={sheet === "add-receipt" || Boolean(expensePlan)} key={`new-expense:${expensePlan?.id ?? selectedStay?.id ?? selectedTravelPlan?.id ?? "general"}`} defaultPlan={expensePlan} defaultPlanCostCents={expensePlanConversion?.amountCents} defaultStay={selectedStay} defaultTravel={selectedTravelPlan} participants={activeMoneyParticipants} itinerary={state.itinerary} stays={state.stays ?? []} travelPlans={travelPlans} balancesDisabled={commonsSummary.balancesDisabled ?? false} timeZone={initialSnapshot.commons.timezone} currentActorId={initialSnapshot.currentActor.id} defaultDate={localDateKey(new Date().toISOString(), commonsSummary.timezone)} close={() => { setSelectedStayId(null); setSelectedTravelPlanId(null); setExpensePlanId(null); setSheet(expensePlan ? "item-detail" : null); }} save={addExpense} /> : null}
@@ -5308,10 +4693,10 @@ export function CommonsApp({
       {sheet === "edit-payment" && selectedPayment ? <PaymentEditorSheet key={selectedPayment.id} payment={selectedPayment} participants={activeMoneyParticipants} currentActorId={initialSnapshot.currentActor.id} defaultDate={selectedPayment.occurredOn} close={() => setSheet("payment")} save={updatePayment} /> : null}
       {postTrip && sheet === "close-expenses" ? <ExpenseLedgerStatusSheet mode="close" confirmedCount={completedExpenseCount} participantCount={activeMoneyParticipants.length} close={() => setSheet(null)} save={closeExpensesForGroup} /> : null}
       {postTrip && sheet === "reopen-expenses" ? <ExpenseLedgerStatusSheet mode="reopen" confirmedCount={completedExpenseCount} participantCount={activeMoneyParticipants.length} close={() => setSheet(null)} save={reopenExpensesForGroup} /> : null}
-      {sheet === "cover" ? <CoverPickerSheet moments={state.moments} localMoments={localMoments} coverImage={displayedCoverImage} coverSourceMomentId={commonsSummary.coverSourceMomentId ?? null} close={() => setSheet(null)} selectCover={saveCover} uploadCover={useUploadedCover} notify={notify} /> : null}
+      {sheet === "cover" ? <CoverPickerSheet moments={state.moments} coverImage={displayedCoverImage} coverSourceMomentId={commonsSummary.coverSourceMomentId ?? null} close={() => setSheet(null)} selectCover={saveCover} uploadCover={useUploadedCover} notify={notify} /> : null}
       {basicsEditor}
       {newStayEditor}
-      {quickAdd && dataMode === "database" ? <TripQuickAddSheet key={quickAdd} kind={quickAdd} commons={commonsSummary} stays={state.stays ?? []} itinerary={state.itinerary}
+      {quickAdd ? <TripQuickAddSheet key={quickAdd} kind={quickAdd} commons={commonsSummary} stays={state.stays ?? []} itinerary={state.itinerary}
         lookUp={lookUpPlaceLink} readFile={readPlaceFile} save={input => quickAddPlace(quickAdd, input)}
         addDetails={id => { const kind = quickAdd; setQuickAdd(null); if (kind === "stay") { setSelectedStayId(id); setSheet("edit-stay"); } else openItem("plan", id); }}
         useFullForm={() => { const kind = quickAdd; setQuickAdd(null); setSheet(kind === "stay" ? "add-stay" : "add-plan"); }}
@@ -5319,8 +4704,8 @@ export function CommonsApp({
       {existingStayEditor}
       {sheet === "moment" && selectedMoment ? <MomentViewerSheet moment={selectedMoment} openItem={selectedMoment.itineraryItemId ? () => openItem("plan", selectedMoment.itineraryItemId!) : undefined} close={() => setSheet(null)} edit={() => setSheet("edit-moment")} /> : null}
       {sheet === "edit-moment" && selectedMoment ? <MomentEditorSheet moment={selectedMoment} days={days} itinerary={state.itinerary} timeZone={initialSnapshot.commons.timezone} close={() => setSheet("moment")} save={updateMoment} remove={deleteMoment} /> : null}
-      {sheet === "photo-mapping" && pendingPhotos.length ? <PhotoMappingSheet initialActivityId={photoActivityId} photos={pendingPhotos} itinerary={state.itinerary} timeZone={initialSnapshot.commons.timezone} actorId={initialSnapshot.currentActor.id} actorName={initialSnapshot.currentActor.displayName} close={closePhotoMapping} addMoment={persistNewMoment} notify={notify} persistent={dataMode === "database"} /> : null}
-      {sheet === "people" ? <PeopleSheet decidingStage={tripStage === "deciding"} emailInvitations={emailInvitations} slug={initialSnapshot.commons.slug} tripName={commonsSummary.name} tripStatus={commonsSummary.status} participants={participants} currentPersonId={initialSnapshot.currentActor.id} canManage={canManageTrip} persistent={dataMode === "database"} onPeopleChanged={refreshPeople} attendance={dataMode === "database" ? <EventAttendancePanel key={`${commonsSummary.id}:${commonsSummary.startsOn}:${commonsSummary.endsOn}`} eventId={commonsSummary.id} onSaved={() => setPeopleRevision(value => value + 1)} /> : undefined} close={() => { setSheet(null); setPeopleRevision(value => value + 1); }} /> : null}
+      {sheet === "photo-mapping" && pendingPhotos.length ? <PhotoMappingSheet initialActivityId={photoActivityId} photos={pendingPhotos} itinerary={state.itinerary} timeZone={initialSnapshot.commons.timezone} actorId={initialSnapshot.currentActor.id} actorName={initialSnapshot.currentActor.displayName} close={closePhotoMapping} addMoment={persistNewMoment} notify={notify} /> : null}
+      {sheet === "people" ? <PeopleSheet decidingStage={tripStage === "deciding"} emailInvitations={emailInvitations} slug={initialSnapshot.commons.slug} tripName={commonsSummary.name} tripStatus={commonsSummary.status} participants={participants} currentPersonId={initialSnapshot.currentActor.id} canManage={canManageTrip} onPeopleChanged={refreshPeople} attendance={<EventAttendancePanel key={`${commonsSummary.id}:${commonsSummary.startsOn}:${commonsSummary.endsOn}`} eventId={commonsSummary.id} onSaved={() => setPeopleRevision(value => value + 1)} />} close={() => { setSheet(null); setPeopleRevision(value => value + 1); }} /> : null}
       {planReceipt && !sheet && !quickAdd ? <section className="plan-receipt" role="status" aria-label="Saved to Plan">
         <CheckIcon /><p><strong>{planReceipt.title}</strong><span>{planReceipt.status} · Saved to Plan</span></p>
         <div className="plan-receipt-actions"><Link className="cm-action" href={planReceipt.href} onClick={event => { if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); viewReceipt(planReceipt); } }}>View in Plan</Link>

@@ -74,8 +74,8 @@ export function closureReadiness(input: Parameters<typeof ledgerReconciliation>[
 }
 
 /** "Plan the next one" is for people on a trip that has ended or whose ledger is closed. It is an invitation, never an enrollment. */
-export function planNextVisible(input: { endsOn: string | null; ledgerClosed: boolean; today: string; isMember: boolean; sample?: boolean }) {
-  if (!input.isMember || input.sample) return false;
+export function planNextVisible(input: { endsOn: string | null; ledgerClosed: boolean; today: string; isMember: boolean }) {
+  if (!input.isMember) return false;
   return input.ledgerClosed || Boolean(input.endsOn && input.endsOn < input.today);
 }
 

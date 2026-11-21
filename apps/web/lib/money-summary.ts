@@ -11,7 +11,7 @@ export function moneySummaryShareUrl(origin: string, tripId: string) {
 }
 
 /** A deliberate allowlist: never serialize the underlying trip snapshot into an export. */
-export function buildMoneySummary(snapshot: CommonsSnapshot, generatedAt = new Date().toISOString(), sample = false) {
+export function buildMoneySummary(snapshot: CommonsSnapshot, generatedAt = new Date().toISOString()) {
   const { commons, participants, state } = snapshot;
   const balancesEnabled = !commons.balancesDisabled;
   const names = new Map(participants.map(person => [person.id, person.displayName]));
@@ -30,10 +30,9 @@ export function buildMoneySummary(snapshot: CommonsSnapshot, generatedAt = new D
     tripName: commons.name,
     generatedAt,
     timezone: commons.timezone,
-    sample,
     closed: Boolean(commons.expensesClosedAt) || (active.length > 0 && active.every(person => Boolean(person.expensesCompleteAt))),
     balancesEnabled,
-    viewer: balancesEnabled && !sample ? { personId: snapshot.currentActor.id, name: snapshot.currentActor.displayName } : null,
+    viewer: balancesEnabled ? { personId: snapshot.currentActor.id, name: snapshot.currentActor.displayName } : null,
     currencies: currencies.map(currency => {
       const expenses = recorded.filter(expense => expense.currency === currency);
       const reimbursements = payments.filter(payment => payment.currency === currency);
@@ -67,7 +66,7 @@ export function buildMoneySummary(snapshot: CommonsSnapshot, generatedAt = new D
 export type MoneySummary = ReturnType<typeof buildMoneySummary>;
 
 export function moneySummaryViewerBalances(report: MoneySummary) {
-  if (!report.viewer || !report.balancesEnabled || report.sample) return [];
+  if (!report.viewer || !report.balancesEnabled) return [];
   return report.currencies.flatMap(group => {
     const balance = group.balances.find(person => person.personId === report.viewer!.personId);
     return balance ? [{ currency: group.currency, netCents: balance.netCents }] : [];
@@ -98,7 +97,7 @@ export function moneySummaryCsv(report: MoneySummary) {
   const rows: string[][] = [
     ["Type", "Date", "Description", "Person", "Other person", "Currency", "Amount", "Status", "Paid", "Share", "Payments sent", "Payments received", "Net", "Record ID", "Person ID", "Other person ID"],
     ["Summary", report.generatedAt, report.tripName, "", "", "", "", report.closed ? "Closed" : "Open"],
-    ["Scope", "", `${report.sample ? "Sample ledger. " : ""}Saved records only; budget estimates excluded. ${report.balancesEnabled ? "Positive net is owed to the person; negative net is owed by them. Draft and disputed expenses are included with their saved status." : "Family trip: allocations, payments and balances omitted."}`],
+    ["Scope", "", `Saved records only; budget estimates excluded. ${report.balancesEnabled ? "Positive net is owed to the person; negative net is owed by them. Draft and disputed expenses are included with their saved status." : "Family trip: allocations, payments and balances omitted."}`],
   ];
   const amount = (cents: number) => (cents / 100).toFixed(2);
   for (const group of report.currencies) {

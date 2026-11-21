@@ -97,7 +97,6 @@ export function PeopleSheet({
   canManage,
   close,
   inline = false,
-  persistent = true,
   renderPersonTravel,
   hasTravel = false,
   onPeopleChanged,
@@ -116,7 +115,6 @@ export function PeopleSheet({
   canManage: boolean;
   close: () => void;
   inline?: boolean;
-  persistent?: boolean;
   hasTravel?: boolean;
   onPeopleChanged?: () => Promise<void>;
   renderPersonTravel?: (personId: string) => ReactNode;
@@ -157,7 +155,7 @@ export function PeopleSheet({
   }
 
   useEffect(() => {
-    if (!canManage || !persistent) return;
+    if (!canManage) return;
     let cancelled = false;
     void fetch(`/api/v1/commons/${slug}/people`, { cache: "no-store" })
       .then((response) => responseJson(response, "People could not be loaded. Try again."))
@@ -168,7 +166,7 @@ export function PeopleSheet({
         if (!cancelled) setError(personFacingError(loadError, "People could not be loaded."));
       });
     return () => { cancelled = true; };
-  }, [canManage, persistent, slug]);
+  }, [canManage, slug]);
 
   const counts = useMemo(() => {
     if (!canManage || !data) {
@@ -389,10 +387,10 @@ export function PeopleSheet({
         </> : null}
         {inline ? <h2 id="people-sheet-title">{hasTravel ? "People and travel" : "People"}</h2> : null}
         <p className={inline ? "sr-only" : "sheet-summary"}>{canManage && !decidingStage ? "Invite travelers and help anyone who has trouble getting in." : "See who has joined and who’s been invited."}</p>
-        {canManage && persistent && decidingStage ? <section className="first-invite-entry" aria-label="Invite people when you’re ready"><p>Keep gathering interest on Trip. When you’re ready, invite people to join.</p><GoingAction slug={slug} intent="invite" lead="Say the trip is going to invite people." /></section> : null}
-        {canManage && persistent && mayInvite ? <GroupInvitationPanel key={slug} slug={slug} /> : null}
+        {canManage && decidingStage ? <section className="first-invite-entry" aria-label="Invite people when you’re ready"><p>Keep gathering interest on Trip. When you’re ready, invite people to join.</p><GoingAction slug={slug} intent="invite" lead="Say the trip is going to invite people." /></section> : null}
+        {canManage && mayInvite ? <GroupInvitationPanel key={slug} slug={slug} /> : null}
 
-        {!canManage || !persistent || (!data && error) ? (
+        {!canManage || (!data && error) ? (
           <>
             <div className="people-counts people-counts--roster" aria-label="Traveler status">
               <span><strong>{counts.joined}</strong><small>Joined</small></span>
@@ -414,7 +412,7 @@ export function PeopleSheet({
                   </div>
                   {person.membershipStatus === "active" ? renderPersonTravel?.(person.id) : null}
                   {Object.keys(person.sharedPreferences ?? {}).length ? <div className="shared-preferences"><strong>Shared with this trip</strong>{Object.values(person.sharedPreferences ?? {}).filter(Boolean).map((value) => <span key={value}>{value}</span>)}</div> : null}
-                  {persistent && person.accessMode === "managed" && person.managedByPersonIds?.includes(currentPersonId) ? (
+                  {person.accessMode === "managed" && person.managedByPersonIds?.includes(currentPersonId) ? (
                     <div className="people-row__details people-row__details--managed">
                       {managedProfile?.personId === person.id ? (
                         <TravelerPreferencesForm profile={managedProfile} endpoint={`/api/v1/commons/${slug}/people/${person.id}/profile`} managed />
@@ -424,7 +422,7 @@ export function PeopleSheet({
                         </button>
                       )}
                     </div>
-                  ) : persistent && person.id === currentPersonId ? <div className="people-row__details people-row__details--managed">{managedProfile?.personId === person.id ? <TravelerPreferencesForm profile={managedProfile} endpoint={`/api/v1/commons/${slug}/people/${person.id}/profile`} /> : <button className="sheet-secondary" type="button" onClick={() => void openManagedProfile(person.id)} disabled={Boolean(busy)}>{busy === `profile-${person.id}` ? "Loading…" : "Review and share your travel details"}</button>}</div> : null}
+                  ) : person.id === currentPersonId ? <div className="people-row__details people-row__details--managed">{managedProfile?.personId === person.id ? <TravelerPreferencesForm profile={managedProfile} endpoint={`/api/v1/commons/${slug}/people/${person.id}/profile`} /> : <button className="sheet-secondary" type="button" onClick={() => void openManagedProfile(person.id)} disabled={Boolean(busy)}>{busy === `profile-${person.id}` ? "Loading…" : "Review and share your travel details"}</button>}</div> : null}
                 </article>
               ))}
             </div>
@@ -572,13 +570,13 @@ export function PeopleSheet({
           </>
         ) : !error ? <div className="people-loading">Loading people…</div> : null}
 
-        {canManage && persistent && mayInvite && (adding || (!inline && (editingId || claimingId))) ? (
+        {canManage && mayInvite && (adding || (!inline && (editingId || claimingId))) ? (
           personForm
-        ) : canManage && persistent && mayInvite ? (
+        ) : canManage && mayInvite ? (
           <button className="sheet-primary" type="button" onClick={() => { setAdding(true); setDisplayName(""); setEmail(""); setMessage(""); setAccessMode("account"); setError(""); }}><PlusIcon /> Add traveler</button>
         ) : null}
         {attendance}
-        {canManage && persistent ? (
+        {canManage ? (
           <section className="people-trip-settings" aria-labelledby="people-trip-settings-title">
             <div>
               <strong id="people-trip-settings-title">Trip settings</strong>
@@ -594,7 +592,7 @@ export function PeopleSheet({
           </section>
         ) : null}
         {notice ? <p className="people-notice" role="status"><CheckIcon /> {notice}</p> : null}
-        {error ? <div role="alert"><p className="form-error">{error}</p>{canManage && persistent && !data ? <button className="sheet-secondary" type="button" onClick={() => { setError(""); void load().catch(cause => setError(personFacingError(cause, "People could not be loaded."))); }}>Reload people</button> : null}</div> : null}
+        {error ? <div role="alert"><p className="form-error">{error}</p>{canManage && !data ? <button className="sheet-secondary" type="button" onClick={() => { setError(""); void load().catch(cause => setError(personFacingError(cause, "People could not be loaded."))); }}>Reload people</button> : null}</div> : null}
       </section>
     </PeopleContainer>
   );

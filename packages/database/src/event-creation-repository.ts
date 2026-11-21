@@ -157,7 +157,6 @@ export async function listRecentReusableEvents(
       .where(and(
         eq(memberships.personId, options.actorPersonId),
         eq(memberships.status, "active"),
-        ne(commons.slug, "cape-cod-couples-week"),
       ))
       .orderBy(desc(commons.endsOn), desc(commons.updatedAt))
       .limit(5);

@@ -34,7 +34,7 @@ export async function GET(
 ) {
   const { slug, momentId } = await params;
   try {
-    const dataMode = getCommonsDataMode(slug);
+    const dataMode = getCommonsDataMode();
     // Local development with the local test sign-in keeps photos in a folder (see moments/local-upload).
     const localPhotos = dataMode === "database" && !isSupabaseAuthConfigured() && await devSignInAvailable();
     const supabase = dataMode === "database" && !localPhotos
@@ -54,7 +54,7 @@ export async function GET(
     const asset = await loadCommonsMomentAsset(slug, momentId, identity);
     if (!asset) return new Response("Photo not found.", { status: 404 });
 
-    if (dataMode === "demo" || localPhotos) {
+    if (localPhotos) {
       const localRoot = process.env.COMMONS_LOCAL_MOMENTS_DIR;
       if (!localRoot) return new Response("Photo media is not configured.", { status: 404 });
       const root = resolve(localRoot);
@@ -136,7 +136,7 @@ export async function DELETE(
   try {
     const { slug, momentId } = await params;
     const snapshot = await persistMomentDelete(slug, momentId, await request.json());
-    if (getCommonsDataMode(slug) === "database") after(() => runCommonsMaintenance(5));
+    if (getCommonsDataMode() === "database") after(() => runCommonsMaintenance(5));
     return NextResponse.json({ snapshot });
   } catch (error) {
     return jsonErrorResponse(error, "deleted");

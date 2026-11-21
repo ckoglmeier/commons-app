@@ -7,11 +7,9 @@ import { loadAuthenticatedPoll } from "@/lib/server/polls";
 import { readCommonsRuntimeEnvironment, textMessagingAvailable } from "@/lib/server/runtime-environment";
 import { currentPersonIsInstanceAdmin } from "@/lib/server/instance-access";
 import { emailDeliveryAvailable } from "@/lib/email/resend";
-import { commonsPath, eventLocation, parsePlanSection, PUBLIC_DEMO_COMMONS_ID } from "@/lib/commons-route";
+import { commonsPath, eventLocation, parsePlanSection } from "@/lib/commons-route";
 import {
-  getCommonsDataMode,
   getCurrentCommonsIdentity,
-  isPublicDemoCommonsIdentifier,
   loadCommonsSnapshot,
   CommonsAuthenticationRequiredError,
   CommonsMembershipRequiredError,
@@ -51,7 +49,6 @@ export default async function CommonsPage({
     const search = new URLSearchParams(Object.entries(entry).filter((pair): pair is [string, string] => typeof pair[1] === "string"));
     return `${commonsPath(id)}${search.size ? `?${search}` : ""}`;
   };
-  if (identifier === "austin-weekend") redirect(entryPath(PUBLIC_DEMO_COMMONS_ID));
   let snapshot: Awaited<ReturnType<typeof loadCommonsSnapshot>>;
   try {
     snapshot = await loadTrip(identifier);
@@ -66,7 +63,7 @@ export default async function CommonsPage({
   if (identifier !== snapshot.commons.id) redirect(entryPath(snapshot.commons.id));
   const identity = await getCurrentCommonsIdentity();
   let decisionHandoff: DecisionHandoff | null = null;
-  if (action && pollId && !isPublicDemoCommonsIdentifier(identifier)) {
+  if (action && pollId) {
     try {
       const poll = await loadAuthenticatedPoll(snapshot.commons.id, pollId);
       if (poll) decisionHandoff = resolveDecisionHandoff(poll, action, snapshot.state.itinerary);
@@ -78,7 +75,6 @@ export default async function CommonsPage({
     <CommonsApp
       key={`${snapshot.commons.id}:${snapshot.currentActor.id}:${snapshot.currentActor.role}:${decisionHandoff?.pollId ?? ""}:${decisionHandoff?.action ?? ""}`}
       initialSnapshot={snapshot}
-      dataMode={getCommonsDataMode(identifier)}
       signedIn={Boolean(identity)}
       initialPlanSection={parsePlanSection(entry.section, true)}
       textMessagingEnabled={identity ? "web" : textMessagingAvailable() ? "sms" : false}

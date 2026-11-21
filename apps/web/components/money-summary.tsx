@@ -38,17 +38,16 @@ export function MoneySummaryView({ summary }: { summary: MoneySummary }) {
       <div><details className="ledger-report-export"><summary className="cm-document-quiet-action">Export</summary><div><button className="cm-document-quiet-action" type="button" onClick={() => window.print()}>Print / Save PDF</button><button className="cm-document-quiet-action" type="button" onClick={download}>Download CSV</button></div></details><button className="view-primary-action" type="button" onClick={() => void share()}>Share ledger</button></div>
     </nav>
     <div className="ledger-report-share">
-      <p>{summary.sample ? "Share this sample ledger with anyone." : summary.balancesEnabled ? "Share with your trip. Members sign in to see the latest saved ledger and their own balance." : "Share with your trip. Members sign in to see the latest saved ledger."}</p>
+      <p>{summary.balancesEnabled ? "Share with your trip. Members sign in to see the latest saved ledger and their own balance." : "Share with your trip. Members sign in to see the latest saved ledger."}</p>
       {shareNotice ? <p role="status">{shareNotice}</p> : null}
       {manualLink ? <label>Ledger link<input readOnly value={manualLink} onFocus={event => event.currentTarget.select()} /></label> : null}
     </div>
     {downloadError ? <p role="alert">The download couldn’t start. Try again, or use Print / Save PDF.</p> : null}
     <header className="ledger-report-heading">
-      <p className="ledger-report-eyebrow">Commons{summary.sample ? " · Sample trip" : ""} · {summary.closed ? "Ledger closed" : "Ledger open"}</p>
+      <p className="ledger-report-eyebrow">Commons · {summary.closed ? "Ledger closed" : "Ledger open"}</p>
       <h1>Trip ledger</h1>
       <p className="ledger-report-trip">{summary.tripName}</p>
       <p>Saved records as of {moneySummaryTimestamp(summary)} ({summary.timezone}).</p>
-      {summary.sample ? <p>Sample ledger. Changes made in the demo are not included.</p> : null}
       <p>{summary.balancesEnabled ? "Recorded expenses, shared splits and recorded payments. Budget estimates are excluded." : "Family trip · Balances off. Recorded expenses only; budget estimates are excluded."}</p>
     </header>
     {summary.viewer ? <section className="ledger-report-personal" aria-label="Your balance">

@@ -42,7 +42,6 @@
 .trip-identity__text { min-width: 0; display: grid; gap: var(--cm-space-1); }
 .trip-identity__name { margin: 0; color: var(--cm-color-ink); font-size: 1.125rem; font-weight: 700; line-height: 1.25; letter-spacing: -.01em; overflow-wrap: anywhere; }
 .trip-identity__meta { margin: 0; color: var(--cm-color-mineral); font-size: var(--cm-text-utility); line-height: 1.4; overflow-wrap: anywhere; }
-.trip-identity__demo { justify-self: start; padding: 0 var(--cm-space-2); border-radius: 999px; background: var(--cm-color-ember-wash); color: var(--cm-color-ember); font-size: var(--cm-text-meta); font-weight: 750; letter-spacing: .04em; }
 .trip-identity__row { min-width: 0; display: flex; align-items: center; gap: var(--cm-space-1); }
 .trip-identity__people { min-width: 0; min-height: var(--cm-touch-target); padding: 0 var(--cm-space-2); margin-left: calc(var(--cm-space-2) * -1); flex: 1 1 auto; display: flex; align-items: center; gap: var(--cm-space-2); border: 0; border-radius: var(--cm-radius-control); background: transparent; color: var(--cm-color-green); font: inherit; font-size: var(--cm-text-utility); font-weight: 650; text-align: left; cursor: pointer; }
 .trip-identity__people--static { color: var(--cm-color-mineral); cursor: default; }

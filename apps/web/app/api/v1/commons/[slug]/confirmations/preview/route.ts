@@ -42,7 +42,7 @@ function emptyConfirmationDraft(kind: ConfirmationDraft["kind"], sourceLabel: st
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const { slug } = await params;
-    if (getCommonsDataMode(slug) !== "database") {
+    if (getCommonsDataMode() !== "database") {
       return NextResponse.json({ error: "Sign in to a trip to upload a confirmation." }, { status: 403 });
     }
     const snapshot = await loadCommonsSnapshot(slug);

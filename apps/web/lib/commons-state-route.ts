@@ -7,12 +7,10 @@ import {
 
 type StateRouteDependencies = {
   loadSnapshot: (slug: string) => Promise<CommonsSnapshot | null>;
-  dataMode: (slug: string) => "database" | "demo";
 };
 
 export function createCommonsStateRouteHandler({
   loadSnapshot,
-  dataMode,
 }: StateRouteDependencies) {
   return async function commonsStateRoute(
     _request: Request,
@@ -25,10 +23,7 @@ export function createCommonsStateRouteHandler({
         return NextResponse.json({ error: "Trip not found." }, { status: 404 });
       }
 
-      return NextResponse.json({
-        dataMode: dataMode(slug),
-        snapshot,
-      });
+      return NextResponse.json({ snapshot });
     } catch (error) {
       if (error instanceof CommonsAuthenticationRequiredError) {
         return NextResponse.json({ error: error.message }, { status: 401 });
