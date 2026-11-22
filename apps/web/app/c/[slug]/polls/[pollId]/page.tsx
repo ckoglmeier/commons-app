@@ -2,7 +2,7 @@ import { PollWorkspaceHeader } from "@/components/poll-workspace-header";
 import Link from "next/link";
 import { formatPollAnswer } from "@commons/contracts";
 import { notFound, redirect } from "next/navigation";
-import { CommonsAuthenticationRequiredError, CommonsMembershipRequiredError } from "@/lib/server/commons";
+import { CommonsAuthenticationRequiredError, CommonsMembershipRequiredError, loadAuthenticatedCommonsPeople } from "@/lib/server/commons";
 import { loadAuthenticatedEventAttendance, loadAuthenticatedPoll, loadAuthenticatedPollDrafts } from "@/lib/server/polls";
 import { PollCommunication } from "@/components/poll-communication";
 import { PollAudienceReview } from "@/components/poll-audience-review";
@@ -39,7 +39,11 @@ export default async function PollDetailPage({ params }: { params: Promise<{ slu
   const itinerary = itineraryQuestion(poll.questions);
   if (itinerary) return <main className="poll-organizer-shell"><PollWorkspaceHeader eventName={poll.event.name} eventHref={`/c/${slug}`} eventLabel="Trip Home" pollsHref={`/c/${slug}/polls`}/><div className="poll-organizer-content poll-detail-content"><h1>{poll.title}</h1>{poll.currentActorRole === "organizer" ? <><ItineraryFeedbackResults slug={slug} pollId={poll.id} initialPoll={poll}/></> : <p>The organizer is reviewing feedback. <Link href={publicPollPath(poll.publicId)}>View your itinerary and response</Link></p>}<ItineraryDocument itinerary={itinerary.itinerary}/></div></main>;
   const nextDraft = poll.currentActorRole === "organizer" ? (await loadAuthenticatedPollDrafts(slug)).find(draft => draft.data.sourcePollId === pollId && draft.data.communication && !draft.publishedPollId) : undefined;
-  const audiencePeople = poll.audienceReview ? (await loadAuthenticatedEventAttendance(slug)).people.map(person => ({ id: person.personId, name: person.displayName })) : [];
+  // Managers see everyone on the trip, invited travelers included, so each row in Manage access has a name.
+  const tripPeople = poll.audienceReview && poll.currentActorCanManage ? await loadAuthenticatedCommonsPeople(slug).catch(() => null) : null;
+  const audiencePeople = !poll.audienceReview ? [] : tripPeople
+    ? tripPeople.people.map(person => ({ id: person.personId, name: person.displayName, invited: person.membershipStatus !== "active" }))
+    : (await loadAuthenticatedEventAttendance(slug)).people.map(person => ({ id: person.personId, name: person.displayName }));
   return <main className="poll-organizer-shell">
     <PollWorkspaceHeader eventName={poll.event.name} eventHref={`/c/${slug}`} eventLabel="Trip Home" pollsHref={`/c/${slug}/polls`} />
     <div className="poll-organizer-content poll-detail-content">

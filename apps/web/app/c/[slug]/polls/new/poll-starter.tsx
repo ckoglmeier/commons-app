@@ -214,7 +214,7 @@ export function PollStarter({ guestEmailsAllowed = true, linkOnly = false, bigQu
       {!initialDraft && !saved && savedDrafts.length ? <details className="fieldnotes-context"><summary>Your saved polls</summary>{savedDrafts.map(draft => <p key={draft.id}><Link className="poll-saved-link" onClick={followSavedLink} href={draft.publishedPollId ? `/c/${slug}/polls/${draft.publishedPollId}` : `/c/${slug}/polls/new/?draft=${draft.id}`}>{draft.data.title || "Untitled poll"} · {draft.publishedPollId ? "Shared" : "Draft"}</Link></p>)}</details> : null}
       {review ? <section className="poll-preview" aria-label="Poll review">
         <h2>{title}</h2>{intro ? <p>{intro}</p> : null}
-        <p>{ballotMode === "secret" ? "Secret ballot. Only totals show, after voting closes." : "Named answers. Selected participants and organizers can see choices. Comments are visible to the creator and organizers only."}</p>
+        <p>{ballotMode === "secret" ? "Secret ballot. Only totals show, after voting closes." : anyoneWithLink ? "Named answers. People on the trip can see who chose what. Comments are visible to the creator and organizers only." : "Named answers. Selected participants and organizers can see choices. Comments are visible to the creator and organizers only."}</p>
         {anyoneWithLink ? <><h3>Who can answer</h3>
         <p>Anyone with the link. They don’t sign in or join the trip, and names are self-reported.</p></> : <><h3>Reviewed audience</h3>
         <p>{recipientNames ? `Trip participants: ${recipientNames}. Anyone still invited needs to accept their trip invitation first.` : "Trip participants: None."}</p>

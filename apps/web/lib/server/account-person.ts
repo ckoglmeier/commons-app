@@ -6,6 +6,14 @@ import {
 import type { SignupDecision } from "@commons/domain";
 import { decideSignup, type SignupLookups } from "@/lib/signup-access";
 import { commonsDatabaseUrl } from "./runtime-environment";
+import { CommonsJoinRefusedError } from "./commons-access-errors";
+
+export const SIGNUP_REFUSED_MESSAGE = "This Commons is invite-only. Ask a trip organizer to invite you, then use the link in your invitation.";
+export const SIGNUP_DOMAIN_MESSAGE = "Accounts here are limited to certain email domains. Use your invited address, or ask a trip organizer to invite you.";
+
+export function signupRefusalMessage(decision: SignupDecision) {
+  return decision.reason === "domain_not_listed" ? SIGNUP_DOMAIN_MESSAGE : SIGNUP_REFUSED_MESSAGE;
+}
 
 /*
  * Who may create an account on this copy (C18). The instance admin is the first account to sign in. Signing in to an existing account and
@@ -58,4 +66,11 @@ export async function placeSignedInAccount(identity: AuthenticatedIdentity, data
   const decision = await signupAllowedFor(identity.email ?? "", next, undefined, { emailVerified: identity.emailProvesIdentity !== false });
   const personId = await findOrClaimPersonForAuthIdentity(identity, databaseUrl, { allowNewPerson: decision.allowed });
   return { personId, refused: personId || decision.allowed ? null : decision };
+}
+
+/** The account's person, or a CommonsJoinRefusedError that says why Who can join keeps it out. Null for other reasons (no name yet). */
+export async function signedInPersonOrRefusal(identity: AuthenticatedIdentity, databaseUrl: string, next = "") {
+  const { personId, refused } = await placeSignedInAccount(identity, databaseUrl, next);
+  if (refused) throw new CommonsJoinRefusedError(signupRefusalMessage(refused));
+  return personId;
 }

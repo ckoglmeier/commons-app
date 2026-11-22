@@ -1,5 +1,5 @@
 import "server-only";
-import { personForSignedInAccount } from "./account-person";
+import { signedInPersonOrRefusal } from "./account-person";
 import { parseTripEntryContext } from "@/lib/trip-entry/context";
 
 import {
@@ -35,7 +35,7 @@ async function creationOptions() {
   }
   const identity = await getCommonsAuthIdentity();
   if (!identity) throw new CommonsAuthenticationRequiredError();
-  const actorPersonId = await personForSignedInAccount(identity, url);
+  const actorPersonId = await signedInPersonOrRefusal(identity, url);
   if (!actorPersonId) throw new CommonsMembershipRequiredError();
   return { databaseUrl: url, actorPersonId };
 }

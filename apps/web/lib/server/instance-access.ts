@@ -4,10 +4,7 @@ import { normalizeAllowedDomains, parseSignupMode } from "@commons/domain";
 import { z } from "zod";
 import { authenticatedCommonsRepositoryOptions } from "./commons";
 
-export { signupAllowedFor } from "./account-person";
-
-export const SIGNUP_REFUSED_MESSAGE = "This Commons is invite-only. Ask a trip organizer to invite you, then use the link in your invitation.";
-export const SIGNUP_DOMAIN_MESSAGE = "Accounts here are limited to certain email domains. Use your invited address, or ask a trip organizer to invite you.";
+export { signupAllowedFor, SIGNUP_DOMAIN_MESSAGE, SIGNUP_REFUSED_MESSAGE } from "./account-person";
 
 export async function currentPersonIsInstanceAdmin() {
   const options = await authenticatedCommonsRepositoryOptions().catch(() => null);

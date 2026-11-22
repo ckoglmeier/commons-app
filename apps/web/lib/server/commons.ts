@@ -1,5 +1,5 @@
 import "server-only";
-import { personForSignedInAccount } from "./account-person";
+import { personForSignedInAccount, signedInPersonOrRefusal } from "./account-person";
 import { autoSendTravelerInvitation } from "./traveler-invitation-delivery";
 
 import {
@@ -112,7 +112,7 @@ async function databaseOptions(identity?: CommonsAuthIdentity) {
   if (!url) return null;
   if (isSignInConfigured()) {
     const resolvedIdentity = identity ?? await authenticatedIdentity();
-    const actorPersonId = await personForSignedInAccount(
+    const actorPersonId = await signedInPersonOrRefusal(
       resolvedIdentity!,
       url,
     );

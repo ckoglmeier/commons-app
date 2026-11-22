@@ -42,7 +42,7 @@ test("every server path that resolves a signed-in account's person meets Who can
   for (const path of ["./server/commons.ts", "./server/event-creation.ts", "./server/polls.ts", "./server/profile.ts", "./server/group-invitations.ts"]) {
     const source = read(path);
     assert.doesNotMatch(source, /findOrClaimPersonForAuthIdentity/, `${path} must go through personForSignedInAccount`);
-    assert.match(source, /personForSignedInAccount\(/, path);
+    assert.match(source, /(personForSignedInAccount|signedInPersonOrRefusal)\(/, path);
   }
   const gate = read("./server/account-person.ts");
   assert.match(gate, /findOrClaimPersonForAuthIdentity\(identity, databaseUrl, \{ allowNewPerson: decision\.allowed \}\)/);
