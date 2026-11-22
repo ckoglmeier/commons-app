@@ -13,7 +13,8 @@ export type SignupLookups = {
  * sign-in, no email set up) means nobody proved they own the address, so an invitation sent to it doesn't count: only a valid invite link does.
  */
 export async function decideSignup(look: SignupLookups, email: string, next: string, emailVerified: boolean): Promise<SignupDecision> {
-  const [firstAccount, existingAccount] = await Promise.all([look.noAdmin(), look.hasAccount(email)]);
+  // A typed address that matches someone's account proves nothing, so it never counts as that account.
+  const [firstAccount, existingAccount] = await Promise.all([look.noAdmin(), emailVerified ? look.hasAccount(email) : Promise.resolve(false)]);
   const invited = !firstAccount && !existingAccount && ((emailVerified && await look.hasPendingInvitation(email)) || await look.invitationLinkValid(next));
   const settings = await look.settings();
   return signupDecision({ email, firstAccount, existingAccount, invited }, { mode: parseSignupMode(settings.signupMode), allowedDomains: settings.allowedDomains });

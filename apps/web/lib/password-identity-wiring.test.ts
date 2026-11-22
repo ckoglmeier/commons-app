@@ -37,3 +37,17 @@ test("a password account's address never makes it a poll's response-only guest, 
   assert.match(read("../app/c/[slug]/polls/new/page.tsx"), /guestEmailsAllowed=\{await currentSignInMethod\(\) !== "password"\}/);
   assert.match(read("../app/c/[slug]/polls/new/poll-starter.tsx"), /guestEmails: guestEmailsAllowed \? /);
 });
+
+test("every server path that resolves a signed-in account's person meets Who can join first", () => {
+  for (const path of ["./server/commons.ts", "./server/event-creation.ts", "./server/polls.ts", "./server/profile.ts", "./server/group-invitations.ts"]) {
+    const source = read(path);
+    assert.doesNotMatch(source, /findOrClaimPersonForAuthIdentity/, `${path} must go through personForSignedInAccount`);
+    assert.match(source, /personForSignedInAccount\(/, path);
+  }
+  const gate = read("./server/account-person.ts");
+  assert.match(gate, /findOrClaimPersonForAuthIdentity\(identity, databaseUrl, \{ allowNewPerson: decision\.allowed \}\)/);
+  const create = read("../app/account/create/actions.ts");
+  assert.doesNotMatch(create, /findOrClaimPersonForAuthIdentity/);
+  assert.equal(create.match(/placeSignedInAccount\(/g)?.length, 2, "test sign-in and Supabase paths");
+  assert.match(read("../app/sign-in/actions.ts"), /if \(!known && mode === "sign-in"\) \{/);
+});

@@ -14,13 +14,14 @@ async function loadCompleteAccount() {
     export const safeAuthNext=value=>value&&value.startsWith('/')?value:'/trips';export const hasCompletedAccountName=metadata=>!!metadata?.first_name;
     export const currentSignInMethod=async()=>state.method;
     export const findOrClaimPersonForAuthIdentity=async identity=>{state.emailCalls.push(identity);return 'own-person'};
+    export const placeSignedInAccount=async identity=>{state.emailCalls.push(identity);return {personId:state.refused?null:'own-person',refused:state.refused??null}};export const SIGNUP_REFUSED_MESSAGE='invite-only';export const SIGNUP_DOMAIN_MESSAGE='domains only';
     export const findOrClaimPersonForInvitationLink=async(token,identity)=>{state.linkCalls.push({token,identity});return state.placed};
-    export const createSupabaseServerClient=async()=>({auth:{getUser:async()=>({data:{user:{id:'account-b',user_metadata:{}}}}),updateUser:async()=>({data:{user:{id:'account-b',email:'casey@example.com'}}})}});`;
-  const imports = new Set(["@commons/database", "next/headers", "next/navigation", "@/lib/server/outcome-telemetry", "@/lib/server/runtime-environment", "@/lib/supabase/server", "@/lib/supabase/config", "@/lib/server/dev-session", "@/lib/server/sign-in-method", "@/lib/auth-flow", "qa-state"]);
+    export const createSupabaseServerClient=async()=>({auth:{getUser:async()=>({data:{user:{id:'account-b',user_metadata:{}}}}),updateUser:async()=>({data:{user:{id:'account-b',email:'casey@example.com'}}}),signOut:async()=>{state.signedOut=true;return {}}}});`;
+  const imports = new Set(["@commons/database", "next/headers", "next/navigation", "@/lib/server/outcome-telemetry", "@/lib/server/runtime-environment", "@/lib/supabase/server", "@/lib/supabase/config", "@/lib/server/dev-session", "@/lib/server/sign-in-method", "@/lib/auth-flow", "@/lib/server/account-person", "@/lib/server/instance-access", "qa-state"]);
   const bundle = await build({ stdin: { contents: "export {completeAccount} from './app/account/create/actions';export {state} from 'qa-state';", resolveDir: process.cwd() }, bundle: true, write: false, format: "esm", platform: "node", plugins: [{ name: "fake-dependencies", setup(b) { b.onResolve({ filter: /.*/ }, args => imports.has(args.path) ? { path: "shared", namespace: "fake" } : undefined); b.onLoad({ filter: /.*/, namespace: "fake" }, () => ({ contents: stub })); } }] });
   return await import(`data:text/javascript;base64,${Buffer.from(`${bundle.outputFiles[0]!.text}\n// ${Math.random()}`).toString("base64")}`) as {
     completeAccount: (previous: object, form: FormData) => Promise<{ message?: string }>;
-    state: { method: string; placed: { status: string; personId?: string }; textMessaging: boolean; linkCalls: Array<{ token: string; identity: Record<string, unknown> }>; emailCalls: Array<Record<string, unknown>>; redirects: string[] };
+    state: { refused?: { allowed: false; reason: string }; signedOut?: boolean; method: string; placed: { status: string; personId?: string }; textMessaging: boolean; linkCalls: Array<{ token: string; identity: Record<string, unknown> }>; emailCalls: Array<Record<string, unknown>>; redirects: string[] };
   };
 }
 
@@ -68,4 +69,14 @@ test("emailed sign-in links: account creation matches by the confirmed email as 
   assert.equal(client.state.linkCalls.length, 0);
   assert.equal(client.state.emailCalls.length, 1);
   assert.equal(client.state.emailCalls[0]!.emailProvesIdentity, true);
+});
+
+test("an account Who can join refuses gets no profile, is signed out and is told why", async () => {
+  const client = await loadCompleteAccount();
+  client.state.placed = { status: "unavailable" };
+  client.state.refused = { allowed: false, reason: "invited_only" };
+  const result = await client.completeAccount({}, form("/trips"));
+  assert.equal(result.message, "invite-only");
+  assert.equal(client.state.signedOut, true);
+  assert.deepEqual(client.state.redirects, []);
 });

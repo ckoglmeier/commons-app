@@ -26,7 +26,11 @@ test("with password sign-in, holding a valid invite link lets a new person in", 
   assert.equal(decision.allowed, true);
 });
 
-test("with password sign-in, the first account and existing accounts still work", async () => {
+test("with password sign-in, the first account still works", async () => {
   assert.equal((await signupAllowedFor("ck@example.com", "/", lookups({ noAdmin: true }), { emailVerified: false })).allowed, true);
-  assert.equal((await signupAllowedFor("sam@example.com", "/", lookups({ hasAccount: true }), { emailVerified: false })).allowed, true);
+});
+
+test("with password sign-in, typing someone else's account address doesn't count as having that account", async () => {
+  const decision = await signupAllowedFor("sam@example.com", "/", lookups({ hasAccount: true }), { emailVerified: false });
+  assert.equal(decision.allowed, false);
 });

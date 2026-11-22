@@ -329,8 +329,13 @@ export async function findPersonProfileForAuthUser(
 export async function findOrClaimPersonForAuthIdentity(
   identity: AuthenticatedIdentity,
   databaseUrl?: string,
+  /**
+   * `allowNewPerson: false` still finds the account's person or claims one its proven contact details already name, but never makes a
+   * brand-new person. The web layer passes it when this copy's Who can join rule refuses the account.
+   */
+  options: { allowNewPerson?: boolean } = {},
 ) {
-  const personId = await resolvePersonForAuthIdentity(identity, databaseUrl);
+  const personId = await resolvePersonForAuthIdentity(identity, databaseUrl, options.allowNewPerson ?? true);
   if (personId) await claimInstanceAdminIfUnset(personId, databaseUrl);
   return personId;
 }
@@ -396,7 +401,8 @@ export async function findOrClaimPersonForInvitationLink(
 
 async function resolvePersonForAuthIdentity(
   identity: AuthenticatedIdentity,
-  databaseUrl?: string,
+  databaseUrl: string | undefined,
+  allowNewPerson: boolean,
 ) {
   const existingPersonId = await findPersonIdForAuthUser(
     identity.authUserId,
@@ -450,7 +456,7 @@ async function resolvePersonForAuthIdentity(
       const mappedIdentity = mappedIdentities[0];
       if (!mappedIdentity) {
         const displayName = identity.displayName?.trim();
-        if (!displayName) return null;
+        if (!displayName || !allowNewPerson) return null;
         const [created] = await transaction
           .insert(people)
           .values({ authUserId: identity.authUserId, displayName })

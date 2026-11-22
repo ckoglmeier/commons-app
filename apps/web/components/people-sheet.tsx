@@ -39,6 +39,19 @@ function linkOnly(person: CommonsPerson, emailInvitations: boolean) {
   return person.invitation.deliveryState === "not_sent" || (person.invitation.deliveryState === "failed" && (code === "delivery_disabled" || code === "email_not_configured"));
 }
 
+/** An email that failed matters only while the person still has to accept. Once they've joined it's history. */
+function needsAttention(person: CommonsPerson, emailInvitations: boolean) {
+  if (person.membershipStatus === "active" || person.invitation?.status !== "pending") return false;
+  return person.invitation.deliveryState === "failed" && !linkOnly(person, emailInvitations);
+}
+
+function statusTone(person: CommonsPerson, emailInvitations: boolean) {
+  if (person.membershipStatus === "active") return "joined";
+  if (person.invitation?.status === "expired") return "failed";
+  if (linkOnly(person, emailInvitations)) return "not_sent";
+  return person.invitation?.deliveryState ?? "joined";
+}
+
 function deliveryLabel(person: CommonsPerson, emailInvitations = true) {
   if (person.membershipStatus === "active") return "Joined";
   if (linkOnly(person, emailInvitations)) return "Not sent";
@@ -182,7 +195,7 @@ export function PeopleSheet({
       joined: people.filter((person) => person.membershipStatus === "active").length,
       managed: people.filter((person) => person.accessMode === "managed").length,
       invited: people.filter((person) => person.invitation?.status === "pending" && (person.invitation.deliveryState !== "failed" || linkOnly(person, emailInvitations))).length,
-      attention: people.filter((person) => (person.invitation?.deliveryState === "failed" && !linkOnly(person, emailInvitations)) || person.invitation?.status === "expired").length,
+      attention: people.filter((person) => needsAttention(person, emailInvitations) || (person.membershipStatus !== "active" && person.invitation?.status === "expired")).length,
     };
   }, [canManage, data, emailInvitations, participants]);
 
@@ -449,11 +462,11 @@ export function PeopleSheet({
                   .filter(Boolean)
                   .join(" and ");
                 return (
-                  <article key={person.membershipId} className={`people-row${person.invitation?.deliveryState === "failed" && !linkOnly(person, emailInvitations) ? " people-row--attention" : ""}`}>
+                  <article key={person.membershipId} className={`people-row${needsAttention(person, emailInvitations) ? " people-row--attention" : ""}`}>
                     <button className="people-row__summary" type="button" onClick={() => { setSelectedId(selected ? null : person.personId); setManagedProfile(null); setRoleConfirm(null); setLinkFallback(null); }} aria-expanded={selected}>
                       <span className="people-avatar">{initials(person.displayName)}</span>
                       <span><strong>{person.displayName}{person.role === "organizer" ? <em>Organizer</em> : null}</strong><small>{person.accessMode === "managed" ? `Managed${managerNames ? ` by ${managerNames}` : ""} · no account` : person.role === "organizer" ? "Trip organizer" : deliveryHelp(person, emailInvitations)}</small></span>
-                      <span className={`people-status people-status--${person.invitation?.status === "expired" ? "failed" : linkOnly(person, emailInvitations) ? "not_sent" : person.invitation?.deliveryState ?? "joined"}`}>{person.accessMode === "managed" ? pending ? "Invitation pending" : "Managed" : deliveryLabel(person, emailInvitations)}</span>
+                      <span className={`people-status people-status--${statusTone(person, emailInvitations)}`}>{person.accessMode === "managed" ? pending ? "Invitation pending" : "Managed" : deliveryLabel(person, emailInvitations)}</span>
                       <ChevronRightIcon />
                     </button>
                     {person.membershipStatus === "active" ? renderPersonTravel?.(person.personId) : null}

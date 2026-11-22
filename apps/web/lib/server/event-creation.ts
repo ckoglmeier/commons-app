@@ -1,10 +1,10 @@
 import "server-only";
+import { personForSignedInAccount } from "./account-person";
 import { parseTripEntryContext } from "@/lib/trip-entry/context";
 
 import {
   commitEventCreationDraft,
   createEventCreationDraft,
-  findOrClaimPersonForAuthIdentity,
   getEventCreationDraft,
   listRecentReusableEvents,
   updateEventCreationDraft,
@@ -35,7 +35,7 @@ async function creationOptions() {
   }
   const identity = await getCommonsAuthIdentity();
   if (!identity) throw new CommonsAuthenticationRequiredError();
-  const actorPersonId = await findOrClaimPersonForAuthIdentity(identity, url);
+  const actorPersonId = await personForSignedInAccount(identity, url);
   if (!actorPersonId) throw new CommonsMembershipRequiredError();
   return { databaseUrl: url, actorPersonId };
 }

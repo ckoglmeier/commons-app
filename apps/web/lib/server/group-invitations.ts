@@ -1,5 +1,6 @@
 import "server-only";
-import { getGroupInvitationPreview, joinGroupInvitation, GroupInvitationUnavailableError, findOrClaimPersonForAuthIdentity } from "@commons/database";
+import { personForSignedInAccount } from "./account-person";
+import { getGroupInvitationPreview, joinGroupInvitation, GroupInvitationUnavailableError } from "@commons/database";
 import { getVerifiedAuthUser } from "@/lib/supabase/server";
 import { CommonsAuthenticationRequiredError } from "./commons-access-errors";
 import { commonsDatabaseUrl } from "./runtime-environment";
@@ -31,7 +32,7 @@ export async function groupInvitationManagementOptions(slug: string, mode: "read
   let identity;
   try { identity = await verifiedGroupInvitationIdentity(); }
   catch (error) { if (mode === "read" && error instanceof CommonsAuthenticationRequiredError) return null; throw error; }
-  const actorPersonId = await findOrClaimPersonForAuthIdentity(identity, url);
+  const actorPersonId = await personForSignedInAccount(identity, url);
   if (!actorPersonId) throw new CommonsAuthenticationRequiredError();
   return { databaseUrl: url, actorPersonId, creatorCheck: creatorCheck() };
 }

@@ -18,6 +18,8 @@ The first account to sign in is the instance admin. Open your account menu (your
 
 Travelers you invite never see this choice. They follow their invitation.
 
+The rule also covers accounts made outside Commons, for example straight through your Supabase project's own signup: such an account gets no Commons profile unless the rule lets it in.
+
 ## Your own domain
 
 A `vercel.app` address works. To use your own:

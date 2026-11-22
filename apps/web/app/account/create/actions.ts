@@ -1,6 +1,9 @@
 "use server";
 
-import { findOrClaimPersonForAuthIdentity, findOrClaimPersonForInvitationLink } from "@commons/database";
+import { findOrClaimPersonForInvitationLink } from "@commons/database";
+import { placeSignedInAccount } from "@/lib/server/account-person";
+import { SIGNUP_DOMAIN_MESSAGE, SIGNUP_REFUSED_MESSAGE } from "@/lib/server/instance-access";
+import type { SignupDecision } from "@commons/domain";
 import { headers } from "next/headers";
 import { recordOutcome } from "@/lib/server/outcome-telemetry";
 import { redirect } from "next/navigation";
@@ -13,6 +16,10 @@ import { startDevSession } from "@/lib/server/dev-session";
 import { currentSignInMethod } from "@/lib/server/sign-in-method";
 
 export type CreateAccountState = { message?: string };
+
+function refusalMessage(decision: SignupDecision) {
+  return decision.reason === "domain_not_listed" ? SIGNUP_DOMAIN_MESSAGE : SIGNUP_REFUSED_MESSAGE;
+}
 
 /** The private link in a /join/{token} destination, if that is where this account is headed. */
 function personalInvitationToken(next: string | undefined) {
@@ -43,8 +50,10 @@ export async function completeAccount(
     const identity = await startDevSession(current.email, parsed.data.firstName);
     const databaseUrl = commonsDatabaseUrl();
     if (databaseUrl) {
-      try { await findOrClaimPersonForAuthIdentity({ ...identity, displayName: parsed.data.firstName }, databaseUrl); }
+      let refused: SignupDecision | null;
+      try { ({ refused } = await placeSignedInAccount({ ...identity, displayName: parsed.data.firstName }, databaseUrl, safeAuthNext(parsed.data.next))); }
       catch { return { message: "Account not created. Try again." }; }
+      if (refused) return { message: refusalMessage(refused) };
     }
     redirect(safeAuthNext(parsed.data.next));
   }
@@ -65,6 +74,7 @@ export async function completeAccount(
   const emailProvesIdentity = (await currentSignInMethod()) !== "password";
   const invitationToken = emailProvesIdentity ? null : personalInvitationToken(parsed.data.next);
   let joiningManagedTraveler = false;
+  let refused: SignupDecision | null = null;
   if (databaseUrl) {
     try {
       const identity = {
@@ -76,10 +86,15 @@ export async function completeAccount(
       };
       const placed = invitationToken ? await findOrClaimPersonForInvitationLink(invitationToken, identity, databaseUrl) : null;
       joiningManagedTraveler = placed?.status === "managed";
-      if (!placed || placed.status === "unavailable") await findOrClaimPersonForAuthIdentity(identity, databaseUrl);
+      // An account made outside Commons (straight through Supabase's own signup) still meets Who can join here.
+      if (!placed || placed.status === "unavailable") ({ refused } = await placeSignedInAccount(identity, databaseUrl, safeAuthNext(parsed.data.next)));
     } catch {
       return { message: "Account not created. Your sign-in is still safe. Try again." };
     }
+  }
+  if (refused) {
+    await supabase.auth.signOut().catch(() => undefined);
+    return { message: refusalMessage(refused) };
   }
 
   // Successful account setup is distinct from a later sign-in. Stable account key deduplicates retries.

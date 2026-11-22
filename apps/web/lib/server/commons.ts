@@ -1,4 +1,5 @@
 import "server-only";
+import { personForSignedInAccount } from "./account-person";
 import { autoSendTravelerInvitation } from "./traveler-invitation-delivery";
 
 import {
@@ -25,7 +26,6 @@ import {
     deleteCommonsMoment,
     deleteCommonsStay,
     deleteCommonsTravelPlan,
-    findOrClaimPersonForAuthIdentity,
     findPersonProfileForAuthUser,
     getCommonsMomentAsset,
     getCommonsCoverAsset,
@@ -112,7 +112,7 @@ async function databaseOptions(identity?: CommonsAuthIdentity) {
   if (!url) return null;
   if (isSignInConfigured()) {
     const resolvedIdentity = identity ?? await authenticatedIdentity();
-    const actorPersonId = await findOrClaimPersonForAuthIdentity(
+    const actorPersonId = await personForSignedInAccount(
       resolvedIdentity!,
       url,
     );
@@ -149,7 +149,7 @@ export async function loadCurrentCommonsMemberships(): Promise<
   if (isSignInConfigured()) {
     const identity = await getCommonsAuthIdentity();
     if (!identity) return [];
-    const personId = await findOrClaimPersonForAuthIdentity(identity!, url);
+    const personId = await personForSignedInAccount(identity!, url);
     return personId
       ? await listCommonsMembershipsForPerson(personId, url)
       : [];

@@ -1,6 +1,7 @@
 import "server-only";
+import { personForSignedInAccount } from "./account-person";
 
-import { createCommonsPoll, PollRepositoryError, reservePollFraming, getPollDeliveryReview, queuePollDeliveries, getEventAttendance, setEventAttendance, revokePollRecipient, approvePollDecision, listCommonsPollDrafts, saveCommonsPollDraft, deleteCommonsPollResponse, findOrClaimPersonForAuthIdentity, getCommonsPollDetail, getPublicPollByPublicId, getPublicPollByToken, getPendingPollInvitation, localDevelopmentPollViewer, submitPublicPollResponse, submitPublicPollResponseByPublicId, updateCommonsPollStatus } from "@commons/database";
+import { createCommonsPoll, PollRepositoryError, reservePollFraming, getPollDeliveryReview, queuePollDeliveries, getEventAttendance, setEventAttendance, revokePollRecipient, approvePollDecision, listCommonsPollDrafts, saveCommonsPollDraft, deleteCommonsPollResponse, getCommonsPollDetail, getPublicPollByPublicId, getPublicPollByToken, getPendingPollInvitation, localDevelopmentPollViewer, submitPublicPollResponse, submitPublicPollResponseByPublicId, updateCommonsPollStatus } from "@commons/database";
 import { getLocalDevelopmentPilotActorId, isSignInConfigured } from "@/lib/supabase/config";
 import { getCommonsAuthIdentity, getVerifiedAuthUser } from "@/lib/supabase/server";
 import { CommonsAuthenticationRequiredError, CommonsMembershipRequiredError } from "./commons";
@@ -20,7 +21,7 @@ async function pollOptions() {
   if (isSignInConfigured()) {
     const identity = await getCommonsAuthIdentity();
     if (!identity) throw new CommonsAuthenticationRequiredError();
-    const actorPersonId = await findOrClaimPersonForAuthIdentity(identity, url);
+    const actorPersonId = await personForSignedInAccount(identity, url);
     if (!actorPersonId) throw new CommonsMembershipRequiredError();
     return { databaseUrl: url, actorPersonId, resolveVerifiedEmail: getSupabaseVerifiedAuthUserEmail };
   }

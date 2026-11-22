@@ -45,6 +45,9 @@ export function PollStarter({ guestEmailsAllowed = true, linkOnly = false, bigQu
   const [title, setTitle] = useState(initialDraft?.data.title ?? defaultTitle);
   const [intro, setIntro] = useState(initialDraft?.data.intro ?? (stayPoll ? stayPollIntro(stayOptions) : transportPoll ? "We’re deciding how to get around. Pick every option that could work for you, then your first choice if you have one. Nothing is booked yet." : activityPoll ? "We’re choosing what to do. Pick every activity you’d do. Choosing here doesn’t change the plan." : ""));
   const [framingRequest, setFramingRequest] = useState(initialDraft?.data.framingRequest ?? "");
+  // Before "We're going" every poll is a link poll. After it the organizer picks: trip members only, or anyone with the link.
+  const [access, setAccess] = useState<"people" | "link">(initialDraft && !initialDraft.data.audience ? "link" : "people");
+  const anyoneWithLink = linkOnly || access === "link";
   const [settledFacts, setSettledFacts] = useState(initialDraft?.data.settledFacts ?? "");
   const [recipientIds, setRecipientIds] = useState(initialDraft?.data.audience?.personIds ?? (sourcePoll ? [] : people.map(person => person.id)));
   const [guestEmails, setGuestEmails] = useState(initialDraft?.data.audience?.guestEmails.join(", ") ?? "");
@@ -132,7 +135,7 @@ export function PollStarter({ guestEmailsAllowed = true, linkOnly = false, bigQu
     inFlight.current = true; setBusy(true); setError("");
     const firstSave = !saved;
     saveCommand.current ??= { id: saved?.id ?? crypto.randomUUID(), commandId: crypto.randomUUID(),
-      expectedVersion: saved?.version ?? 0, data: { title, intro: intro || null, settledFacts, framingRequest: framingRequest.trim() || undefined, ballotMode, questions, audience, sourcePollId } };
+      expectedVersion: saved?.version ?? 0, data: { title, intro: intro || null, settledFacts, framingRequest: framingRequest.trim() || undefined, ballotMode, questions, audience: anyoneWithLink ? undefined : audience, sourcePollId } };
     try {
       const response = await fetch(`/api/v1/commons/${encodeURIComponent(slug)}/poll-drafts`, { method: "POST",
         headers: { "content-type": "application/json" }, body: JSON.stringify(saveCommand.current) });
@@ -166,12 +169,12 @@ export function PollStarter({ guestEmailsAllowed = true, linkOnly = false, bigQu
     finally { inFlight.current = false; setBusy(false); }
   }
   async function reviewPoll() {
-    const body: CreatePollRequest = { commandId: pending.current?.commandId ?? crypto.randomUUID(), title, intro: intro || null, ballotMode, questions, ...(linkOnly ? {} : { audience }), sourcePollId };
+    const body: CreatePollRequest = { commandId: pending.current?.commandId ?? crypto.randomUUID(), title, intro: intro || null, ballotMode, questions, ...(anyoneWithLink ? {} : { audience }), sourcePollId };
     const validation = pollDraftError(body);
     if (validation) { setError(validation); return; }
     const draft = await saveDraft();
     if (!draft) return;
-    pending.current = { ...body, draftId: draft.id, draftVersion: draft.version, ...(linkOnly ? { publicationApproval: { approved: true, access: "link" as const } } : {}) }; setError(""); setReview(true);
+    pending.current = { ...body, draftId: draft.id, draftVersion: draft.version, ...(anyoneWithLink ? { publicationApproval: { approved: true, access: "link" as const } } : {}) }; setError(""); setReview(true);
   }
   async function createPoll() {
     if (inFlight.current || publishedHref || !pending.current || !review) return;
@@ -208,14 +211,14 @@ export function PollStarter({ guestEmailsAllowed = true, linkOnly = false, bigQu
     <div className="poll-organizer-content fieldnotes-builder">
       <div className="poll-organizer-intro"><h1>{review ? "Preview your poll" : "Ask the group"}</h1></div>
       {sourcePollId ? <p>Follow-up to <Link href={`/c/${slug}/polls/${sourcePollId}`} onClick={event => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) { event.preventDefault(); void leave(`/c/${slug}/polls/${sourcePollId}`); } }}>the earlier poll</Link>. Pick who can answer again. Earlier answers and prices aren’t copied.</p> : null}
-      {!initialDraft && !saved && savedDrafts.length ? <details className="fieldnotes-context"><summary>Your saved polls</summary>{savedDrafts.map(draft => <p key={draft.id}><Link onClick={followSavedLink} href={draft.publishedPollId ? `/c/${slug}/polls/${draft.publishedPollId}` : `/c/${slug}/polls/new/?draft=${draft.id}`}>{draft.data.title || "Untitled poll"} · {draft.publishedPollId ? "Shared" : "Draft"}</Link></p>)}</details> : null}
+      {!initialDraft && !saved && savedDrafts.length ? <details className="fieldnotes-context"><summary>Your saved polls</summary>{savedDrafts.map(draft => <p key={draft.id}><Link className="poll-saved-link" onClick={followSavedLink} href={draft.publishedPollId ? `/c/${slug}/polls/${draft.publishedPollId}` : `/c/${slug}/polls/new/?draft=${draft.id}`}>{draft.data.title || "Untitled poll"} · {draft.publishedPollId ? "Shared" : "Draft"}</Link></p>)}</details> : null}
       {review ? <section className="poll-preview" aria-label="Poll review">
         <h2>{title}</h2>{intro ? <p>{intro}</p> : null}
         <p>{ballotMode === "secret" ? "Secret ballot. Only totals show, after voting closes." : "Named answers. Selected participants and organizers can see choices. Comments are visible to the creator and organizers only."}</p>
-        {linkOnly ? <><h3>Who can answer</h3>
+        {anyoneWithLink ? <><h3>Who can answer</h3>
         <p>Anyone with the link. They don’t sign in or join the trip, and names are self-reported.</p></> : <><h3>Reviewed audience</h3>
         <p>{recipientNames ? `Trip participants: ${recipientNames}. Anyone still invited needs to accept their trip invitation first.` : "Trip participants: None."}</p>
-        <p>Response-only guests: {audience.guestEmails.join(", ") || "None"}. They can answer but can’t open the trip.</p>
+        {guestEmailsAllowed ? <p>Response-only guests: {audience.guestEmails.join(", ") || "None"}. They can answer but can’t open the trip.</p> : null}
         <p>Recipients sign in with their account. Answering isn’t an RSVP.</p></>}
         {questions.map((question, index) => <div className="poll-preview__question" key={question.id}><span>{index + 1}</span><div><strong>{question.prompt}</strong><p>{question.required ? "Required" : "Optional"} · {pollQuestionFormat(question)}</p>{question.kind !== "text" ? <ul>{question.options.map(item => <li key={item.id}>{item.label}{item.description ? ` — ${item.description}` : ""}{item.exclusive ? " (cannot be combined)" : ""}{item.housing ? <PollHousingFacts housing={item.housing} /> : null}{item.url ? <a href={item.url} target="_blank" rel="noreferrer">View source</a> : null}</li>)}</ul> : null}</div></div>)}
         <p>Publishing doesn’t email anyone or change the trip. You share the link next.</p>
@@ -254,7 +257,11 @@ export function PollStarter({ guestEmailsAllowed = true, linkOnly = false, bigQu
         <section aria-label="Sharing settings">
         <h2>Before you share</h2>
         <label className="fieldnotes-field"><span>Poll title</span><input value={title} onChange={event => { edit(); setTitle(event.target.value); }} maxLength={120} /></label>
-        {linkOnly ? <p className="fieldnotes-note"><strong>Anyone with the link can answer.</strong> They don’t sign in or join the trip. Commons doesn’t send it.</p> : <details className="fieldnotes-context"><summary>Who can answer · {recipientIds.length} trip participants{guestEmailsAllowed ? ` · ${audience.guestEmails.length} guests` : ""}</summary>
+        {!linkOnly ? <fieldset className="poll-access-choice"><legend>Who can answer</legend>
+          <label className="fieldnotes-toolbar"><input type="radio" name="poll-access" checked={access === "people"} onChange={() => { edit(); setAccess("people"); }} />Trip invitees · Sign-in required</label>
+          <label className="fieldnotes-toolbar"><input type="radio" name="poll-access" checked={access === "link"} onChange={() => { edit(); setAccess("link"); }} />Anyone with the link · No sign-in</label>
+        </fieldset> : null}
+        {anyoneWithLink ? <p className="fieldnotes-note"><strong>Anyone with the link can answer.</strong> They don’t sign in or join the trip. Commons doesn’t send it.</p> : <details className="fieldnotes-context"><summary>Who can answer · {recipientIds.length} trip participants{guestEmailsAllowed ? ` · ${audience.guestEmails.length} guests` : ""}</summary>
           {guestEmailsAllowed ? <p>Guests can answer the poll but can’t open the trip.</p> : null}
           {people.map(person => <label className="fieldnotes-toolbar" key={person.id}><input type="checkbox" checked={recipientIds.includes(person.id)} onChange={event => { edit(); setRecipientIds(event.target.checked ? [...recipientIds, person.id] : recipientIds.filter(id => id !== person.id)); }} />{person.name}</label>)}
           {guestEmailsAllowed ? <label className="fieldnotes-field"><span>Response-only guest emails · Optional</span><textarea value={guestEmails} onChange={event => { edit(); setGuestEmails(event.target.value); }} rows={2} maxLength={10000} /><small>Separate emails with commas.</small></label> : null}

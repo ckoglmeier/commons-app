@@ -176,7 +176,7 @@ Open http://localhost:3000 and sign in with any made-up email. The first person 
 npm run typecheck && npm run lint && npm test
 ```
 
-Database tests run when `COMMONS_RUN_DATABASE_TESTS=1` and `TEST_DATABASE_URL` points at a disposable local database on `127.0.0.1` whose name ends in `_test`. Prepare that database first with `npm run db:test:bootstrap -w @commons/database` and `npm run db:migrate`, with `DATABASE_DIRECT_URL` set to the same address.
+Database tests run when `COMMONS_RUN_DATABASE_TESTS=1` and `TEST_DATABASE_URL` points at a disposable local database on `127.0.0.1` whose name ends in `_test`. Prepare that database first with `npm run db:test:bootstrap -w @commons/database` and `npm run db:migrate`, with `DATABASE_DIRECT_URL` set to the same address. Invitation tests also need `COMMONS_INVITATION_TOKEN_KEY`; any 32-byte base64 value works locally, such as `AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=`.
 
 ## License
 

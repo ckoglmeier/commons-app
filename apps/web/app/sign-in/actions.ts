@@ -120,5 +120,13 @@ export async function signInWithPassword(_previous: SignInState, formData: FormD
   if (error || !data.user) return { status: "error", message: "That email and password don’t match. If you forgot your password, ask whoever runs this Commons to reset it.", ...kept };
   const databaseUrl = commonsDatabaseUrl();
   const known = databaseUrl ? await findPersonIdForAuthUser(data.user.id, databaseUrl).catch(() => null) : null;
+  if (!known && mode === "sign-in") {
+    // An account made outside Commons (straight through Supabase's own signup) has no profile yet, so it still meets Who can join.
+    const decision = await signupAllowedFor(email, next, undefined, { emailVerified: false }).catch(() => null);
+    if (!decision?.allowed) {
+      await supabase.auth.signOut().catch(() => undefined);
+      return { status: "error", message: decision?.reason === "domain_not_listed" ? SIGNUP_DOMAIN_MESSAGE : decision ? SIGNUP_REFUSED_MESSAGE : "Not signed in. Try again.", ...kept };
+    }
+  }
   redirect(known ? next : accountCreationPath(next, intent));
 }

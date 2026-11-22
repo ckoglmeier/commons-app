@@ -1,7 +1,7 @@
 import "server-only";
+import { personForSignedInAccount } from "./account-person";
 
 import {
-  findOrClaimPersonForAuthIdentity,
   getManagedTravelerProfile,
   getTravelerProfile,
   updateManagedTravelerProfile,
@@ -16,7 +16,7 @@ async function profileContext() {
   if (!identity) throw new Error("Sign in to view your travel profile.");
   const databaseUrl = commonsDatabaseUrl();
   if (!databaseUrl) throw new Error("Traveler profiles are not configured.");
-  const personId = await findOrClaimPersonForAuthIdentity(identity, databaseUrl);
+  const personId = await personForSignedInAccount(identity, databaseUrl);
   if (!personId) throw new Error("Confirm your name before creating a travel profile.");
   return { identity, databaseUrl, personId };
 }

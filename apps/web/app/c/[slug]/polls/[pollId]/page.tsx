@@ -12,6 +12,7 @@ import { PollResults } from "@/components/poll-results";
 import { PollDetailControls } from "./poll-detail-controls";
 import { PollResponseDelete } from "./poll-response-delete";
 import { commonsSiteOrigin } from "@/lib/server/runtime-environment";
+import { emailDeliveryAvailable } from "@/lib/email/resend";
 import { publicPollPath } from "@/lib/poll-route";
 import { PollCombinationReview } from "@/components/poll-combination-review";
 import { itineraryQuestion } from "@/lib/itinerary-workshop";
@@ -32,6 +33,8 @@ export default async function PollDetailPage({ params }: { params: Promise<{ slu
     notFound();
   }
   const origin = commonsSiteOrigin();
+  // A copy with no email set up can't send poll links, so it doesn't offer to.
+  const emailLinks = emailDeliveryAvailable();
   const shareUrl = `${origin}${publicPollPath(poll.publicId)}`;
   const itinerary = itineraryQuestion(poll.questions);
   if (itinerary) return <main className="poll-organizer-shell"><PollWorkspaceHeader eventName={poll.event.name} eventHref={`/c/${slug}`} eventLabel="Trip Home" pollsHref={`/c/${slug}/polls`}/><div className="poll-organizer-content poll-detail-content"><h1>{poll.title}</h1>{poll.currentActorRole === "organizer" ? <><ItineraryFeedbackResults slug={slug} pollId={poll.id} initialPoll={poll}/></> : <p>The organizer is reviewing feedback. <Link href={publicPollPath(poll.publicId)}>View your itinerary and response</Link></p>}<ItineraryDocument itinerary={itinerary.itinerary}/></div></main>;
@@ -44,7 +47,7 @@ export default async function PollDetailPage({ params }: { params: Promise<{ slu
       {poll.intro ? <p>{poll.intro}</p> : null}
       {nextDraft ? <section className="fieldnotes-context"><span className="view-kicker">Your next step is ready</span><h2>Review the next poll</h2><p>The message and options are drafted. Review them and approve when ready.</p><Link className="cm-action cm-action--primary" href={`/c/${slug}/reviews/${nextDraft.id}`}>Review the next poll</Link></section> : null}
       {poll.superseded ? <p role="status">This poll was replaced. Its responses are kept but don’t count toward the new one. {poll.superseded.replacementPublicId ? <a href={`/c/poll/${poll.superseded.replacementPublicId}`}>Open the new poll</a> : "The new poll is still a draft."}</p> : null}
-      {poll.communication ? <><PollCommunication message={poll.communication} /><p role="status">Published. Nothing was emailed. Check delivery status below.</p></> : null}
+      {poll.communication ? <><PollCommunication message={poll.communication} /><p role="status">{emailLinks ? "Published. Nothing was emailed. Check delivery status below." : "Published. Nothing was emailed. Share the link below."}</p></> : null}
       <PollResults poll={poll} />
       {poll.currentActorCanManage && !poll.decision ? <PollDetailControls mode="status" pollId={poll.id} slug={slug} shareUrl={shareUrl} status={poll.status} canManage /> : null}
       <PollDecisionReview slug={slug} poll={poll} />
@@ -59,7 +62,7 @@ export default async function PollDetailPage({ params }: { params: Promise<{ slu
       <section id="poll-sharing" className="poll-responses"><h2>Share</h2>
         <p>{poll.identityBound ? "This link is only for people with access to the poll." : "Anyone with this link can respond."} Copying the link doesn’t email anyone.</p>
         <PollDetailControls pollId={poll.id} slug={slug} shareUrl={shareUrl} status={poll.status} canManage={poll.currentActorCanManage} />
-        {poll.audienceReview && poll.currentActorCanManage && poll.status === "open" ? <details className="fieldnotes-context" open={Boolean(poll.communication)}><summary>{poll.communication ? "Message and poll delivery" : "Email poll links"}</summary><PollDeliveryReview slug={slug} pollId={poll.id} people={audiencePeople} includesMessage={Boolean(poll.communication)} /></details> : null}
+        {emailLinks && poll.audienceReview && poll.currentActorCanManage && poll.status === "open" ? <details className="fieldnotes-context" open={Boolean(poll.communication)}><summary>{poll.communication ? "Message and poll delivery" : "Email poll links"}</summary><PollDeliveryReview slug={slug} pollId={poll.id} people={audiencePeople} includesMessage={Boolean(poll.communication)} /></details> : null}
         {poll.audienceReview && poll.currentActorCanManage ? <details className="fieldnotes-context"><summary>Manage access</summary><PollAudienceReview slug={slug} pollId={poll.id} audience={poll.audienceReview} people={audiencePeople} /></details> : null}
       </section>
     </div>
